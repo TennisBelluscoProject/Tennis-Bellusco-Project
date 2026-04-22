@@ -135,6 +135,17 @@ export function StudentDashboard() {
     setEditingLevel(false);
   };
 
+  // FAB handler
+  const handleFabClick = () => {
+    if (activeTab === 'obiettivi') {
+      setEditingGoal(null);
+      setGoalFormOpen(true);
+    } else {
+      setEditingMatch(null);
+      setMatchFormOpen(true);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -145,9 +156,9 @@ export function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
         {/* Subtitle */}
         <p className="text-sm text-gray-500 mb-5">Il tuo percorso tennistico</p>
 
@@ -215,11 +226,11 @@ export function StudentDashboard() {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs — no icons */}
         <Tabs
           tabs={[
-            { id: 'obiettivi', label: 'I Miei Obiettivi', icon: '🎯' },
-            { id: 'match', label: 'Risultati Agonistici', icon: '🏆' },
+            { id: 'obiettivi', label: 'I Miei Obiettivi' },
+            { id: 'match', label: 'Risultati Agonistici' },
           ]}
           active={activeTab}
           onChange={setActiveTab}
@@ -228,7 +239,8 @@ export function StudentDashboard() {
         <div className="mt-5">
           {activeTab === 'obiettivi' && (
             <>
-              <div className="flex justify-end mb-4">
+              {/* Desktop: inline button | Mobile: FAB handles it */}
+              <div className="hidden sm:flex justify-end mb-4">
                 <Button variant="primary" onClick={() => { setEditingGoal(null); setGoalFormOpen(true); }}>
                   + Nuovo obiettivo
                 </Button>
@@ -262,7 +274,8 @@ export function StudentDashboard() {
 
           {activeTab === 'match' && (
             <>
-              <div className="flex justify-end mb-4">
+              {/* Desktop: inline button | Mobile: FAB handles it */}
+              <div className="hidden sm:flex justify-end mb-4">
                 <Button variant="primary" onClick={() => { setEditingMatch(null); setMatchFormOpen(true); }}>
                   + Aggiungi Match
                 </Button>
@@ -296,6 +309,18 @@ export function StudentDashboard() {
           )}
         </div>
       </main>
+
+      {/* ─── Mobile FAB (floating action button) ─── */}
+      <button
+        onClick={handleFabClick}
+        className="sm:hidden fixed bottom-6 right-5 z-40 w-14 h-14 rounded-full bg-[var(--club-red)] text-white shadow-lg shadow-[var(--club-red)]/30 flex items-center justify-center active:scale-90 transition-transform"
+        aria-label={activeTab === 'obiettivi' ? 'Nuovo obiettivo' : 'Aggiungi match'}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
     </div>
   );
 }
