@@ -59,13 +59,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const initialized = useRef(false);
 
-  // Init: listen to auth state changes
+  // Init: get current session then listen to auth state changes
   useEffect(() => {
+    // 1. Immediately get the current session (handles page refresh / existing cookies)
+    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      if (currentSession?.user) {
+        setUser(currentSession.user);
+        const p = await getProfile(currentSession.user.id);
+        setProfile(p);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
+      initialized.current = true;
+    }).catch(() => {
+      setLoading(false);
+      initialized.current = true;
+    });
+
+    // 2. Listen for future auth changes (sign-in, sign-out, token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, s) => {
       console.log('Auth event:', event);
-      // setState inside callback (not synchronous in effect body) — this is fine
+
+      // Skip INITIAL_SESSION if we already handled it above
+      if (event === 'INITIAL_SESSION' && initialized.current) return;
+
       setSession(s);
 
       if (s?.user) {
@@ -81,17 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       initialized.current = true;
     });
 
-    // Safety: if nothing fires in 5s, stop loading
-    const timeout = setTimeout(() => {
-      if (!initialized.current) {
-        console.warn('Auth timeout — no auth event received');
-        setLoading(false);
-      }
-    }, 5000);
-
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
   }, []);
 
@@ -175,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
   };
 
   const refreshProfile = async () => {
