@@ -61,23 +61,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Init: get current session then listen to auth state changes
   useEffect(() => {
-    // 1. Immediately get the current session (handles page refresh / existing cookies)
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      if (currentSession?.user) {
-        setUser(currentSession.user);
-        const p = await getProfile(currentSession.user.id);
+    // 1. Get session from cookies, then validate it with the server
+    const initSession = async () => {
+      try {
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !currentSession) {
+          // No valid session — show login
+          setUser(null);
+          setProfile(null);
+          setSession(null);
+          setLoading(false);
+          initialized.current = true;
+          return;
+        }
+
+        // Session exists in cookies — validate it with the server
+        // This catches stale/invalidated sessions that cookies still hold
+        const { data: { user: validatedUser }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !validatedUser) {
+          // Cookie has a stale session — clear it
+          console.warn('Stale session detected, clearing cookies...');
+          await supabase.auth.signOut({ scope: 'local' });
+          setUser(null);
+          setProfile(null);
+          setSession(null);
+          setLoading(false);
+          initialized.current = true;
+          return;
+        }
+
+        // Session is valid
+        setSession(currentSession);
+        setUser(validatedUser);
+        const p = await getProfile(validatedUser.id);
         setProfile(p);
-      } else {
+      } catch {
+        // Something went wrong — clear state and show login
+        console.error('Auth init failed, clearing session...');
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
         setUser(null);
         setProfile(null);
+        setSession(null);
+      } finally {
+        setLoading(false);
+        initialized.current = true;
       }
-      setLoading(false);
-      initialized.current = true;
-    }).catch(() => {
-      setLoading(false);
-      initialized.current = true;
-    });
+    };
+
+    // Race against a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (!initialized.current) {
+        console.warn('Auth init timeout — forcing login screen');
+        supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        setUser(null);
+        setProfile(null);
+        setSession(null);
+        setLoading(false);
+        initialized.current = true;
+      }
+    }, 8000);
+
+    initSession().finally(() => clearTimeout(timeout));
 
     // 2. Listen for future auth changes (sign-in, sign-out, token refresh)
     const {
