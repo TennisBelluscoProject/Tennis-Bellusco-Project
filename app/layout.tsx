@@ -26,11 +26,24 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: "#C41E3A",
 };
 
 export const metadata: Metadata = {
   title: "Tennis Club Bellusco",
   description: "Gestione allievi e maestri - Tennis Club Bellusco",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "TC Bellusco",
+  },
+  icons: {
+    icon: "/icons/icon-192x192.png",
+    apple: "/icons/icon-192x192.png",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
@@ -40,7 +53,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" className={`h-full antialiased ${dmSans.variable} ${playfairDisplay.variable} ${dmMono.variable}`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+      </head>
+      <body className="min-h-full flex flex-col font-sans">
+        {children}
+        <ServiceWorkerRegister />
+      </body>
     </html>
+  );
+}
+
+// Client component for SW registration (inline to avoid extra file)
+function ServiceWorkerRegister() {
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
+                .catch(function() {});
+            });
+          }
+        `,
+      }}
+    />
   );
 }
