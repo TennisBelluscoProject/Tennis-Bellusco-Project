@@ -21,13 +21,13 @@ export function MatchCard({ match, showStudentName, isCoach, onEdit, onDelete, o
 
   return (
     <>
-      <div className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all animate-fade-in overflow-hidden ${
+      <div className={`flex flex-col bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all animate-fade-in overflow-hidden h-full ${
         isWin ? 'border-green-100' : 'border-red-100'
       }`}>
         {/* Result strip at top */}
-        <div className={`h-1 ${isWin ? 'bg-green-500' : 'bg-red-400'}`} />
+        <div className={`h-1 shrink-0 ${isWin ? 'bg-green-500' : 'bg-red-400'}`} />
 
-        <div className="p-4">
+        <div className="flex flex-col flex-1 p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
@@ -97,8 +97,11 @@ export function MatchCard({ match, showStudentName, isCoach, onEdit, onDelete, o
             </div>
           )}
 
-          {/* Actions — bigger touch targets */}
-          <div className="flex items-center justify-end gap-1 pt-2 border-t border-gray-50">
+          {/* Spacer pushes actions to bottom */}
+          <div className="flex-1" />
+
+          {/* Actions — anchored to bottom */}
+          <div className="flex items-center justify-end gap-1 pt-2 mt-2 border-t border-gray-50">
             {isCoach && onEditCoachNotes && (
               <button onClick={() => onEditCoachNotes(match)} className="p-2.5 hover:bg-blue-50 rounded-lg transition-colors active:scale-95" title="Note maestro">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--club-blue)" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>

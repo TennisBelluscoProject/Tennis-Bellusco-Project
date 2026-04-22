@@ -201,6 +201,17 @@ export function CoachDashboard() {
     }
   };
 
+  // ─── FAB handler for student detail view ───────────
+  const handleStudentFabClick = () => {
+    if (studentTab === 'obiettivi') {
+      setEditingGoal(null);
+      setGoalFormOpen(true);
+    } else {
+      setEditingMatch(null);
+      setMatchFormOpen(true);
+    }
+  };
+
   // ─── Student detail view ───────────────────────────
   if (selectedStudent) {
     const ms = matchStats(studentMatches);
@@ -210,7 +221,7 @@ export function CoachDashboard() {
     return (
       <div className="min-h-screen bg-[var(--background)]">
         <Header />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
           {/* Back button */}
           <button
             onClick={() => setSelectedStudent(null)}
@@ -259,8 +270,8 @@ export function CoachDashboard() {
           {/* Tabs */}
           <Tabs
             tabs={[
-              { id: 'obiettivi', label: 'Obiettivi', icon: '🎯' },
-              { id: 'match', label: 'Match', icon: '🏆' },
+              { id: 'obiettivi', label: 'Obiettivi' },
+              { id: 'match', label: 'Match' },
             ]}
             active={studentTab}
             onChange={setStudentTab}
@@ -269,19 +280,29 @@ export function CoachDashboard() {
           <div className="mt-5">
             {studentTab === 'obiettivi' && (
               <>
-                <div className="flex justify-end mb-4">
+                {/* Desktop only: inline button */}
+                <div className="hidden sm:flex justify-end mb-4">
                   <Button variant="primary" onClick={() => { setEditingGoal(null); setGoalFormOpen(true); }}>
                     + Nuovo obiettivo
                   </Button>
                 </div>
-                <KanbanBoard
-                  goals={studentGoals}
-                  isCoach={true}
-                  onEdit={(g) => { setEditingGoal(g); setGoalFormOpen(true); }}
-                  onDelete={handleDeleteGoal}
-                  onStatusChange={handleGoalStatusChange}
-                  onProgressChange={handleGoalProgressChange}
-                />
+                {studentGoals.length === 0 ? (
+                  <EmptyState
+                    icon="🎯"
+                    title="Nessun obiettivo"
+                    message="Crea il primo obiettivo per questo allievo!"
+                    action={<Button variant="primary" onClick={() => { setEditingGoal(null); setGoalFormOpen(true); }}>Crea obiettivo</Button>}
+                  />
+                ) : (
+                  <KanbanBoard
+                    goals={studentGoals}
+                    isCoach={true}
+                    onEdit={(g) => { setEditingGoal(g); setGoalFormOpen(true); }}
+                    onDelete={handleDeleteGoal}
+                    onStatusChange={handleGoalStatusChange}
+                    onProgressChange={handleGoalProgressChange}
+                  />
+                )}
                 <GoalForm
                   open={goalFormOpen}
                   onClose={() => { setGoalFormOpen(false); setEditingGoal(null); }}
@@ -294,20 +315,32 @@ export function CoachDashboard() {
 
             {studentTab === 'match' && (
               <>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {studentMatches.map((m) => (
-                    <MatchCard
-                      key={m.id}
-                      match={m}
-                      isCoach={true}
-                      onEdit={(m) => { setEditingMatch(m); setMatchFormOpen(true); }}
-                      onDelete={handleDeleteMatch}
-                      onEditCoachNotes={(m) => { setCoachNotesMatch(m); setCoachNotesOpen(true); }}
-                    />
-                  ))}
+                {/* Desktop only: inline button */}
+                <div className="hidden sm:flex justify-end mb-4">
+                  <Button variant="primary" onClick={() => { setEditingMatch(null); setMatchFormOpen(true); }}>
+                    + Aggiungi Match
+                  </Button>
                 </div>
-                {studentMatches.length === 0 && (
-                  <EmptyState icon="🏆" title="Nessun match" message="Questo allievo non ha ancora registrato match." />
+                {studentMatches.length === 0 ? (
+                  <EmptyState
+                    icon="🏆"
+                    title="Nessun match"
+                    message="Questo allievo non ha ancora registrato match."
+                    action={<Button variant="primary" onClick={() => { setEditingMatch(null); setMatchFormOpen(true); }}>Aggiungi match</Button>}
+                  />
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {studentMatches.map((m) => (
+                      <MatchCard
+                        key={m.id}
+                        match={m}
+                        isCoach={true}
+                        onEdit={(m) => { setEditingMatch(m); setMatchFormOpen(true); }}
+                        onDelete={handleDeleteMatch}
+                        onEditCoachNotes={(m) => { setCoachNotesMatch(m); setCoachNotesOpen(true); }}
+                      />
+                    ))}
+                  </div>
                 )}
                 <MatchForm
                   open={matchFormOpen}
@@ -325,21 +358,28 @@ export function CoachDashboard() {
             )}
           </div>
         </main>
+
+        {/* ─── Mobile FAB (student detail) ─── */}
+        <button
+          onClick={handleStudentFabClick}
+          className="sm:hidden fixed bottom-6 right-5 z-40 w-14 h-14 rounded-full bg-[var(--club-red)] text-white shadow-lg shadow-[var(--club-red)]/30 flex items-center justify-center active:scale-90 transition-transform"
+          aria-label={studentTab === 'obiettivi' ? 'Nuovo obiettivo' : 'Aggiungi match'}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
       </div>
     );
   }
 
   // ─── Main view ─────────────────────────────────────
-  const tabs = [
-    { id: 'allievi', label: 'Allievi', icon: '👥' },
-    { id: 'risultati', label: 'Risultati Agonistici', icon: '🏆' },
-  ];
-
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {/* Stats + Invite */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
+        {/* Stats + Invite (desktop) */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[var(--club-blue-light)] flex items-center justify-center">
@@ -350,13 +390,22 @@ export function CoachDashboard() {
               <p className="text-xs text-gray-500">Allievi attivi</p>
             </div>
           </div>
-          <Button variant="primary" onClick={() => { setInviteModalOpen(true); setInviteResult(null); setInviteEmail(''); }}>
-            ✉️ Invita allievo
-          </Button>
+          <div className="hidden sm:block">
+            <Button variant="primary" onClick={() => { setInviteModalOpen(true); setInviteResult(null); setInviteEmail(''); }}>
+              ✉️ Invita allievo
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
-        <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
+        <Tabs
+          tabs={[
+            { id: 'allievi', label: 'Allievi' },
+            { id: 'risultati', label: 'Risultati Agonistici' },
+          ]}
+          active={activeTab}
+          onChange={setActiveTab}
+        />
 
         <div className="mt-5">
           {activeTab === 'allievi' && (
@@ -413,6 +462,18 @@ export function CoachDashboard() {
           )}
         </div>
       </main>
+
+      {/* ─── Mobile FAB (main view — invite) ─── */}
+      <button
+        onClick={() => { setInviteModalOpen(true); setInviteResult(null); setInviteEmail(''); }}
+        className="sm:hidden fixed bottom-6 right-5 z-40 w-14 h-14 rounded-full bg-[var(--club-red)] text-white shadow-lg shadow-[var(--club-red)]/30 flex items-center justify-center active:scale-90 transition-transform"
+        aria-label="Invita allievo"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
 
       {/* Invite modal */}
       <Modal open={inviteModalOpen} onClose={() => setInviteModalOpen(false)} title="Invita allievo">
