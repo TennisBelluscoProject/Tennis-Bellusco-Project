@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
   useRef,
+  useCallback,
   ReactNode,
 } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -34,22 +35,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function getProfile(userId: string): Promise<Profile | null> {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (error) {
-      console.error('Error fetching profile:', error);
+async function getProfile(userId: string, retries = 3): Promise<Profile | null> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (error) {
+        console.error(`Profile fetch attempt ${i + 1} error:`, error);
+        if (i < retries - 1) {
+          await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+          continue;
+        }
+        return null;
+      }
+      return data as Profile;
+    } catch (err) {
+      console.error(`Profile fetch attempt ${i + 1} exception:`, err);
+      if (i < retries - 1) {
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+        continue;
+      }
       return null;
     }
-    return data as Profile;
-  } catch (err) {
-    console.error('fetchProfile exception:', err);
-    return null;
   }
+  return null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -58,16 +70,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const initialized = useRef(false);
+  const profileLoadingRef = useRef(false);
 
-  // Init: get current session then listen to auth state changes
+  const loadUserAndProfile = useCallback(async (s: Session | null) => {
+    if (!s?.user) {
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setLoading(false);
+      return;
+    }
+
+    // Prevent duplicate profile loads
+    if (profileLoadingRef.current) return;
+    profileLoadingRef.current = true;
+
+    setSession(s);
+    setUser(s.user);
+
+    const p = await getProfile(s.user.id);
+    setProfile(p);
+    setLoading(false);
+
+    profileLoadingRef.current = false;
+
+    if (!p) {
+      console.error('Profile not found for user:', s.user.id, '- user will see login screen');
+    }
+  }, []);
+
   useEffect(() => {
-    // 1. Get session from cookies, then validate it with the server
     const initSession = async () => {
       try {
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        const {
+          data: { session: currentSession },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
         if (sessionError || !currentSession) {
-          // No valid session — show login
           setUser(null);
           setProfile(null);
           setSession(null);
@@ -76,13 +116,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Session exists in cookies — validate it with the server
-        // This catches stale/invalidated sessions that cookies still hold
-        const { data: { user: validatedUser }, error: userError } = await supabase.auth.getUser();
+        // Validate the session is still valid server-side
+        const {
+          data: { user: validatedUser },
+          error: userError,
+        } = await supabase.auth.getUser();
 
         if (userError || !validatedUser) {
-          // Cookie has a stale session — clear it
-          console.warn('Stale session detected, clearing cookies...');
+          console.warn('Stale session detected, clearing...');
           await supabase.auth.signOut({ scope: 'local' });
           setUser(null);
           setProfile(null);
@@ -92,25 +133,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Session is valid
-        setSession(currentSession);
-        setUser(validatedUser);
-        const p = await getProfile(validatedUser.id);
-        setProfile(p);
+        // Session is valid — load profile
+        await loadUserAndProfile(currentSession);
       } catch {
-        // Something went wrong — clear state and show login
-        console.error('Auth init failed, clearing session...');
+        console.error('Auth init failed');
         await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
         setUser(null);
         setProfile(null);
         setSession(null);
-      } finally {
         setLoading(false);
+      } finally {
         initialized.current = true;
       }
     };
 
-    // Race against a timeout to prevent infinite loading
+    // Timeout safety net
     const timeout = setTimeout(() => {
       if (!initialized.current) {
         console.warn('Auth init timeout — forcing login screen');
@@ -125,41 +162,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initSession().finally(() => clearTimeout(timeout));
 
-    // 2. Listen for future auth changes (sign-in, sign-out, token refresh)
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, s) => {
       console.log('Auth event:', event);
 
-      // Skip INITIAL_SESSION if we already handled it above
-      if (event === 'INITIAL_SESSION' && initialized.current) return;
+      // Skip INITIAL_SESSION — we already handled it above
+      if (event === 'INITIAL_SESSION') return;
 
-      setSession(s);
+      // For SIGNED_IN after a signInWithPassword, load user+profile
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await loadUserAndProfile(s);
+        return;
+      }
 
-      if (s?.user) {
-        setUser(s.user);
-        const p = await getProfile(s.user.id);
-        setProfile(p);
-      } else {
+      // For SIGNED_OUT, clear state
+      if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
+        setSession(null);
+        setLoading(false);
+        return;
+      }
+
+      // Other events (PASSWORD_RECOVERY, USER_UPDATED, etc.)
+      if (s?.user) {
+        setSession(s);
+        setUser(s.user);
+        // Only reload profile if we don't have one or user changed
+        if (!profile || profile.id !== s.user.id) {
+          const p = await getProfile(s.user.id);
+          setProfile(p);
+        }
       }
 
       setLoading(false);
-      initialized.current = true;
     });
 
     return () => {
       subscription.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // Set loading to true so AppRouter shows LoadingScreen during transition
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    return { error: error?.message ?? null };
+    if (error) {
+      setLoading(false);
+      return { error: error.message };
+    }
+    // Don't set loading to false here — onAuthStateChange(SIGNED_IN) will
+    // load the profile and then set loading=false
+    return { error: null };
   };
 
   const signUp = async (
@@ -220,7 +280,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (profileErr) {
         console.error('Profile creation error:', profileErr);
-        // Don't fail the signup — the user exists in auth, they just need a profile
       }
 
       // 4. Mark invite as used
@@ -234,7 +293,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut({ scope: 'local' });
+    // onAuthStateChange(SIGNED_OUT) will clear state
   };
 
   const refreshProfile = async () => {

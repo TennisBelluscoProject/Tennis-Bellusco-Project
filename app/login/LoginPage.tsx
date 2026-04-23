@@ -12,7 +12,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [inviteToken, setInviteToken] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -21,7 +21,6 @@ export function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('invite');
     const authError = params.get('error');
-    // Use functional updates wrapped in callbacks to avoid sync setState in effect
     if (token) {
       queueMicrotask(() => {
         setInviteToken(token);
@@ -37,39 +36,53 @@ export function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Prevent double-submit
+    if (submitting) return;
     setError('');
     setSuccess('');
-    setLoading(true);
+    setSubmitting(true);
 
-    if (mode === 'login') {
-      const { error: err } = await signIn(email, password);
-      if (err) setError(err);
-    } else if (mode === 'register') {
-      if (!inviteToken.trim()) {
-        setError('Inserisci il codice invito');
-        setLoading(false);
-        return;
-      }
-      if (!fullName.trim()) {
-        setError('Inserisci nome e cognome');
-        setLoading(false);
-        return;
-      }
-      if (password.length < 6) {
-        setError('La password deve avere almeno 6 caratteri');
-        setLoading(false);
-        return;
-      }
+    try {
+      if (mode === 'login') {
+        const { error: err } = await signIn(email, password);
+        if (err) {
+          setError(err);
+          setSubmitting(false);
+        }
+        // If no error, signIn sets AuthContext.loading=true,
+        // which makes AppRouter show LoadingScreen.
+        // We don't set submitting=false because the component will unmount.
+      } else if (mode === 'register') {
+        if (!inviteToken.trim()) {
+          setError('Inserisci il codice invito');
+          setSubmitting(false);
+          return;
+        }
+        if (!fullName.trim()) {
+          setError('Inserisci nome e cognome');
+          setSubmitting(false);
+          return;
+        }
+        if (password.length < 6) {
+          setError('La password deve avere almeno 6 caratteri');
+          setSubmitting(false);
+          return;
+        }
 
-      const { error: err } = await signUp(email, password, fullName, inviteToken);
-      if (err) setError(err);
-      else
-        setSuccess(
-          "Account creato! Controlla la tua email per verificare l'account, poi effettua il login."
-        );
+        const { error: err } = await signUp(email, password, fullName, inviteToken);
+        if (err) {
+          setError(err);
+        } else {
+          setSuccess(
+            "Account creato! Controlla la tua email per verificare l'account, poi effettua il login."
+          );
+        }
+        setSubmitting(false);
+      }
+    } catch (err) {
+      console.error('Submit error:', err);
+      setError('Si è verificato un errore. Riprova.');
+      setSubmitting(false);
     }
-    setLoading(false);
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -82,7 +95,7 @@ export function LoginPage() {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email,
@@ -99,7 +112,7 @@ export function LoginPage() {
       );
     }
 
-    setLoading(false);
+    setSubmitting(false);
   };
 
   const getTitle = () => {
@@ -204,7 +217,7 @@ export function LoginPage() {
               type="submit"
               variant="primary"
               size="lg"
-              loading={loading}
+              loading={submitting}
               className="w-full mt-2"
             >
               {getButtonLabel()}
