@@ -6,7 +6,6 @@ import {
   useEffect,
   useState,
   useRef,
-  useCallback,
   ReactNode,
 } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -35,33 +34,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function getProfile(userId: string, retries = 3): Promise<Profile | null> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      if (error) {
-        console.error(`Profile fetch attempt ${i + 1} error:`, error);
-        if (i < retries - 1) {
-          await new Promise((r) => setTimeout(r, 500 * (i + 1)));
-          continue;
-        }
-        return null;
-      }
-      return data as Profile;
-    } catch (err) {
-      console.error(`Profile fetch attempt ${i + 1} exception:`, err);
-      if (i < retries - 1) {
-        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
-        continue;
-      }
+async function fetchProfile(userId: string): Promise<Profile | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (error) {
+      console.error('Profile fetch error:', error.message);
       return null;
     }
+    return data as Profile;
+  } catch (err) {
+    console.error('Profile fetch exception:', err);
+    return null;
   }
-  return null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -69,115 +57,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const initialized = useRef(false);
-  const profileLoadingRef = useRef(false);
-
-  const loadUserAndProfile = useCallback(async (s: Session | null) => {
-    if (!s?.user) {
-      setUser(null);
-      setProfile(null);
-      setSession(null);
-      setLoading(false);
-      return;
-    }
-
-    // Prevent duplicate profile loads
-    if (profileLoadingRef.current) return;
-    profileLoadingRef.current = true;
-
-    setSession(s);
-    setUser(s.user);
-
-    const p = await getProfile(s.user.id);
-    setProfile(p);
-    setLoading(false);
-
-    profileLoadingRef.current = false;
-
-    if (!p) {
-      console.error('Profile not found for user:', s.user.id, '- user will see login screen');
-    }
-  }, []);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    const initSession = async () => {
-      try {
-        const {
-          data: { session: currentSession },
-          error: sessionError,
-        } = await supabase.auth.getSession();
+    mountedRef.current = true;
 
-        if (sessionError || !currentSession) {
-          setUser(null);
-          setProfile(null);
-          setSession(null);
-          setLoading(false);
-          initialized.current = true;
-          return;
-        }
+    // Single source of truth: onAuthStateChange handles EVERYTHING.
+    // We do NOT call getSession() manually — Supabase fires INITIAL_SESSION
+    // as the very first event, which gives us the session if one exists.
 
-        // Validate the session is still valid server-side
-        const {
-          data: { user: validatedUser },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !validatedUser) {
-          console.warn('Stale session detected, clearing...');
-          await supabase.auth.signOut({ scope: 'local' });
-          setUser(null);
-          setProfile(null);
-          setSession(null);
-          setLoading(false);
-          initialized.current = true;
-          return;
-        }
-
-        // Session is valid — load profile
-        await loadUserAndProfile(currentSession);
-      } catch {
-        console.error('Auth init failed');
-        await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
-        setUser(null);
-        setProfile(null);
-        setSession(null);
-        setLoading(false);
-      } finally {
-        initialized.current = true;
-      }
-    };
-
-    // Timeout safety net
-    const timeout = setTimeout(() => {
-      if (!initialized.current) {
-        console.warn('Auth init timeout — forcing login screen');
-        supabase.auth.signOut({ scope: 'local' }).catch(() => {});
-        setUser(null);
-        setProfile(null);
-        setSession(null);
-        setLoading(false);
-        initialized.current = true;
-      }
-    }, 8000);
-
-    initSession().finally(() => clearTimeout(timeout));
-
-    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, s) => {
-      console.log('Auth event:', event);
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log('Auth event:', event, newSession?.user?.email ?? 'no user');
 
-      // Skip INITIAL_SESSION — we already handled it above
-      if (event === 'INITIAL_SESSION') return;
+      if (!mountedRef.current) return;
 
-      // For SIGNED_IN after a signInWithPassword, load user+profile
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        await loadUserAndProfile(s);
-        return;
-      }
-
-      // For SIGNED_OUT, clear state
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
@@ -186,28 +81,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Other events (PASSWORD_RECOVERY, USER_UPDATED, etc.)
-      if (s?.user) {
-        setSession(s);
-        setUser(s.user);
-        // Only reload profile if we don't have one or user changed
-        if (!profile || profile.id !== s.user.id) {
-          const p = await getProfile(s.user.id);
-          setProfile(p);
-        }
+      // For all events with a session (INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED, etc.)
+      if (newSession?.user) {
+        setSession(newSession);
+        setUser(newSession.user);
+
+        // Fetch profile
+        const p = await fetchProfile(newSession.user.id);
+
+        if (!mountedRef.current) return;
+
+        setProfile(p);
+        setLoading(false);
+        return;
       }
 
+      // No session (first load with no login, or session expired)
+      setUser(null);
+      setProfile(null);
+      setSession(null);
       setLoading(false);
     });
 
+    // Safety timeout — if onAuthStateChange never fires (very rare edge case)
+    const timeout = setTimeout(() => {
+      if (mountedRef.current && loading) {
+        console.warn('Auth timeout — no auth event received in 10s');
+        setLoading(false);
+      }
+    }, 10000);
+
     return () => {
+      mountedRef.current = false;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    // Set loading to true so AppRouter shows LoadingScreen during transition
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -217,8 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return { error: error.message };
     }
-    // Don't set loading to false here — onAuthStateChange(SIGNED_IN) will
-    // load the profile and then set loading=false
+    // Success: onAuthStateChange(SIGNED_IN) will fire and load the profile
     return { error: null };
   };
 
@@ -246,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: 'Il link di invito è scaduto.' };
     }
 
-    // 2. Sign up with Supabase Auth
+    // 2. Sign up
     const { data: authData, error: signUpErr } = await supabase.auth.signUp({
       email,
       password,
@@ -293,15 +204,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    setLoading(true);
     await supabase.auth.signOut({ scope: 'local' });
-    // onAuthStateChange(SIGNED_OUT) will clear state
+    // onAuthStateChange(SIGNED_OUT) handles state cleanup
   };
 
   const refreshProfile = async () => {
     if (user) {
-      const p = await getProfile(user.id);
-      setProfile(p);
+      const p = await fetchProfile(user.id);
+      if (mountedRef.current) setProfile(p);
     }
   };
 
