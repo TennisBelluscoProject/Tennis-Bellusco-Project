@@ -25,7 +25,6 @@ export function CoachDashboard() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ token?: string; error?: string } | null>(null);
 
-  // Student detail state
   const [studentTab, setStudentTab] = useState('obiettivi');
   const [studentGoals, setStudentGoals] = useState<Goal[]>([]);
   const [studentMatches, setStudentMatches] = useState<MatchResultRow[]>([]);
@@ -36,11 +35,9 @@ export function CoachDashboard() {
   const [coachNotesOpen, setCoachNotesOpen] = useState(false);
   const [coachNotesMatch, setCoachNotesMatch] = useState<MatchResultRow | null>(null);
 
-  // All matches for "Risultati Agonistici" tab
   const [allMatches, setAllMatches] = useState<MatchResultRow[]>([]);
   const [allMatchesLoading, setAllMatchesLoading] = useState(false);
 
-  // ─── Data fetching via effects (React 19 compliant) ───
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -92,7 +89,6 @@ export function CoachDashboard() {
     return () => { cancelled = true; };
   }, [selectedStudent]);
 
-  // ─── Refetch helpers for event handlers ───
   const refetchStudents = async () => {
     const { data } = await supabase.from('profiles').select('*').eq('role', 'allievo').eq('active', true).order('full_name');
     setStudents((data as Profile[]) || []);
@@ -201,7 +197,6 @@ export function CoachDashboard() {
     }
   };
 
-  // ─── FAB handler for student detail view ───────────
   const handleStudentFabClick = () => {
     if (studentTab === 'obiettivi') {
       setEditingGoal(null);
@@ -225,43 +220,47 @@ export function CoachDashboard() {
           {/* Back button */}
           <button
             onClick={() => setSelectedStudent(null)}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors"
+            className="flex items-center gap-2 text-[13px] font-medium text-gray-500 hover:text-[var(--club-blue)] mb-5 transition-colors group"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:-translate-x-0.5 transition-transform">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
             Torna alla lista
           </button>
 
-          {/* Student header */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
+          {/* Student hero card */}
+          <div className="card p-5 sm:p-6 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--club-blue)] flex items-center justify-center text-white text-xl font-bold">
+              {/* Avatar */}
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--club-blue)] to-[var(--club-blue-dark)] flex items-center justify-center text-white text-xl font-bold shadow-sm">
                 {selectedStudent.full_name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-900">{selectedStudent.full_name}</h2>
-                <div className="flex flex-wrap items-center gap-2 mt-1">
+                <h2 className="text-xl font-bold text-gray-900 tracking-[-0.02em]">{selectedStudent.full_name}</h2>
+                <div className="flex flex-wrap items-center gap-2 mt-1.5">
                   <Badge>{displayLevel}</Badge>
                   <Badge color="var(--club-red)" bg="var(--club-red-light)">
-                    Classifica FIT: {displayRanking}
+                    FIT: {displayRanking}
                   </Badge>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3 text-center">
-                <div className="px-3">
+              {/* Quick stats */}
+              <div className="flex flex-wrap gap-4 text-center sm:gap-5">
+                <div>
                   <p className="text-lg font-bold text-[var(--club-blue)]">{gs.total}</p>
-                  <p className="text-[10px] text-gray-500 uppercase">Obiettivi</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Obiettivi</p>
                 </div>
-                <div className="px-3">
-                  <p className="text-lg font-bold text-green-600">{gs.completed}</p>
-                  <p className="text-[10px] text-gray-500 uppercase">Completati</p>
+                <div>
+                  <p className="text-lg font-bold text-[var(--success)]">{gs.completed}</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Completati</p>
                 </div>
-                <div className="px-3">
+                <div>
                   <p className="text-lg font-bold text-gray-700">{ms.total}</p>
-                  <p className="text-[10px] text-gray-500 uppercase">Match</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Match</p>
                 </div>
-                <div className="px-3">
+                <div>
                   <p className="text-lg font-bold text-[var(--club-red)]">{ms.wins}</p>
-                  <p className="text-[10px] text-gray-500 uppercase">Vittorie</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Vittorie</p>
                 </div>
               </div>
             </div>
@@ -280,7 +279,6 @@ export function CoachDashboard() {
           <div className="mt-5">
             {studentTab === 'obiettivi' && (
               <>
-                {/* Desktop only: inline button */}
                 <div className="hidden sm:flex justify-end mb-4">
                   <Button variant="primary" onClick={() => { setEditingGoal(null); setGoalFormOpen(true); }}>
                     + Nuovo obiettivo
@@ -315,7 +313,6 @@ export function CoachDashboard() {
 
             {studentTab === 'match' && (
               <>
-                {/* Desktop only: inline button */}
                 <div className="hidden sm:flex justify-end mb-4">
                   <Button variant="primary" onClick={() => { setEditingMatch(null); setMatchFormOpen(true); }}>
                     + Aggiungi Match
@@ -329,7 +326,7 @@ export function CoachDashboard() {
                     action={<Button variant="primary" onClick={() => { setEditingMatch(null); setMatchFormOpen(true); }}>Aggiungi match</Button>}
                   />
                 ) : (
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
                     {studentMatches.map((m) => (
                       <MatchCard
                         key={m.id}
@@ -359,13 +356,13 @@ export function CoachDashboard() {
           </div>
         </main>
 
-        {/* ─── Mobile FAB (student detail) ─── */}
+        {/* Mobile FAB */}
         <button
           onClick={handleStudentFabClick}
-          className="sm:hidden fixed bottom-6 right-5 z-40 w-14 h-14 rounded-full bg-[var(--club-red)] text-white shadow-lg shadow-[var(--club-red)]/30 flex items-center justify-center active:scale-90 transition-transform"
+          className="sm:hidden fab"
           aria-label={studentTab === 'obiettivi' ? 'Nuovo obiettivo' : 'Aggiungi match'}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
@@ -379,15 +376,17 @@ export function CoachDashboard() {
     <div className="min-h-screen bg-[var(--background)]">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
-        {/* Stats + Invite (desktop) */}
+        {/* Header row */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--club-blue-light)] flex items-center justify-center">
-              <span className="text-lg">👥</span>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-[var(--club-blue)]">{students.filter(s => s.active).length}</p>
-              <p className="text-xs text-gray-500">Allievi attivi</p>
+          <div className="flex items-center gap-4">
+            <div className="card px-5 py-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--club-blue-light)] flex items-center justify-center">
+                <span className="text-lg">👥</span>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-[var(--club-blue)] tracking-[-0.02em]">{students.filter(s => s.active).length}</p>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Allievi attivi</p>
+              </div>
             </div>
           </div>
           <div className="hidden sm:block">
@@ -416,7 +415,7 @@ export function CoachDashboard() {
               ) : filteredStudents.length === 0 ? (
                 <EmptyState icon="👥" title="Nessun allievo trovato" message={search ? 'Prova con un altro termine di ricerca.' : 'Invita il tuo primo allievo!'} />
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4 stagger-children">
                   {filteredStudents.map((student) => (
                     <StudentCard key={student.id} student={student} onClick={() => { setSelectedStudent(student); setStudentTab('obiettivi'); }} />
                   ))}
@@ -432,7 +431,7 @@ export function CoachDashboard() {
               ) : allMatches.length === 0 ? (
                 <EmptyState icon="🏆" title="Nessun risultato" message="Gli allievi non hanno ancora registrato match." />
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4 stagger-children">
                   {allMatches.map((m) => (
                     <MatchCard
                       key={m.id}
@@ -463,13 +462,13 @@ export function CoachDashboard() {
         </div>
       </main>
 
-      {/* ─── Mobile FAB (main view — invite) ─── */}
+      {/* Mobile FAB */}
       <button
         onClick={() => { setInviteModalOpen(true); setInviteResult(null); setInviteEmail(''); }}
-        className="sm:hidden fixed bottom-6 right-5 z-40 w-14 h-14 rounded-full bg-[var(--club-red)] text-white shadow-lg shadow-[var(--club-red)]/30 flex items-center justify-center active:scale-90 transition-transform"
+        className="sm:hidden fab"
         aria-label="Invita allievo"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
@@ -492,12 +491,17 @@ export function CoachDashboard() {
 
           {inviteResult?.token && (
             <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-              <p className="text-sm font-medium text-green-800 mb-2">Link generato!</p>
+              <div className="flex items-center gap-2 mb-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <p className="text-sm font-bold text-green-800">Link generato!</p>
+              </div>
               <div className="flex gap-2">
                 <input
                   readOnly
                   value={inviteResult.token}
-                  className="flex-1 text-xs bg-white border border-green-200 rounded-lg px-3 py-2 font-mono"
+                  className="flex-1 text-xs bg-white border border-green-200 rounded-lg px-3 py-2 font-mono text-gray-700"
                 />
                 <Button
                   variant="secondary"
@@ -507,12 +511,17 @@ export function CoachDashboard() {
                   Copia
                 </Button>
               </div>
-              <p className="text-[11px] text-green-600 mt-2">Valido per 7 giorni. Invia questo link all&apos;allievo.</p>
+              <p className="text-[11px] text-green-600 mt-2 font-medium">Valido per 7 giorni. Invia questo link all&apos;allievo.</p>
             </div>
           )}
 
           {inviteResult?.error && (
-            <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100">
+            <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100 flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
               {inviteResult.error}
             </div>
           )}
@@ -552,41 +561,46 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md hover:border-[var(--club-blue)]/20 transition-all cursor-pointer animate-fade-in"
+      className="card card-interactive p-4 animate-fade-in"
     >
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-11 h-11 rounded-xl bg-[var(--club-blue)] flex items-center justify-center text-white text-sm font-bold shrink-0">
+        {/* Avatar with gradient */}
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--club-blue)] to-[var(--club-blue-dark)] flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
           {student.full_name.charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-gray-900 truncate">{student.full_name}</h3>
+          <h3 className="text-sm font-bold text-gray-900 truncate tracking-[-0.01em]">{student.full_name}</h3>
           <div className="flex items-center gap-2 mt-0.5">
             <Badge>{displayLevel}</Badge>
           </div>
         </div>
+        {/* Arrow indicator */}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2" className="shrink-0">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </div>
 
-      <div className="flex items-center gap-1 mb-3">
-        <span className="text-xs text-gray-500">Classifica FIT:</span>
-        <span className="text-xs font-semibold text-[var(--club-red)]">{displayRanking}</span>
+      <div className="flex items-center gap-1.5 mb-3 pl-0.5">
+        <span className="text-[11px] text-gray-400 font-medium">Classifica FIT:</span>
+        <span className="text-[11px] font-bold text-[var(--club-red)]">{displayRanking}</span>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 text-center pt-3 border-t border-gray-50">
+      <div className="grid grid-cols-4 gap-2 text-center pt-3 border-t border-gray-100">
         <div>
           <p className="text-sm font-bold text-[var(--club-blue)]">{stats.goals}</p>
-          <p className="text-[10px] text-gray-400">Obiettivi</p>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Obiettivi</p>
         </div>
         <div>
-          <p className="text-sm font-bold text-green-600">{stats.completed}</p>
-          <p className="text-[10px] text-gray-400">Completati</p>
+          <p className="text-sm font-bold text-[var(--success)]">{stats.completed}</p>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Completati</p>
         </div>
         <div>
           <p className="text-sm font-bold text-gray-700">{stats.matches}</p>
-          <p className="text-[10px] text-gray-400">Match</p>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Match</p>
         </div>
         <div>
           <p className="text-sm font-bold text-[var(--club-red)]">{stats.wins}</p>
-          <p className="text-[10px] text-gray-400">Vittorie</p>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Vittorie</p>
         </div>
       </div>
     </div>

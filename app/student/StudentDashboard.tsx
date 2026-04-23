@@ -19,21 +19,16 @@ export function StudentDashboard() {
   const [matches, setMatches] = useState<MatchResultRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Forms
   const [goalFormOpen, setGoalFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [matchFormOpen, setMatchFormOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<MatchResultRow | null>(null);
 
-  // Ranking edit
   const [editingRanking, setEditingRanking] = useState(false);
   const [rankingValue, setRankingValue] = useState('');
-
-  // Level edit
   const [editingLevel, setEditingLevel] = useState(false);
   const [levelValue, setLevelValue] = useState('');
 
-  // Fetch data on mount and when user changes
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -53,7 +48,6 @@ export function StudentDashboard() {
     return () => { cancelled = true; };
   }, [user]);
 
-  // Refetch helper for event handlers (not called from effects)
   const refetchData = async () => {
     if (!user) return;
     const [{ data: g }, { data: m }] = await Promise.all([
@@ -64,12 +58,10 @@ export function StudentDashboard() {
     setMatches((m as MatchResultRow[]) || []);
   };
 
-  // Stats
   const wins = matches.filter((m) => m.result === 'win').length;
   const losses = matches.length - wins;
   const winRate = matches.length > 0 ? Math.round((wins / matches.length) * 100) : 0;
 
-  // Display values
   const { displayLevel, displayRanking } = profile
     ? getDisplayRanking(profile)
     : { displayLevel: 'Principiante', displayRanking: 'Non classificato' };
@@ -127,7 +119,6 @@ export function StudentDashboard() {
     setEditingRanking(false);
   };
 
-  // ─── Level ─────────────────────────────────────────
   const handleSaveLevel = async () => {
     if (!user) return;
     await supabase.from('profiles').update({ level: levelValue.trim() || 'Principiante' }).eq('id', user.id);
@@ -135,7 +126,6 @@ export function StudentDashboard() {
     setEditingLevel(false);
   };
 
-  // FAB handler
   const handleFabClick = () => {
     if (activeTab === 'obiettivi') {
       setEditingGoal(null);
@@ -156,25 +146,33 @@ export function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[var(--background)]">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
-        {/* Subtitle */}
-        <p className="text-sm text-gray-500 mb-5">Il tuo percorso tennistico</p>
+        {/* Welcome section */}
+        <div className="mb-6">
+          <h2
+            className="text-xl font-bold text-[var(--club-blue)] tracking-[-0.02em]"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Il tuo percorso
+          </h2>
+          <p className="text-sm text-gray-500 mt-0.5">Monitora i tuoi progressi e obiettivi</p>
+        </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6 stagger-children">
           <StatCard label="Win Rate" value={`${winRate}%`} icon="📊" color="var(--club-blue)" />
           <StatCard label="Vittorie" value={wins} icon="✅" color="var(--success)" />
           <StatCard label="Sconfitte" value={losses} icon="❌" color="var(--club-red)" />
 
           {/* Classifica FIT */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Classifica FIT</span>
+          <div className="card stat-card p-4" style={{ '--stat-accent': 'var(--club-red)' } as React.CSSProperties}>
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Classifica FIT</span>
               <button
                 onClick={() => { setRankingValue(profile?.ranking || ''); setEditingRanking(true); }}
-                className="text-[10px] hover:underline"
+                className="text-[10px] font-semibold text-[var(--club-blue)] hover:underline underline-offset-2"
               >
                 Modifica
               </button>
@@ -184,24 +182,24 @@ export function StudentDashboard() {
                 <input
                   value={rankingValue}
                   onChange={(e) => setRankingValue(e.target.value)}
-                  className="w-20 text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1"
+                  className="w-20 text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)]"
                   placeholder="4.3"
                 />
-                <button onClick={handleSaveRanking} className="text-xs text-green-600 font-medium">✓</button>
-                <button onClick={() => setEditingRanking(false)} className="text-xs text-gray-400">✗</button>
+                <button onClick={handleSaveRanking} className="text-sm text-green-600 font-bold">✓</button>
+                <button onClick={() => setEditingRanking(false)} className="text-sm text-gray-400 font-bold">✗</button>
               </div>
             ) : (
-              <p className="text-2xl font-bold">{displayRanking}</p>
+              <p className="text-[26px] font-bold text-[var(--club-red)] tracking-[-0.02em]">{displayRanking}</p>
             )}
           </div>
 
           {/* Livello */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Livello</span>
+          <div className="card stat-card p-4" style={{ '--stat-accent': 'var(--purple)' } as React.CSSProperties}>
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Livello</span>
               <button
                 onClick={() => { setLevelValue(profile?.level || ''); setEditingLevel(true); }}
-                className="text-[10px] hover:underline"
+                className="text-[10px] font-semibold text-[var(--club-blue)] hover:underline underline-offset-2"
               >
                 Modifica
               </button>
@@ -211,22 +209,22 @@ export function StudentDashboard() {
                 <select
                   value={levelValue}
                   onChange={(e) => setLevelValue(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1"
+                  className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)]"
                 >
                   <option value="Principiante">Principiante</option>
                   <option value="Intermedio">Intermedio</option>
                   <option value="Avanzato">Avanzato</option>
                 </select>
-                <button onClick={handleSaveLevel} className="text-xs text-green-600 font-medium">✓</button>
-                <button onClick={() => setEditingLevel(false)} className="text-xs text-gray-400">✗</button>
+                <button onClick={handleSaveLevel} className="text-sm text-green-600 font-bold">✓</button>
+                <button onClick={() => setEditingLevel(false)} className="text-sm text-gray-400 font-bold">✗</button>
               </div>
             ) : (
-              <p className="text-2xl font-bold">{displayLevel}</p>
+              <p className="text-[26px] font-bold text-[var(--purple)] tracking-[-0.02em]">{displayLevel}</p>
             )}
           </div>
         </div>
 
-        {/* Tabs — no icons */}
+        {/* Tabs */}
         <Tabs
           tabs={[
             { id: 'obiettivi', label: 'I Miei Obiettivi' },
@@ -239,7 +237,6 @@ export function StudentDashboard() {
         <div className="mt-5">
           {activeTab === 'obiettivi' && (
             <>
-              {/* Desktop: inline button | Mobile: FAB handles it */}
               <div className="hidden sm:flex justify-end mb-4">
                 <Button variant="primary" onClick={() => { setEditingGoal(null); setGoalFormOpen(true); }}>
                   + Nuovo obiettivo
@@ -274,7 +271,6 @@ export function StudentDashboard() {
 
           {activeTab === 'match' && (
             <>
-              {/* Desktop: inline button | Mobile: FAB handles it */}
               <div className="hidden sm:flex justify-end mb-4">
                 <Button variant="primary" onClick={() => { setEditingMatch(null); setMatchFormOpen(true); }}>
                   + Aggiungi Match
@@ -288,7 +284,7 @@ export function StudentDashboard() {
                   action={<Button variant="primary" onClick={() => { setEditingMatch(null); setMatchFormOpen(true); }}>Aggiungi match</Button>}
                 />
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
                   {matches.map((m) => (
                     <MatchCard
                       key={m.id}
@@ -310,13 +306,13 @@ export function StudentDashboard() {
         </div>
       </main>
 
-      {/* ─── Mobile FAB (floating action button) ─── */}
+      {/* Mobile FAB */}
       <button
         onClick={handleFabClick}
-        className="sm:hidden fixed bottom-6 right-5 z-40 w-14 h-14 rounded-full bg-[var(--club-red)] text-white shadow-lg shadow-[var(--club-red)]/30 flex items-center justify-center active:scale-90 transition-transform"
+        className="sm:hidden fab"
         aria-label={activeTab === 'obiettivi' ? 'Nuovo obiettivo' : 'Aggiungi match'}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
