@@ -1,7 +1,7 @@
 'use client';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { LoadingScreen } from '@/components/UI';
+import { Button, LoadingScreen } from '@/components/UI';
 import { LoginPage } from './login/LoginPage';
 import { CoachDashboard } from './coach/CoachDashboard';
 import { StudentDashboard } from './student/StudentDashboard';
@@ -12,7 +12,6 @@ function ProfileNotFound({ userId }: { userId: string }) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // onAuthStateChange will handle state cleanup and show LoginPage
   };
 
   const handleRetry = async () => {
@@ -50,13 +49,69 @@ function ProfileNotFound({ userId }: { userId: string }) {
   );
 }
 
+function PendingApprovalScreen({ rejected }: { rejected: boolean }) {
+  const { profile, signOut } = useAuth();
+
+  return (
+    <div className="login-bg flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-[440px] relative z-10">
+        <div className="card p-8 text-center animate-slide-up">
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 ${
+            rejected ? 'bg-red-50' : 'bg-amber-50'
+          }`}>
+            {rejected ? (
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+            ) : (
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            )}
+          </div>
+
+          <h2 className="text-xl font-bold text-gray-900 mb-2 tracking-[-0.02em]" style={{ fontFamily: 'var(--font-display)' }}>
+            {rejected ? 'Registrazione rifiutata' : 'In attesa di approvazione'}
+          </h2>
+          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+            {rejected
+              ? 'La tua richiesta di registrazione è stata rifiutata dal maestro. Per chiarimenti contatta direttamente il club.'
+              : 'Il tuo account è stato creato correttamente. Riceverai accesso non appena il maestro approverà la tua registrazione.'}
+          </p>
+
+          {profile?.email && (
+            <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email registrata</p>
+              <p className="text-sm font-medium text-gray-800 break-all">{profile.email}</p>
+            </div>
+          )}
+
+          <Button variant="secondary" size="lg" className="w-full" onClick={signOut}>
+            Esci
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppRouter() {
   const { user, profile, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
   if (!user) return <LoginPage />;
   if (!profile) return <ProfileNotFound userId={user.id} />;
+
+  // Coaches always have access
   if (profile.role === 'maestro') return <CoachDashboard />;
+
+  // Allievi: must be approved
+  if (profile.approval_status === 'pending') return <PendingApprovalScreen rejected={false} />;
+  if (profile.approval_status === 'rejected') return <PendingApprovalScreen rejected={true} />;
+
   return <StudentDashboard />;
 }
 

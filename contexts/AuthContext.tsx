@@ -25,8 +25,7 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-    fullName: string,
-    inviteToken: string
+    fullName: string
   ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -145,28 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (
     email: string,
     password: string,
-    fullName: string,
-    inviteToken: string
+    fullName: string
   ) => {
-    // 1. Validate invite token
-    const { data: invite, error: invErr } = await supabase
-      .from('invite_links')
-      .select('*')
-      .eq('token', inviteToken)
-      .is('used_at', null)
-      .single();
-
-    if (invErr || !invite) {
-      return { error: 'Link di invito non valido o già utilizzato.' };
-    }
-
-    const now = new Date();
-    const expiresAt = new Date(invite.expires_at);
-    if (now > expiresAt) {
-      return { error: 'Il link di invito è scaduto.' };
-    }
-
-    // 2. Sign up
     const { data: authData, error: signUpErr } = await supabase.auth.signUp({
       email,
       password,
@@ -193,14 +172,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         level: 'Principiante',
         ranking: 'Non classificato',
         active: true,
+        approval_status: 'pending',
       });
 
       if (profileErr) console.error('Profile creation error:', profileErr);
-
-      await supabase
-        .from('invite_links')
-        .update({ used_at: new Date().toISOString() })
-        .eq('id', invite.id);
     }
 
     return { error: null };
