@@ -22,13 +22,20 @@ interface AuthContextType {
     email: string,
     password: string
   ) => Promise<{ error: string | null }>;
-  signUp: (
-    email: string,
-    password: string,
-    fullName: string
-  ) => Promise<{ error: string | null }>;
+  signUp: (input: SignUpInput) => Promise<{ error: string | null }>;
+  verifySignupOtp: (email: string, token: string) => Promise<{ error: string | null }>;
+  resendSignupOtp: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+}
+
+export interface SignUpInput {
+  firstName: string;
+  lastName: string;
+  age: number;
+  ranking: string;
+  email: string;
+  password: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -129,23 +136,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) {
       setLoading(false);
+      // Friendlier message for unconfirmed email
+      if (/email not confirmed/i.test(error.message)) {
+        return {
+          error:
+            'Devi prima verificare la tua email. Controlla la posta e inserisci il codice ricevuto.',
+        };
+      }
       return { error: error.message };
     }
+
+    // Check approval status before letting them in
+    if (data.user) {
+      const p = await fetchProfile(data.user.id);
+      if (p && p.role === 'allievo' && p.approval_status !== 'approved') {
+        await supabase.auth.signOut({ scope: 'local' });
+        setLoading(false);
+        if (p.approval_status === 'rejected') {
+          return {
+            error:
+              'La tua registrazione è stata rifiutata dal maestro. Per chiarimenti contatta il club.',
+          };
+        }
+        return {
+          error:
+            'È necessario essere approvati dal maestro per poter accedere. Attendi la conferma.',
+        };
+      }
+    }
+
     // onAuthStateChange(SIGNED_IN) will fire and handle profile loading
     return { error: null };
   };
 
-  const signUp = async (
-    email: string,
-    password: string,
-    fullName: string
-  ) => {
+  const signUp = async (input: SignUpInput) => {
+    const { firstName, lastName, age, ranking, email, password } = input;
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+    // Approximate birth_date from age (Jan 1 of current_year - age)
+    const birthYear = new Date().getFullYear() - Math.floor(age);
+    const birthDate = `${birthYear}-01-01`;
+
     const { data: authData, error: signUpErr } = await supabase.auth.signUp({
       email,
       password,
@@ -158,19 +195,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (signUpErr) return { error: signUpErr.message };
 
     if (authData.user) {
-      const names = fullName.trim().split(' ');
-      const firstName = names[0] || '';
-      const lastName = names.slice(1).join(' ') || '';
-
       const { error: profileErr } = await supabase.from('profiles').insert({
         id: authData.user.id,
         email,
-        full_name: fullName.trim(),
-        first_name: firstName,
-        last_name: lastName,
+        full_name: fullName,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        birth_date: birthDate,
         role: 'allievo',
         level: 'Principiante',
-        ranking: 'Non classificato',
+        ranking: ranking.trim() || 'Non classificato',
         active: true,
         approval_status: 'pending',
       });
@@ -178,6 +212,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profileErr) console.error('Profile creation error:', profileErr);
     }
 
+    return { error: null };
+  };
+
+  const verifySignupOtp = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'signup',
+    });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
+  const resendSignupOtp = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) return { error: error.message };
     return { error: null };
   };
 
@@ -205,6 +261,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isCoach,
         signIn,
         signUp,
+        verifySignupOtp,
+        resendSignupOtp,
         signOut,
         refreshProfile,
       }}

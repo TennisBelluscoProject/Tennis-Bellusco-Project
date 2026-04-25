@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Button, LoadingScreen } from '@/components/UI';
 import { LoginPage } from './login/LoginPage';
@@ -50,7 +51,14 @@ function ProfileNotFound({ userId }: { userId: string }) {
 }
 
 function PendingApprovalScreen({ rejected }: { rejected: boolean }) {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, refreshProfile } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshProfile();
+    setRefreshing(false);
+  };
 
   return (
     <div className="login-bg flex items-center justify-center px-4 py-12">
@@ -79,19 +87,26 @@ function PendingApprovalScreen({ rejected }: { rejected: boolean }) {
           <p className="text-sm text-gray-600 leading-relaxed mb-6">
             {rejected
               ? 'La tua richiesta di registrazione è stata rifiutata dal maestro. Per chiarimenti contatta direttamente il club.'
-              : 'Il tuo account è stato creato correttamente. Riceverai accesso non appena il maestro approverà la tua registrazione.'}
+              : 'La tua email è stata verificata. Ora il tuo account è in attesa di approvazione da parte del maestro: riceverai accesso non appena verrai approvato.'}
           </p>
 
           {profile?.email && (
-            <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
+            <div className="bg-gray-50 rounded-xl p-4 mb-5 text-left">
               <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email registrata</p>
               <p className="text-sm font-medium text-gray-800 break-all">{profile.email}</p>
             </div>
           )}
 
-          <Button variant="secondary" size="lg" className="w-full" onClick={signOut}>
-            Esci
-          </Button>
+          <div className="flex flex-col gap-2.5">
+            {!rejected && (
+              <Button variant="primary" size="lg" className="w-full" loading={refreshing} onClick={handleRefresh}>
+                Verifica stato
+              </Button>
+            )}
+            <Button variant="secondary" size="lg" className="w-full" onClick={signOut}>
+              Esci
+            </Button>
+          </div>
         </div>
       </div>
     </div>
