@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
-import { Button, Tabs, SearchBar, Spinner, Badge, EmptyState, Modal, Input } from '@/components/UI';
+import { Button, Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog } from '@/components/UI';
 import type { Profile, Goal, MatchResultRow, GoalStatus } from '@/lib/database.types';
 import { getDisplayRanking } from '@/lib/constants';
 import { KanbanBoard } from '@/components/KanbanBoard';
@@ -12,18 +12,29 @@ import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
 import { MatchForm } from '@/components/MatchForm';
 import { CoachNotesForm } from '@/components/CoachNotesForm';
+import { CoachMobileDashboard } from './CoachMobileDashboard';
 
 export function CoachDashboard() {
+  return (
+    <>
+      <div className="sm:hidden">
+        <CoachMobileDashboard />
+      </div>
+      <div className="hidden sm:block">
+        <CoachDesktopDashboard />
+      </div>
+    </>
+  );
+}
+
+function CoachDesktopDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('allievi');
   const [students, setStudents] = useState<Profile[]>([]);
+  const [pendingProfiles, setPendingProfiles] = useState<Profile[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<Profile | null>(null);
-  const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteResult, setInviteResult] = useState<{ token?: string; error?: string } | null>(null);
 
   const [studentTab, setStudentTab] = useState('obiettivi');
   const [studentGoals, setStudentGoals] = useState<Goal[]>([]);
@@ -38,22 +49,38 @@ export function CoachDashboard() {
   const [allMatches, setAllMatches] = useState<MatchResultRow[]>([]);
   const [allMatchesLoading, setAllMatchesLoading] = useState(false);
 
+  const [confirmReject, setConfirmReject] = useState<Profile | null>(null);
+  const [actingOn, setActingOn] = useState<string | null>(null);
+
+  const refetchStudents = useCallback(async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'allievo')
+      .eq('approval_status', 'approved')
+      .eq('active', true)
+      .order('full_name');
+    setStudents((data as Profile[]) || []);
+  }, []);
+
+  const refetchPending = useCallback(async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'allievo')
+      .eq('approval_status', 'pending')
+      .order('created_at', { ascending: false });
+    setPendingProfiles((data as Profile[]) || []);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'allievo')
-        .eq('active', true)
-        .order('full_name');
-      if (!cancelled) {
-        setStudents((data as Profile[]) || []);
-        setLoading(false);
-      }
+      await Promise.all([refetchStudents(), refetchPending()]);
+      if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [refetchStudents, refetchPending]);
 
   useEffect(() => {
     if (activeTab !== 'risultati') return;
@@ -89,11 +116,6 @@ export function CoachDashboard() {
     return () => { cancelled = true; };
   }, [selectedStudent]);
 
-  const refetchStudents = async () => {
-    const { data } = await supabase.from('profiles').select('*').eq('role', 'allievo').eq('active', true).order('full_name');
-    setStudents((data as Profile[]) || []);
-  };
-
   const refetchAllMatches = async () => {
     const { data } = await supabase.from('match_results').select('*, profiles!match_results_student_id_fkey(full_name)').order('match_date', { ascending: false }).limit(100);
     setAllMatches((data as MatchResultRow[]) || []);
@@ -122,25 +144,28 @@ export function CoachDashboard() {
     return { total: matches.length, wins, losses: matches.length - wins };
   };
 
-  // ─── Invite ────────────────────────────────────────
-  const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
-    setInviteLoading(true);
-    setInviteResult(null);
+  // ─── Approve / Reject ──────────────────────────────
+  const handleApprove = async (p: Profile) => {
+    setActingOn(p.id);
+    await supabase.from('profiles').update({
+      approval_status: 'approved',
+      approved_at: new Date().toISOString(),
+      approved_by: user?.id ?? null,
+    }).eq('id', p.id);
+    await Promise.all([refetchStudents(), refetchPending()]);
+    setActingOn(null);
+  };
 
-    const { data, error } = await supabase.from('invite_links').insert({
-      email: inviteEmail.trim(),
-      role: 'allievo',
-      invited_by: user?.id,
-    }).select().single();
-
-    if (error) {
-      setInviteResult({ error: error.message });
-    } else if (data) {
-      const link = `${window.location.origin}?invite=${data.token}`;
-      setInviteResult({ token: link });
-    }
-    setInviteLoading(false);
+  const handleReject = async (p: Profile) => {
+    setActingOn(p.id);
+    await supabase.from('profiles').update({
+      approval_status: 'rejected',
+      approved_at: new Date().toISOString(),
+      approved_by: user?.id ?? null,
+    }).eq('id', p.id);
+    await refetchPending();
+    setConfirmReject(null);
+    setActingOn(null);
   };
 
   // ─── Goal CRUD ─────────────────────────────────────
@@ -216,8 +241,7 @@ export function CoachDashboard() {
     return (
       <div className="min-h-screen bg-[var(--background)]">
         <Header />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
-          {/* Back button */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <button
             onClick={() => setSelectedStudent(null)}
             className="flex items-center gap-2 text-[13px] font-medium text-gray-500 hover:text-[var(--club-blue)] mb-5 transition-colors group"
@@ -228,10 +252,8 @@ export function CoachDashboard() {
             Torna alla lista
           </button>
 
-          {/* Student hero card */}
           <div className="card p-5 sm:p-6 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              {/* Avatar */}
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--club-blue)] to-[var(--club-blue-dark)] flex items-center justify-center text-white text-xl font-bold shadow-sm">
                 {selectedStudent.full_name.charAt(0).toUpperCase()}
               </div>
@@ -239,12 +261,9 @@ export function CoachDashboard() {
                 <h2 className="text-xl font-bold text-gray-900 tracking-[-0.02em]">{selectedStudent.full_name}</h2>
                 <div className="flex flex-wrap items-center gap-2 mt-1.5">
                   <Badge>{displayLevel}</Badge>
-                  <Badge color="var(--club-red)" bg="var(--club-red-light)">
-                    FIT: {displayRanking}
-                  </Badge>
+                  <Badge color="var(--club-red)" bg="var(--club-red-light)">FIT: {displayRanking}</Badge>
                 </div>
               </div>
-              {/* Quick stats */}
               <div className="flex flex-wrap gap-4 text-center sm:gap-5">
                 <div>
                   <p className="text-lg font-bold text-[var(--club-blue)]">{gs.total}</p>
@@ -266,7 +285,6 @@ export function CoachDashboard() {
             </div>
           </div>
 
-          {/* Tabs */}
           <Tabs
             tabs={[
               { id: 'obiettivi', label: 'Obiettivi' },
@@ -279,7 +297,7 @@ export function CoachDashboard() {
           <div className="mt-5">
             {studentTab === 'obiettivi' && (
               <>
-                <div className="hidden sm:flex justify-end mb-4">
+                <div className="flex justify-end mb-4">
                   <Button variant="primary" onClick={() => { setEditingGoal(null); setGoalFormOpen(true); }}>
                     + Nuovo obiettivo
                   </Button>
@@ -313,7 +331,7 @@ export function CoachDashboard() {
 
             {studentTab === 'match' && (
               <>
-                <div className="hidden sm:flex justify-end mb-4">
+                <div className="flex justify-end mb-4">
                   <Button variant="primary" onClick={() => { setEditingMatch(null); setMatchFormOpen(true); }}>
                     + Aggiungi Match
                   </Button>
@@ -356,17 +374,11 @@ export function CoachDashboard() {
           </div>
         </main>
 
-        {/* Mobile FAB */}
         <button
           onClick={handleStudentFabClick}
-          className="sm:hidden fab"
+          className="hidden"
           aria-label={studentTab === 'obiettivi' ? 'Nuovo obiettivo' : 'Aggiungi match'}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
+        />
       </div>
     );
   }
@@ -375,8 +387,7 @@ export function CoachDashboard() {
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6">
-        {/* Header row */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <div className="card px-5 py-4 flex items-center gap-3">
@@ -384,23 +395,32 @@ export function CoachDashboard() {
                 <span className="text-lg">👥</span>
               </div>
               <div>
-                <p className="text-2xl font-bold text-[var(--club-blue)] tracking-[-0.02em]">{students.filter(s => s.active).length}</p>
+                <p className="text-2xl font-bold text-[var(--club-blue)] tracking-[-0.02em]">{students.length}</p>
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Allievi attivi</p>
               </div>
             </div>
-          </div>
-          <div className="hidden sm:block">
-            <Button variant="primary" onClick={() => { setInviteModalOpen(true); setInviteResult(null); setInviteEmail(''); }}>
-              ✉️ Invita allievo
-            </Button>
+            <div className="card px-5 py-4 flex items-center gap-3 relative">
+              {pendingProfiles.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1.5 rounded-full bg-[var(--club-red)] text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
+                  {pendingProfiles.length}
+                </span>
+              )}
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                <span className="text-lg">📥</span>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-600 tracking-[-0.02em]">{pendingProfiles.length}</p>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Richieste</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Tabs */}
         <Tabs
           tabs={[
-            { id: 'allievi', label: 'Allievi' },
+            { id: 'allievi', label: `Allievi (${students.length})` },
             { id: 'risultati', label: 'Risultati Agonistici' },
+            { id: 'richieste', label: `Richieste${pendingProfiles.length > 0 ? ` · ${pendingProfiles.length}` : ''}` },
           ]}
           active={activeTab}
           onChange={setActiveTab}
@@ -413,7 +433,11 @@ export function CoachDashboard() {
               {loading ? (
                 <div className="flex justify-center py-12"><Spinner /></div>
               ) : filteredStudents.length === 0 ? (
-                <EmptyState icon="👥" title="Nessun allievo trovato" message={search ? 'Prova con un altro termine di ricerca.' : 'Invita il tuo primo allievo!'} />
+                <EmptyState
+                  icon="👥"
+                  title="Nessun allievo"
+                  message={search ? 'Nessun risultato per la ricerca.' : 'Non ci sono ancora allievi approvati. Le richieste di registrazione le trovi nella tab "Richieste".'}
+                />
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4 stagger-children">
                   {filteredStudents.map((student) => (
@@ -459,80 +483,58 @@ export function CoachDashboard() {
               />
             </>
           )}
+
+          {activeTab === 'richieste' && (
+            <>
+              <div className="card p-4 mb-5 flex items-start gap-3 bg-blue-50/40 border-blue-100">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B3A5C" strokeWidth="2" className="shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-[var(--club-blue)]">Approvazioni allievi</p>
+                  <p className="text-[12px] text-gray-600 leading-relaxed mt-0.5">
+                    Gli allievi si registrano in autonomia e attendono qui la tua approvazione. Una volta approvati potranno accedere alla loro dashboard.
+                  </p>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center py-12"><Spinner /></div>
+              ) : pendingProfiles.length === 0 ? (
+                <EmptyState icon="✅" title="Tutto in ordine" message="Nessuna richiesta di registrazione in attesa." />
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 stagger-children">
+                  {pendingProfiles.map((p) => (
+                    <PendingDesktopCard
+                      key={p.id}
+                      profile={p}
+                      busy={actingOn === p.id}
+                      onApprove={() => handleApprove(p)}
+                      onReject={() => setConfirmReject(p)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </main>
 
-      {/* Mobile FAB */}
-      <button
-        onClick={() => { setInviteModalOpen(true); setInviteResult(null); setInviteEmail(''); }}
-        className="sm:hidden fab"
-        aria-label="Invita allievo"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
-
-      {/* Invite modal */}
-      <Modal open={inviteModalOpen} onClose={() => setInviteModalOpen(false)} title="Invita allievo">
-        <div className="flex flex-col gap-4">
-          <Input
-            label="Email dell'allievo"
-            type="email"
-            value={inviteEmail}
-            onChange={setInviteEmail}
-            placeholder="allievo@email.com"
-            required
-          />
-          <Button variant="primary" loading={inviteLoading} onClick={handleInvite}>
-            Genera link invito
-          </Button>
-
-          {inviteResult?.token && (
-            <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-              <div className="flex items-center gap-2 mb-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <p className="text-sm font-bold text-green-800">Link generato!</p>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  readOnly
-                  value={inviteResult.token}
-                  className="flex-1 text-xs bg-white border border-green-200 rounded-lg px-3 py-2 font-mono text-gray-700"
-                />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => { navigator.clipboard.writeText(inviteResult.token!); }}
-                >
-                  Copia
-                </Button>
-              </div>
-              <p className="text-[11px] text-green-600 mt-2 font-medium">Valido per 7 giorni. Invia questo link all&apos;allievo.</p>
-            </div>
-          )}
-
-          {inviteResult?.error && (
-            <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100 flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              {inviteResult.error}
-            </div>
-          )}
-        </div>
-      </Modal>
+      <ConfirmDialog
+        open={!!confirmReject}
+        title="Rifiutare la registrazione?"
+        message={confirmReject ? `Sei sicuro di voler rifiutare la registrazione di ${confirmReject.full_name}? L'utente non potrà accedere.` : ''}
+        confirmLabel="Rifiuta"
+        onConfirm={() => confirmReject && handleReject(confirmReject)}
+        onCancel={() => setConfirmReject(null)}
+      />
     </div>
   );
 }
 
 // ─── StudentCard (coach list) ────────────────────────
-
 function StudentCard({ student, onClick }: { student: Profile; onClick: () => void }) {
   const [stats, setStats] = useState({ goals: 0, completed: 0, matches: 0, wins: 0 });
   const { displayLevel, displayRanking } = getDisplayRanking(student);
@@ -559,12 +561,8 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
   }, [student.id]);
 
   return (
-    <div
-      onClick={onClick}
-      className="card card-interactive p-4 animate-fade-in"
-    >
+    <div onClick={onClick} className="card card-interactive p-4 animate-fade-in">
       <div className="flex items-center gap-3 mb-3">
-        {/* Avatar with gradient */}
         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--club-blue)] to-[var(--club-blue-dark)] flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
           {student.full_name.charAt(0).toUpperCase()}
         </div>
@@ -574,7 +572,6 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
             <Badge>{displayLevel}</Badge>
           </div>
         </div>
-        {/* Arrow indicator */}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2" className="shrink-0">
           <polyline points="9 18 15 12 9 6" />
         </svg>
@@ -602,6 +599,53 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
           <p className="text-sm font-bold text-[var(--club-red)]">{stats.wins}</p>
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Vittorie</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PendingDesktopCard ──────────────────────────────
+function ageLabelFrom(createdAt: string): string {
+  const ageMin = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
+  if (ageMin < 60) return `${ageMin}min fa`;
+  if (ageMin < 60 * 24) return `${Math.floor(ageMin / 60)}h fa`;
+  return `${Math.floor(ageMin / (60 * 24))}g fa`;
+}
+
+function PendingDesktopCard({ profile, busy, onApprove, onReject }: { profile: Profile; busy: boolean; onApprove: () => void; onReject: () => void }) {
+  const initial = profile.full_name.charAt(0).toUpperCase();
+  const ageLabel = ageLabelFrom(profile.created_at);
+
+  return (
+    <div className="card p-5 animate-fade-in">
+      <div className="flex items-center gap-3.5 mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--club-blue)] to-[var(--club-blue-dark)] flex items-center justify-center text-white text-base font-bold shadow-sm shrink-0">
+          {initial}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{profile.full_name}</h3>
+          <p className="text-[12px] text-[var(--club-blue)] truncate">{profile.email}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge>{profile.level}</Badge>
+            <span className="text-[10px] text-gray-400">· {ageLabel}</span>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2.5">
+        <button
+          disabled={busy}
+          onClick={onReject}
+          className="py-2.5 rounded-xl border-2 border-red-100 text-[var(--club-red)] text-[13px] font-bold hover:bg-red-50 transition-colors disabled:opacity-50"
+        >
+          ✕ Rifiuta
+        </button>
+        <button
+          disabled={busy}
+          onClick={onApprove}
+          className="py-2.5 rounded-xl bg-[var(--success)] text-white text-[13px] font-bold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-sm"
+        >
+          ✓ Approva
+        </button>
       </div>
     </div>
   );

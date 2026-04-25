@@ -3,6 +3,7 @@ export type GoalCategory = 'tecnica' | 'tattica' | 'fisico' | 'mente' | 'agonism
 export type GoalStatus = 'planned' | 'in_progress' | 'completed';
 export type SurfaceType = 'terra_rossa' | 'erba' | 'cemento' | 'sintetico';
 export type MatchResult = 'win' | 'loss' | 'retired' | 'walkover';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Profile {
   id: string;
@@ -17,6 +18,9 @@ export interface Profile {
   level: string;
   ranking: string;
   active: boolean;
+  approval_status: ApprovalStatus;
+  approved_at: string | null;
+  approved_by: string | null;
   created_at: string;
 }
 
