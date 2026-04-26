@@ -34,6 +34,7 @@ export interface SignUpInput {
   lastName: string;
   age: number;
   ranking: string;
+  level?: string;
   email: string;
   password: string;
 }
@@ -176,42 +177,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (input: SignUpInput) => {
-    const { firstName, lastName, age, ranking, email, password } = input;
-    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const { firstName, lastName, age, ranking, level, email, password } = input;
+    const cleanFirst = firstName.trim();
+    const cleanLast = lastName.trim();
+    const fullName = `${cleanFirst} ${cleanLast}`.trim();
 
-    // Approximate birth_date from age (Jan 1 of current_year - age)
-    const birthYear = new Date().getFullYear() - Math.floor(age);
-    const birthDate = `${birthYear}-01-01`;
-
-    const { data: authData, error: signUpErr } = await supabase.auth.signUp({
+    // The DB trigger handle_new_user reads these metadata fields and creates
+    // the profile row in a single atomic step. Don't INSERT explicitly here:
+    // it would race with the trigger and fail with duplicate key.
+    const { error: signUpErr } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: {
+          full_name: fullName,
+          first_name: cleanFirst,
+          last_name: cleanLast,
+          age: Math.floor(age),
+          ranking: ranking.trim() || 'Non classificato',
+          level: level || 'Principiante',
+        },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
     if (signUpErr) return { error: signUpErr.message };
-
-    if (authData.user) {
-      const { error: profileErr } = await supabase.from('profiles').insert({
-        id: authData.user.id,
-        email,
-        full_name: fullName,
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        birth_date: birthDate,
-        role: 'allievo',
-        level: 'Principiante',
-        ranking: ranking.trim() || 'Non classificato',
-        active: true,
-        approval_status: 'pending',
-      });
-
-      if (profileErr) console.error('Profile creation error:', profileErr);
-    }
-
     return { error: null };
   };
 

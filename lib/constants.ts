@@ -66,3 +66,57 @@ export function getDisplayRanking(profile: { level: string | null; ranking: stri
     displayRanking: ranking,
   };
 }
+
+/**
+ * Returns true if the player is FIT-classified (has a numeric ranking).
+ * Players that are "Non classificato" (or have no ranking) are not classified.
+ */
+export function isClassified(ranking: string | null | undefined): boolean {
+  if (!ranking) return false;
+  const r = ranking.trim();
+  if (!r) return false;
+  if (r.toLowerCase() === 'non classificato') return false;
+  return /^\d+(\.\d+)?$/.test(r);
+}
+
+/**
+ * Compute current age (in years) from a birth date string (YYYY-MM-DD).
+ */
+export function getAge(birthDate: string | null | undefined): number | null {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age -= 1;
+  return age;
+}
+
+/**
+ * FIT-style age category. Returns one of:
+ *   U10, U12, U14, U16, U18, Open, Over 35, Over 40, ..., Over 80
+ * or null if birth_date is missing/invalid.
+ *
+ * Brackets:
+ *   - U10: ≤10 years
+ *   - U12: 11–12
+ *   - U14: 13–14
+ *   - U16: 15–16
+ *   - U18: 17–18
+ *   - Open: 19–34
+ *   - Over X: from 35, in 5-year buckets (35–39 → Over 35, 40–44 → Over 40, …)
+ *   - Capped at Over 80 for ages ≥80.
+ */
+export function getAgeCategory(birthDate: string | null | undefined): string | null {
+  const age = getAge(birthDate);
+  if (age === null) return null;
+  if (age <= 10) return 'U10';
+  if (age <= 12) return 'U12';
+  if (age <= 14) return 'U14';
+  if (age <= 16) return 'U16';
+  if (age <= 18) return 'U18';
+  if (age <= 34) return 'Open';
+  const bucket = Math.min(80, Math.floor(age / 5) * 5);
+  return `Over ${bucket}`;
+}

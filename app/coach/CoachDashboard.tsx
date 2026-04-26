@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
 import { Button, Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog } from '@/components/UI';
 import type { Profile, Goal, MatchResultRow, GoalStatus } from '@/lib/database.types';
-import { getDisplayRanking } from '@/lib/constants';
+import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
@@ -237,6 +237,8 @@ function CoachDesktopDashboard() {
     const ms = matchStats(studentMatches);
     const gs = goalStats();
     const { displayLevel, displayRanking } = getDisplayRanking(selectedStudent);
+    const detailClassified = isClassified(displayRanking);
+    const detailAgeCategory = getAgeCategory(selectedStudent.birth_date);
 
     return (
       <div className="min-h-screen bg-[var(--background)]">
@@ -260,8 +262,17 @@ function CoachDesktopDashboard() {
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900 tracking-[-0.02em]">{selectedStudent.full_name}</h2>
                 <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                  <Badge>{displayLevel}</Badge>
-                  <Badge color="var(--club-red)" bg="var(--club-red-light)">FIT: {displayRanking}</Badge>
+                  {detailAgeCategory && (
+                    <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{detailAgeCategory}</Badge>
+                  )}
+                  {detailClassified ? (
+                    <Badge color="var(--club-red)" bg="var(--club-red-light)">FIT: {displayRanking}</Badge>
+                  ) : (
+                    <>
+                      <Badge>{displayLevel}</Badge>
+                      <Badge color="var(--muted)" bg="#F3F4F6">Non classificato</Badge>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap gap-4 text-center sm:gap-5">
@@ -538,6 +549,8 @@ function CoachDesktopDashboard() {
 function StudentCard({ student, onClick }: { student: Profile; onClick: () => void }) {
   const [stats, setStats] = useState({ goals: 0, completed: 0, matches: 0, wins: 0 });
   const { displayLevel, displayRanking } = getDisplayRanking(student);
+  const cardClassified = isClassified(displayRanking);
+  const cardAgeCategory = getAgeCategory(student.birth_date);
 
   useEffect(() => {
     let cancelled = false;
@@ -568,8 +581,11 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-bold text-gray-900 truncate tracking-[-0.01em]">{student.full_name}</h3>
-          <div className="flex items-center gap-2 mt-0.5">
-            <Badge>{displayLevel}</Badge>
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {cardAgeCategory && (
+              <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{cardAgeCategory}</Badge>
+            )}
+            {!cardClassified && <Badge>{displayLevel}</Badge>}
           </div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2" className="shrink-0">
@@ -579,7 +595,7 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
 
       <div className="flex items-center gap-1.5 mb-3 pl-0.5">
         <span className="text-[11px] text-gray-400 font-medium">Classifica FIT:</span>
-        <span className="text-[11px] font-bold text-[var(--club-red)]">{displayRanking}</span>
+        <span className="text-[11px] font-bold text-[var(--club-red)]">{cardClassified ? displayRanking : 'Non classificato'}</span>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-center pt-3 border-t border-gray-100">
@@ -615,6 +631,8 @@ function ageLabelFrom(createdAt: string): string {
 function PendingDesktopCard({ profile, busy, onApprove, onReject }: { profile: Profile; busy: boolean; onApprove: () => void; onReject: () => void }) {
   const initial = profile.full_name.charAt(0).toUpperCase();
   const ageLabel = ageLabelFrom(profile.created_at);
+  const pendingClassified = isClassified(profile.ranking);
+  const pendingAgeCategory = getAgeCategory(profile.birth_date);
 
   return (
     <div className="card p-5 animate-fade-in">
@@ -625,8 +643,15 @@ function PendingDesktopCard({ profile, busy, onApprove, onReject }: { profile: P
         <div className="flex-1 min-w-0">
           <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{profile.full_name}</h3>
           <p className="text-[12px] text-[var(--club-blue)] truncate">{profile.email}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge>{profile.level}</Badge>
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            {pendingAgeCategory && (
+              <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{pendingAgeCategory}</Badge>
+            )}
+            {pendingClassified ? (
+              <Badge color="var(--club-red)" bg="var(--club-red-light)">FIT: {profile.ranking}</Badge>
+            ) : (
+              <Badge>{profile.level}</Badge>
+            )}
             <span className="text-[10px] text-gray-400">· {ageLabel}</span>
           </div>
         </div>
