@@ -21,6 +21,7 @@ export function LoginPage() {
   const [age, setAge] = useState('');
   const [ranking, setRanking] = useState('');
   const [unranked, setUnranked] = useState(true);
+  const [level, setLevel] = useState<'Principiante' | 'Intermedio' | 'Avanzato'>('Principiante');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // OTP verification
@@ -93,6 +94,7 @@ export function LoginPage() {
       lastName: lastName.trim(),
       age: ageNum,
       ranking: unranked ? 'Non classificato' : ranking.trim(),
+      level: unranked ? level : 'Principiante',
       email: email.trim(),
       password,
     });
@@ -268,6 +270,33 @@ export function LoginPage() {
                 />
                 <span className="text-[13px] text-gray-600">Non sono classificato FIT</span>
               </label>
+
+              {unranked && (
+                <div className="flex flex-col gap-1.5 -mt-1">
+                  <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+                    Livello tecnico<span className="text-[var(--club-red)] ml-0.5">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['Principiante', 'Intermedio', 'Avanzato'] as const).map((opt) => {
+                      const active = level === opt;
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setLevel(opt)}
+                          className={`py-2 rounded-xl border text-[13px] font-semibold transition-all ${
+                            active
+                              ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)] shadow-sm'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="la-tua@email.com" required />
 

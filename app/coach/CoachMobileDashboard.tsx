@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner, Badge, EmptyState, SearchBar, Tabs, ConfirmDialog, Button } from '@/components/UI';
 import type { Profile, Goal, MatchResultRow, GoalStatus } from '@/lib/database.types';
-import { getDisplayRanking } from '@/lib/constants';
+import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
@@ -594,6 +594,8 @@ function StudentRowMobile({
   const { displayLevel, displayRanking } = getDisplayRanking(student);
   const initial = student.full_name.charAt(0).toUpperCase();
   const winPct = stats.matches > 0 ? Math.round((stats.wins / stats.matches) * 100) : 0;
+  const classified = isClassified(displayRanking);
+  const ageCategory = getAgeCategory(student.birth_date);
 
   return (
     <button onClick={onClick} className="card card-interactive p-4 text-left flex items-center gap-3.5">
@@ -602,9 +604,15 @@ function StudentRowMobile({
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{student.full_name}</h3>
-        <div className="flex items-center gap-2 mt-1">
-          <Badge>{displayLevel}</Badge>
-          <span className="text-[11px] font-semibold text-[var(--club-red)]">FIT: {displayRanking}</span>
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          {ageCategory && (
+            <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{ageCategory}</Badge>
+          )}
+          {classified ? (
+            <span className="text-[11px] font-semibold text-[var(--club-red)]">FIT: {displayRanking}</span>
+          ) : (
+            <Badge>{displayLevel}</Badge>
+          )}
         </div>
         <p className="text-[11px] text-gray-500 mt-1">
           {stats.matches} match{stats.matches > 0 ? <> · <span className="text-[var(--success)] font-bold">{winPct}% vinte</span></> : ''}
@@ -653,6 +661,8 @@ function CompactMatchCard({ match }: { match: MatchResultRow }) {
 function PendingCard({ profile, busy, onApprove, onReject }: { profile: Profile; busy: boolean; onApprove: () => void; onReject: () => void }) {
   const initial = profile.full_name.charAt(0).toUpperCase();
   const created = new Date(profile.created_at);
+  const pendingClassified = isClassified(profile.ranking);
+  const pendingAgeCategory = getAgeCategory(profile.birth_date);
   return (
     <div className="card p-4 animate-fade-in">
       <div className="flex items-center gap-3 mb-3.5">
@@ -662,8 +672,15 @@ function PendingCard({ profile, busy, onApprove, onReject }: { profile: Profile;
         <div className="flex-1 min-w-0">
           <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{profile.full_name}</h3>
           <p className="text-[12px] text-[var(--club-blue)] truncate">{profile.email}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge>{profile.level}</Badge>
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            {pendingAgeCategory && (
+              <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{pendingAgeCategory}</Badge>
+            )}
+            {pendingClassified ? (
+              <Badge color="var(--club-red)" bg="var(--club-red-light)">FIT: {profile.ranking}</Badge>
+            ) : (
+              <Badge>{profile.level}</Badge>
+            )}
             <span className="text-[10px] text-gray-400">· {timeAgo(created)}</span>
           </div>
         </div>
@@ -771,6 +788,8 @@ function StudentDetailMobile({
   };
 
   const { displayLevel, displayRanking } = getDisplayRanking(student);
+  const classified = isClassified(displayRanking);
+  const ageCategory = getAgeCategory(student.birth_date);
   const wins = matches.filter((m) => m.result === 'win').length;
   const completedGoals = goals.filter((g) => g.status === 'completed').length;
 
@@ -797,8 +816,17 @@ function StudentDetailMobile({
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold text-gray-900 tracking-[-0.02em] truncate">{student.full_name}</h2>
               <div className="flex flex-wrap gap-1.5 mt-1">
-                <Badge>{displayLevel}</Badge>
-                <Badge color="var(--club-red)" bg="var(--club-red-light)">FIT: {displayRanking}</Badge>
+                {ageCategory && (
+                  <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{ageCategory}</Badge>
+                )}
+                {classified ? (
+                  <Badge color="var(--club-red)" bg="var(--club-red-light)">FIT: {displayRanking}</Badge>
+                ) : (
+                  <>
+                    <Badge>{displayLevel}</Badge>
+                    <Badge color="var(--muted)" bg="#F3F4F6">Non classificato</Badge>
+                  </>
+                )}
               </div>
             </div>
           </div>
