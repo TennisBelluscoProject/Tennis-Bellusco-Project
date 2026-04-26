@@ -18,7 +18,7 @@ export function LoginPage() {
   // Register fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [age, setAge] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [ranking, setRanking] = useState('');
   const [unranked, setUnranked] = useState(true);
   const [level, setLevel] = useState<'Principiante' | 'Intermedio' | 'Avanzato'>('Principiante');
@@ -78,9 +78,13 @@ export function LoginPage() {
     if (!firstName.trim()) return setError('Inserisci il nome');
     if (!lastName.trim()) return setError('Inserisci il cognome');
 
-    const ageNum = parseInt(age, 10);
-    if (!Number.isFinite(ageNum) || ageNum < 5 || ageNum > 100) {
-      return setError("Inserisci un'età valida (tra 5 e 100)");
+    if (!birthDate) return setError('Inserisci la data di nascita');
+    const birthTs = new Date(birthDate).getTime();
+    if (Number.isNaN(birthTs)) return setError('Data di nascita non valida');
+    const minTs = new Date('1900-01-01').getTime();
+    const maxTs = Date.now();
+    if (birthTs < minTs || birthTs > maxTs) {
+      return setError('Inserisci una data di nascita valida');
     }
     if (!unranked && !ranking.trim()) {
       return setError('Inserisci la classifica FIT oppure spunta "Non classificato"');
@@ -92,7 +96,7 @@ export function LoginPage() {
     const { error: err } = await signUp({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      age: ageNum,
+      birthDate,
       ranking: unranked ? 'Non classificato' : ranking.trim(),
       level: unranked ? level : 'Principiante',
       email: email.trim(),
@@ -244,21 +248,33 @@ export function LoginPage() {
                 <Input label="Cognome" value={lastName} onChange={setLastName} placeholder="Rossi" required />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Età" type="number" value={age} onChange={setAge} placeholder="es. 25" min="5" required />
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
-                    Classifica FIT<span className="text-[var(--club-red)] ml-0.5">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={unranked ? '' : ranking}
-                    onChange={(e) => setRanking(e.target.value)}
-                    placeholder={unranked ? 'Non classificato' : 'es. 3.5'}
-                    disabled={unranked}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-400"
-                  />
-                </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+                  Data di nascita<span className="text-[var(--club-red)] ml-0.5">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  min="1900-01-01"
+                  max={new Date().toISOString().slice(0, 10)}
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+                  Classifica FIT<span className="text-[var(--club-red)] ml-0.5">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={unranked ? '' : ranking}
+                  onChange={(e) => setRanking(e.target.value)}
+                  placeholder={unranked ? 'Non classificato' : 'es. 3.5'}
+                  disabled={unranked}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-400"
+                />
               </div>
 
               <label className="flex items-center gap-2.5 cursor-pointer select-none -mt-1">

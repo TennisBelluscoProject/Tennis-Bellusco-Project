@@ -32,7 +32,8 @@ interface AuthContextType {
 export interface SignUpInput {
   firstName: string;
   lastName: string;
-  age: number;
+  /** ISO date string yyyy-MM-dd */
+  birthDate: string;
   ranking: string;
   level?: string;
   email: string;
@@ -177,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (input: SignUpInput) => {
-    const { firstName, lastName, age, ranking, level, email, password } = input;
+    const { firstName, lastName, birthDate, ranking, level, email, password } = input;
     const cleanFirst = firstName.trim();
     const cleanLast = lastName.trim();
     const fullName = `${cleanFirst} ${cleanLast}`.trim();
@@ -193,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           full_name: fullName,
           first_name: cleanFirst,
           last_name: cleanLast,
-          age: Math.floor(age),
+          birth_date: birthDate,
           ranking: ranking.trim() || 'Non classificato',
           level: level || 'Principiante',
         },
