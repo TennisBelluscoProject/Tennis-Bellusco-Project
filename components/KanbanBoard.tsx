@@ -270,7 +270,7 @@ function KanbanColumn({ status, goals, isCoach, onEdit, onDelete, onStatusChange
   return (
     <div
       className={`flex-1 min-w-[280px] rounded-2xl p-3 flex flex-col transition-all duration-200 h-[calc(100vh-320px)] min-h-[420px] max-h-[720px] ${
-        dragOver ? 'bg-[var(--club-blue-light)] ring-2 ring-[var(--club-blue)] ring-dashed' : 'bg-gray-50/60'
+        dragOver ? 'bg-[var(--club-blue-light)] ring-2 ring-inset ring-[var(--club-blue)] ring-dashed' : 'bg-gray-50/60'
       }`}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
