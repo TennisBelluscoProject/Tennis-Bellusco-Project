@@ -26,6 +26,17 @@ export function CoachDashboard() {
   );
 }
 
+interface ClubStats {
+  studentsTotal: number;
+  studentsMonth: number;
+  goalsTotal: number;
+  goalsMonth: number;
+  matchesTotal: number;
+  matchesMonth: number;
+  winRate: number;
+  winRateDelta: number;
+}
+
 function CoachDesktopDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'allievi' | 'risultati' | 'richieste'>('allievi');
@@ -37,6 +48,8 @@ function CoachDesktopDashboard() {
 
   const [allMatches, setAllMatches] = useState<MatchResultRow[]>([]);
   const [allMatchesLoading, setAllMatchesLoading] = useState(false);
+
+  const [clubStats, setClubStats] = useState<ClubStats | null>(null);
 
   const [coachNotesOpen, setCoachNotesOpen] = useState(false);
   const [coachNotesMatch, setCoachNotesMatch] = useState<MatchResultRow | null>(null);
@@ -50,13 +63,50 @@ function CoachDesktopDashboard() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [s, p] = await Promise.all([
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const monthStartIso = monthStart.toISOString();
+      const monthStartDay = monthStartIso.slice(0, 10);
+      const prevMonthStartDay = prevMonthStart.toISOString().slice(0, 10);
+
+      const [s, p, goalsRes, matchesRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('role', 'allievo').eq('approval_status', 'approved').eq('active', true).order('full_name'),
         supabase.from('profiles').select('*').eq('role', 'allievo').eq('approval_status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('goals').select('id, created_at'),
+        supabase.from('match_results').select('id, result, match_date'),
       ]);
       if (cancelled) return;
-      setStudents((s.data as Profile[]) || []);
+
+      const studentList = (s.data as Profile[]) || [];
+      const goals = (goalsRes.data as { id: string; created_at: string }[]) || [];
+      const matches = (matchesRes.data as { id: string; result: string; match_date: string }[]) || [];
+
+      const studentsMonth = studentList.filter((st) => st.created_at >= monthStartIso).length;
+      const goalsMonth = goals.filter((g) => g.created_at >= monthStartIso).length;
+      const matchesThisMonth = matches.filter((m) => m.match_date >= monthStartDay);
+      const matchesPrevMonth = matches.filter((m) => m.match_date >= prevMonthStartDay && m.match_date < monthStartDay);
+      const totalWins = matches.filter((m) => m.result === 'win').length;
+      const winRate = matches.length > 0 ? Math.round((totalWins / matches.length) * 100) : 0;
+      const wrThis = matchesThisMonth.length > 0
+        ? Math.round((matchesThisMonth.filter((m) => m.result === 'win').length / matchesThisMonth.length) * 100)
+        : winRate;
+      const wrPrev = matchesPrevMonth.length > 0
+        ? Math.round((matchesPrevMonth.filter((m) => m.result === 'win').length / matchesPrevMonth.length) * 100)
+        : wrThis;
+
+      setStudents(studentList);
       setPendingProfiles((p.data as Profile[]) || []);
+      setClubStats({
+        studentsTotal: studentList.length,
+        studentsMonth,
+        goalsTotal: goals.length,
+        goalsMonth,
+        matchesTotal: matches.length,
+        matchesMonth: matchesThisMonth.length,
+        winRate,
+        winRateDelta: wrThis - wrPrev,
+      });
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -147,33 +197,7 @@ function CoachDesktopDashboard() {
     <div className="min-h-screen bg-[var(--background)]">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="card px-5 py-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[var(--club-blue-light)] flex items-center justify-center">
-                <span className="text-lg">👥</span>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-[var(--club-blue)] tracking-[-0.02em]">{students.length}</p>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Allievi attivi</p>
-              </div>
-            </div>
-            <div className="card px-5 py-4 flex items-center gap-3 relative">
-              {pendingProfiles.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1.5 rounded-full bg-[var(--club-red)] text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
-                  {pendingProfiles.length}
-                </span>
-              )}
-              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                <span className="text-lg">📥</span>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-600 tracking-[-0.02em]">{pendingProfiles.length}</p>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Richieste</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ClubOverview stats={clubStats} />
 
         <Tabs
           tabs={[
@@ -361,5 +385,134 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Club Overview Panel ──────────────────────────────
+const IT_MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+function ClubOverview({ stats }: { stats: ClubStats | null }) {
+  const now = new Date();
+  const monthLabel = `${IT_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl mb-6 px-7 py-6 text-white shadow-[var(--shadow-md)]"
+      style={{ background: 'linear-gradient(135deg, #1B3A5C 0%, #122840 100%)' }}>
+      <div aria-hidden className="pointer-events-none absolute -right-20 -top-20 w-72 h-72 rounded-full bg-white/[0.03]" />
+      <div aria-hidden className="pointer-events-none absolute right-10 -bottom-24 w-56 h-56 rounded-full bg-white/[0.025]" />
+
+      <div className="relative flex items-start justify-between gap-4 mb-5">
+        <div>
+          <p className="text-[11px] font-bold tracking-[0.18em] text-white/95">PANORAMICA CLUB</p>
+          <p className="text-[12px] text-white/55 mt-1">Dati aggregati · {monthLabel}</p>
+        </div>
+        <span className="text-[10px] font-bold tracking-[0.15em] text-emerald-400 border border-emerald-400/40 rounded-full px-2.5 py-1">
+          NUOVO
+        </span>
+      </div>
+
+      <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-5">
+        <OverviewStat
+          icon={<UsersIcon />}
+          iconBg="rgba(167, 139, 250, 0.18)"
+          iconColor="#C4B5FD"
+          label="Allievi attivi"
+          value={stats ? String(stats.studentsTotal) : '—'}
+          delta={stats ? formatDelta(stats.studentsMonth) : ''}
+        />
+        <OverviewStat
+          icon={<TargetIcon />}
+          iconBg="rgba(244, 114, 182, 0.18)"
+          iconColor="#F9A8D4"
+          label="Obiettivi totali"
+          value={stats ? String(stats.goalsTotal) : '—'}
+          delta={stats ? formatDelta(stats.goalsMonth) : ''}
+        />
+        <OverviewStat
+          icon={<RacketIcon />}
+          iconBg="rgba(34, 211, 238, 0.18)"
+          iconColor="#67E8F9"
+          label="Match totali"
+          value={stats ? String(stats.matchesTotal) : '—'}
+          delta={stats ? formatDelta(stats.matchesMonth) : ''}
+        />
+        <OverviewStat
+          icon={<TrophyIcon />}
+          iconBg="rgba(250, 204, 21, 0.18)"
+          iconColor="#FDE68A"
+          label="Win rate generale"
+          value={stats ? `${stats.winRate}%` : '—'}
+          delta={stats ? formatDelta(stats.winRateDelta, '%') : ''}
+        />
+      </div>
+    </div>
+  );
+}
+
+function formatDelta(n: number, suffix = '') {
+  if (n === 0) return `± 0${suffix} questo mese`;
+  const sign = n > 0 ? '↑ +' : '↓ ';
+  return `${sign}${n}${suffix} questo mese`;
+}
+
+function OverviewStat({
+  icon, iconBg, iconColor, label, value, delta,
+}: { icon: React.ReactNode; iconBg: string; iconColor: string; label: string; value: string; delta: string }) {
+  const isPositive = delta.startsWith('↑');
+  const isNeutral = delta.startsWith('±');
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+          style={{ background: iconBg, color: iconColor }}>
+          {icon}
+        </span>
+        <span className="text-[10.5px] font-semibold tracking-[0.14em] text-white/70 uppercase">{label}</span>
+      </div>
+      <p className="text-[32px] leading-none font-bold tracking-[-0.02em] mb-2">{value}</p>
+      <p className={`text-[12px] font-medium ${isPositive ? 'text-emerald-400' : isNeutral ? 'text-white/50' : 'text-rose-400'}`}>
+        {delta}
+      </p>
+    </div>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+function TargetIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  );
+}
+function RacketIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="9" r="6" />
+      <path d="m13.5 13.5 7 7" />
+    </svg>
+  );
+}
+function TrophyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+    </svg>
   );
 }
