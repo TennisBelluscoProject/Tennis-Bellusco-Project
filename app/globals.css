@@ -98,6 +98,39 @@ input[type="date"]::-webkit-datetime-edit {
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
+/* Hidden scrollbar (still scrollable) — used on mobile kanban list */
+.scrollbar-hidden {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/Edge legacy */
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Visible, slightly thicker scrollbar — used on desktop kanban columns */
+.kanban-col-scroll {
+  scrollbar-gutter: stable;
+}
+.kanban-col-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.kanban-col-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kanban-col-scroll::-webkit-scrollbar-thumb {
+  background: #B8BFCA;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.kanban-col-scroll::-webkit-scrollbar-thumb:hover {
+  background: #8A93A3;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
 /* ─── Club stripe (used under header) ─── */
 .club-stripe {
   height: 3px;
