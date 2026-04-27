@@ -150,11 +150,6 @@ input[type="date"]::-webkit-datetime-edit {
   border-radius: 16px 16px 0 0;
 }
 
-/* ─── Kanban column ─── */
-.kanban-column {
-  min-height: 200px;
-}
-
 /* ─── Goal card category accent ─── */
 .goal-card {
   position: relative;

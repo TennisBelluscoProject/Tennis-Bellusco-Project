@@ -269,7 +269,7 @@ function KanbanColumn({ status, goals, isCoach, onEdit, onDelete, onStatusChange
 
   return (
     <div
-      className={`flex-1 min-w-[280px] rounded-2xl p-3 transition-all duration-200 ${
+      className={`flex-1 min-w-[280px] rounded-2xl p-3 flex flex-col transition-all duration-200 h-[calc(100vh-320px)] min-h-[420px] max-h-[720px] ${
         dragOver ? 'bg-[var(--club-blue-light)] ring-2 ring-[var(--club-blue)] ring-dashed' : 'bg-gray-50/60'
       }`}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -277,7 +277,7 @@ function KanbanColumn({ status, goals, isCoach, onEdit, onDelete, onStatusChange
       onDrop={(e) => { setDragOver(false); onDrop(e, status); }}
     >
       {/* Column header */}
-      <div className="flex items-center justify-between mb-3 px-1.5">
+      <div className="flex items-center justify-between mb-3 px-1.5 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: statusColors[status] }} />
           <h3 className="text-[13px] font-bold text-gray-700 tracking-[-0.01em]">{config.labelIt}</h3>
@@ -290,8 +290,8 @@ function KanbanColumn({ status, goals, isCoach, onEdit, onDelete, onStatusChange
         </span>
       </div>
 
-      {/* Cards */}
-      <div className="flex flex-col gap-2.5 kanban-column stagger-children">
+      {/* Cards (scrollable) */}
+      <div className="flex flex-col gap-2.5 stagger-children flex-1 overflow-y-auto overscroll-contain pr-1 -mr-1">
         {goals.map((goal) => (
           <GoalCard
             key={goal.id}
@@ -419,16 +419,16 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
         ))}
       </div>
 
-      {/* Card list (swipeable) */}
+      {/* Card list (swipeable, fixed-height with internal scroll) */}
       <div
         ref={contentRef}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="min-h-[200px]"
+        className="h-[60dvh] min-h-[360px] overflow-y-auto overscroll-contain pr-1 -mr-1"
       >
         {filteredGoals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <div className="empty-illustration bg-gray-50 mb-2">
               <span className="text-2xl">
                 {activeStatus === 'planned' ? '📋' : activeStatus === 'in_progress' ? '⚡' : '✅'}
@@ -441,7 +441,7 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 pb-2">
             {filteredGoals.map((goal) => (
               <GoalCard
                 key={goal.id}
