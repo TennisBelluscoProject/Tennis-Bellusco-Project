@@ -291,7 +291,7 @@ function KanbanColumn({ status, goals, isCoach, onEdit, onDelete, onStatusChange
       </div>
 
       {/* Cards (scrollable) */}
-      <div className="flex flex-col gap-2.5 stagger-children flex-1 overflow-y-auto overscroll-contain pr-1 -mr-1">
+      <div className="kanban-col-scroll flex flex-col gap-2.5 stagger-children flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
         {goals.map((goal) => (
           <GoalCard
             key={goal.id}
@@ -425,7 +425,7 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="h-[60dvh] min-h-[360px] overflow-y-auto overscroll-contain pr-1 -mr-1"
+        className="scrollbar-hidden h-[60dvh] min-h-[360px] overflow-y-auto overscroll-contain"
       >
         {filteredGoals.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
