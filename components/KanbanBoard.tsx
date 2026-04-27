@@ -49,7 +49,7 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
 
     return (
       <>
-        <div className="bg-gray-50/80 rounded-xl border border-gray-100 px-4 py-3 animate-fade-in">
+        <div className="bg-gray-50/80 rounded-xl border border-gray-100 px-4 py-3 animate-fade-in shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center shrink-0">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -122,7 +122,7 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
       <div
         draggable={!isMobile}
         onDragStart={(e) => !isMobile && onDragStart?.(e, goal.id)}
-        className={`goal-card bg-white rounded-xl border border-gray-100 p-4 transition-all duration-200 animate-fade-in ${
+        className={`goal-card bg-white rounded-xl border border-gray-100 p-4 transition-all duration-200 animate-fade-in shrink-0 ${
           isMobile ? '' : 'hover:shadow-md hover:border-gray-200 cursor-grab active:cursor-grabbing'
         }`}
         style={{ '--cat-color': cat.color } as React.CSSProperties}
