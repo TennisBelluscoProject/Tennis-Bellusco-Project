@@ -1,6 +1,6 @@
 'use client';
 
-export type CoachTabId = 'home' | 'allievi' | 'risultati' | 'richieste';
+export type CoachTabId = 'home' | 'allievi' | 'catalogo' | 'risultati' | 'richieste';
 
 interface Props {
   active: CoachTabId;
@@ -12,6 +12,7 @@ export function BottomNav({ active, onChange, pendingCount }: Props) {
   const items: { id: CoachTabId; label: string; icon: React.ReactNode }[] = [
     { id: 'home', label: 'Home', icon: <IconHome /> },
     { id: 'allievi', label: 'Allievi', icon: <IconUsers /> },
+    { id: 'catalogo', label: 'Catalogo', icon: <IconCatalog /> },
     { id: 'risultati', label: 'Risultati', icon: <IconTrophy /> },
     { id: 'richieste', label: 'Richieste', icon: <IconUserPlus /> },
   ];
@@ -20,14 +21,14 @@ export function BottomNav({ active, onChange, pendingCount }: Props) {
       className="fixed bottom-0 inset-x-0 z-30 bg-white/98 backdrop-blur-lg border-t border-gray-100"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="flex items-center justify-around px-2 pt-2 pb-1.5">
+      <div className="flex items-center justify-around px-1 pt-2 pb-1.5">
         {items.map((it) => {
           const isActive = active === it.id;
           return (
             <button
               key={it.id}
               onClick={() => onChange(it.id)}
-              className={`relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
+              className={`relative flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors ${
                 isActive ? 'text-[var(--club-blue)]' : 'text-gray-400'
               }`}
             >
@@ -81,6 +82,16 @@ function IconTrophy() {
       <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4z" />
       <path d="M17 4h3v3a3 3 0 01-3 3" />
       <path d="M7 4H4v3a3 3 0 003 3" />
+    </svg>
+  );
+}
+function IconCatalog() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      <line x1="9" y1="7" x2="16" y2="7" />
+      <line x1="9" y1="11" x2="14" y2="11" />
     </svg>
   );
 }

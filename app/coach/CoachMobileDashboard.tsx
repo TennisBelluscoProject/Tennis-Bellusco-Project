@@ -9,6 +9,7 @@ import { MobileHeader } from './components/MobileHeader';
 import { BottomNav, type CoachTabId } from './components/BottomNav';
 import { HomeTab } from './tabs/HomeTab';
 import { AllieviTab } from './tabs/AllieviTab';
+import { CatalogoTab } from './tabs/CatalogoTab';
 import { RisultatiTab } from './tabs/RisultatiTab';
 import { RichiesteTab } from './tabs/RichiesteTab';
 import { PlayerView } from '../student/PlayerView';
@@ -191,6 +192,8 @@ export function CoachMobileDashboard() {
             onSelect={setSelectedStudent}
           />
         )}
+
+        {tab === 'catalogo' && <CatalogoTab coachId={user?.id ?? ''} />}
 
         {tab === 'risultati' && (
           <RisultatiTab
