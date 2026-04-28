@@ -75,36 +75,38 @@ export function GoalTemplatePicker({
   ];
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Back link */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-500 hover:text-[var(--club-blue)] transition-colors group -ml-1 px-1 py-1 rounded-lg"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="group-hover:-translate-x-0.5 transition-transform"
+    // Altezza fissa: il dialog non cambia in base al numero di template
+    <div className="flex flex-col h-[65dvh] min-h-[420px] max-h-[560px] gap-3">
+      {/* Header (sticky) — back link, filtri, ricerca */}
+      <div className="shrink-0 flex flex-col gap-3 pb-2 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-500 hover:text-[var(--club-blue)] transition-colors group -ml-1 px-1 py-1 rounded-lg"
           >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Indietro
-        </button>
-        <button
-          onClick={onCreateCustom}
-          className="text-[12px] font-semibold text-[var(--club-blue)] hover:underline px-1 py-1"
-        >
-          Crea il tuo →
-        </button>
-      </div>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="group-hover:-translate-x-0.5 transition-transform"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Indietro
+          </button>
+          <button
+            onClick={onCreateCustom}
+            className="text-[12px] font-semibold text-[var(--club-blue)] hover:underline px-1 py-1"
+          >
+            Crea il tuo →
+          </button>
+        </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-2">
+        {/* Filters */}
+        <div className="flex flex-col gap-2">
         {/* Category pills (scroll su mobile, wrap su desktop) */}
         <div
           className={`flex gap-1.5 ${
@@ -154,11 +156,12 @@ export function GoalTemplatePicker({
           })}
         </div>
 
-        <SearchBar value={search} onChange={setSearch} placeholder="Cerca nel catalogo..." />
+          <SearchBar value={search} onChange={setSearch} placeholder="Cerca nel catalogo..." />
+        </div>
       </div>
 
-      {/* Result list */}
-      <div className="min-h-[200px]">
+      {/* Result list (scrolla solo questa, l'header rimane fisso) */}
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 pb-1">
         {loading ? (
           <div className="flex justify-center py-10">
             <Spinner />
@@ -198,7 +201,7 @@ function TemplateCard({ template, compact, onClick }: TemplateCardProps) {
     return (
       <button
         onClick={onClick}
-        className="text-left bg-white rounded-xl border border-gray-100 px-3 py-2.5 active:scale-[0.98] active:bg-gray-50 transition-all duration-150 min-h-[60px] flex flex-col gap-1"
+        className="text-left bg-white rounded-xl border border-gray-100 px-3 py-2.5 active:scale-[0.98] active:bg-gray-50 transition-all duration-150 flex flex-col gap-1.5"
       >
         <div className="flex items-center gap-2">
           <Badge color={cat.color} bg={cat.bg}>
@@ -208,12 +211,9 @@ function TemplateCard({ template, compact, onClick }: TemplateCardProps) {
             {template.level}
           </span>
         </div>
-        <p className="text-sm font-bold text-gray-900 line-clamp-1 tracking-[-0.01em]">
+        <p className="text-sm font-bold text-gray-900 line-clamp-2 tracking-[-0.01em]">
           {template.title}
         </p>
-        {template.description && (
-          <p className="text-xs text-gray-500 line-clamp-1">{template.description}</p>
-        )}
       </button>
     );
   }
