@@ -100,9 +100,15 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
   ];
 
   return (
-    <div className="flex flex-col gap-4 pb-24 sm:pb-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+    <div className="flex flex-col gap-4 pb-32 sm:pb-24">
+      {/* Header (sticky on mobile so filters stay visible while the list scrolls) */}
+      <div
+        className={
+          isMobile
+            ? 'sticky top-[60px] z-10 -mx-4 px-4 pt-4 pb-3 bg-[var(--background)] flex flex-col gap-3 border-b border-gray-100'
+            : 'flex flex-col gap-3'
+        }
+      >
         <div>
           <h2
             className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
@@ -114,20 +120,9 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
             {templates.length} {templates.length === 1 ? 'template' : 'template'} disponibili
           </p>
         </div>
-        <Button
-          variant="primary"
-          className="hidden sm:flex"
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          + Aggiungi template
-        </Button>
-      </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-2">
+        {/* Filters */}
+        <div className="flex flex-col gap-2">
         <div
           className={`flex gap-1.5 ${
             isMobile ? 'overflow-x-auto flex-nowrap scrollbar-hidden -mx-1 px-1' : 'flex-wrap'
@@ -175,11 +170,12 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
           })}
         </div>
 
-        <SearchBar
-          value={search}
-          onChange={setSearch}
-          placeholder="Cerca per titolo o descrizione..."
-        />
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Cerca per titolo o descrizione..."
+          />
+        </div>
       </div>
 
       {/* List */}
@@ -233,15 +229,15 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
         </div>
       )}
 
-      {/* FAB mobile */}
+      {/* FAB (mobile and desktop) — su mobile alzato per non finire sotto la BottomNav */}
       <button
         onClick={() => {
           setEditing(null);
           setFormOpen(true);
         }}
-        className="sm:hidden fab"
+        className="fab"
         aria-label="Nuovo template"
-        style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+        style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
       >
         <svg
           width="22"
@@ -422,40 +418,43 @@ function TemplateForm({ open, template, onClose, onSave }: TemplateFormProps) {
       onClose={onClose}
       title={template ? 'Modifica template' : 'Nuovo template'}
     >
-      <div className="flex flex-col gap-4">
-        <Input
-          label="Titolo"
-          value={title}
-          onChange={setTitle}
-          required
-          placeholder="Es. Migliorare il rovescio in topspin"
-        />
-        <Textarea
-          label="Descrizione"
-          value={description}
-          onChange={setDescription}
-          placeholder="Dettagli sull'obiettivo (visibili anche all'allievo)..."
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <Select
-            label="Categoria"
-            value={category}
-            onChange={(v) => setCategory(v as GoalCategory)}
-            options={categoryOptions}
+      {/* Altezza fissa: il dialog non cambia dimensione tra create/edit né in base al testo */}
+      <div className="flex flex-col h-[460px]">
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+          <Input
+            label="Titolo"
+            value={title}
+            onChange={setTitle}
             required
+            placeholder="Es. Migliorare il rovescio in topspin"
           />
-          <Select
-            label="Livello"
-            value={level}
-            onChange={(v) => setLevel(v as PlayerLevel)}
-            options={levelOptions}
-            required
+          <Textarea
+            label="Descrizione"
+            value={description}
+            onChange={setDescription}
+            placeholder="Dettagli sull'obiettivo (visibili anche all'allievo)..."
           />
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Categoria"
+              value={category}
+              onChange={(v) => setCategory(v as GoalCategory)}
+              options={categoryOptions}
+              required
+            />
+            <Select
+              label="Livello"
+              value={level}
+              onChange={(v) => setLevel(v as PlayerLevel)}
+              options={levelOptions}
+              required
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-
-        <div className="flex gap-3 justify-end pt-2">
+        <div className="flex gap-3 justify-end pt-3 mt-2 border-t border-gray-100">
           <Button variant="ghost" onClick={onClose}>
             Annulla
           </Button>
