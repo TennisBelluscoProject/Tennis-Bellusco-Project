@@ -3,19 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Goal, GoalStatus } from '@/lib/database.types';
 import { CATEGORY_CONFIG, STATUS_CONFIG, STATUS_COLUMNS } from '@/lib/constants';
+import { useIsMobile } from '@/lib/hooks';
 import { Badge, ProgressBar, ConfirmDialog, Select } from './UI';
-
-// ─── Hook: detect mobile viewport ──────────────────
-function useIsMobile(breakpoint = 768) {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < breakpoint);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, [breakpoint]);
-  return isMobile;
-}
 
 // ─── GoalCard ───────────────────────────────────────
 

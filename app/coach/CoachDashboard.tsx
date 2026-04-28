@@ -12,6 +12,7 @@ import { CoachNotesForm } from '@/components/CoachNotesForm';
 import { CoachMobileDashboard } from './CoachMobileDashboard';
 import { PendingCard } from './components/PendingCard';
 import { PlayerView } from '../student/PlayerView';
+import { GoalTemplateManager } from '@/components/GoalTemplateManager';
 
 export function CoachDashboard() {
   return (
@@ -39,7 +40,7 @@ interface ClubStats {
 
 function CoachDesktopDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'allievi' | 'risultati' | 'richieste'>('allievi');
+  const [activeTab, setActiveTab] = useState<'allievi' | 'catalogo' | 'risultati' | 'richieste'>('allievi');
   const [students, setStudents] = useState<Profile[]>([]);
   const [pendingProfiles, setPendingProfiles] = useState<Profile[]>([]);
   const [search, setSearch] = useState('');
@@ -202,6 +203,7 @@ function CoachDesktopDashboard() {
         <Tabs
           tabs={[
             { id: 'allievi', label: `Allievi (${students.length})` },
+            { id: 'catalogo', label: 'Catalogo' },
             { id: 'risultati', label: 'Risultati Agonistici' },
             { id: 'richieste', label: `Richieste${pendingProfiles.length > 0 ? ` · ${pendingProfiles.length}` : ''}` },
           ]}
@@ -229,6 +231,12 @@ function CoachDesktopDashboard() {
                 </div>
               )}
             </>
+          )}
+
+          {activeTab === 'catalogo' && (
+            <div className="mt-4">
+              <GoalTemplateManager coachId={user?.id ?? ''} />
+            </div>
           )}
 
           {activeTab === 'risultati' && (

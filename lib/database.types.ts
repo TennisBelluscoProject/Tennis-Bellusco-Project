@@ -4,6 +4,7 @@ export type GoalStatus = 'planned' | 'in_progress' | 'completed';
 export type SurfaceType = 'terra_rossa' | 'erba' | 'cemento' | 'sintetico';
 export type MatchResult = 'win' | 'loss' | 'retired' | 'walkover';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type PlayerLevel = 'Principiante' | 'Intermedio' | 'Avanzato';
 
 export interface Profile {
   id: string;
@@ -73,12 +74,16 @@ export interface MatchResultRow {
   profiles?: Profile;
 }
 
-export interface GoalNote {
+export interface GoalTemplate {
   id: string;
-  goal_id: string;
-  author_id: string;
-  content: string;
+  category: GoalCategory;
+  level: PlayerLevel;
+  title: string;
+  description: string | null;
+  created_by: string | null;
   created_at: string;
+  updated_at: string;
+  sort_order: number;
 }
 
 export interface Database {
@@ -88,7 +93,7 @@ export interface Database {
       invite_links: { Row: InviteLink; Insert: Partial<InviteLink>; Update: Partial<InviteLink> };
       goals: { Row: Goal; Insert: Partial<Goal>; Update: Partial<Goal> };
       match_results: { Row: MatchResultRow; Insert: Partial<MatchResultRow>; Update: Partial<MatchResultRow> };
-      goal_notes: { Row: GoalNote; Insert: Partial<GoalNote>; Update: Partial<GoalNote> };
+      goal_templates: { Row: GoalTemplate; Insert: Partial<GoalTemplate>; Update: Partial<GoalTemplate> };
     };
   };
 }

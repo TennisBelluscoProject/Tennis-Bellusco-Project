@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button, Tabs, Spinner, EmptyState } from '@/components/UI';
-import type { Profile, Goal, MatchResultRow, GoalStatus } from '@/lib/database.types';
-import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
+import type { Profile, Goal, MatchResultRow, GoalStatus, PlayerLevel } from '@/lib/database.types';
+import { getDisplayRanking, getAgeCategory, isClassified, LEVELS } from '@/lib/constants';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
@@ -85,6 +85,9 @@ export function PlayerView({
   const { displayLevel, displayRanking } = getDisplayRanking(player);
   const classified = isClassified(displayRanking);
   const ageCategory = getAgeCategory(player.birth_date);
+  const normalizedLevel: PlayerLevel | undefined = (LEVELS as readonly string[]).includes(displayLevel)
+    ? (displayLevel as PlayerLevel)
+    : undefined;
 
   // ─── Mutations ──────────────────────────────────────
   const triggerRefresh = async () => {
@@ -399,6 +402,7 @@ export function PlayerView({
         onSave={handleSaveGoal}
         goal={editingGoal}
         isCoach={isCoach}
+        playerLevel={normalizedLevel}
       />
       <MatchForm
         open={matchFormOpen}
