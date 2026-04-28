@@ -74,14 +74,6 @@ export interface MatchResultRow {
   profiles?: Profile;
 }
 
-export interface GoalNote {
-  id: string;
-  goal_id: string;
-  author_id: string;
-  content: string;
-  created_at: string;
-}
-
 export interface GoalTemplate {
   id: string;
   category: GoalCategory;
@@ -101,7 +93,6 @@ export interface Database {
       invite_links: { Row: InviteLink; Insert: Partial<InviteLink>; Update: Partial<InviteLink> };
       goals: { Row: Goal; Insert: Partial<Goal>; Update: Partial<Goal> };
       match_results: { Row: MatchResultRow; Insert: Partial<MatchResultRow>; Update: Partial<MatchResultRow> };
-      goal_notes: { Row: GoalNote; Insert: Partial<GoalNote>; Update: Partial<GoalNote> };
       goal_templates: { Row: GoalTemplate; Insert: Partial<GoalTemplate>; Update: Partial<GoalTemplate> };
     };
   };
