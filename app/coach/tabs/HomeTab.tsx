@@ -101,65 +101,69 @@ export function HomeTab({
   const matchNotifsCount = notifications.filter((n) => n.kind === 'match').length;
 
   return (
-    <div className="px-4 py-5 animate-fade-in">
-      {/* Greeting */}
-      <div className="mb-5">
-        <h2
-          className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          Benvenuto
-        </h2>
-        <p className="text-sm text-[var(--club-blue)] mt-1">
-          {formatDateLong(new Date())} · {activeToday} {activeToday === 1 ? 'allievo attivo' : 'allievi attivi'} oggi
-        </p>
-      </div>
+    <div className="flex flex-col h-full animate-fade-in">
+      <div className="px-4 pt-5 pb-3 shrink-0">
+        {/* Greeting */}
+        <div className="mb-5">
+          <h2
+            className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Benvenuto
+          </h2>
+          <p className="text-sm text-[var(--club-blue)] mt-1">
+            {formatDateLong(new Date())} · {activeToday} {activeToday === 1 ? 'allievo attivo' : 'allievi attivi'} oggi
+          </p>
+        </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <StatPill label="Allievi" value={totalStudents} icon={<IconUsersTiny />} accent="var(--club-blue)" />
-        <StatPill label="Obiettivi attivi" value={activeGoals} icon={<span>🎯</span>} accent="#E65100" />
-        <StatPill label="Win Rate" value={`${winRate}%`} icon={<span>🏆</span>} accent="var(--success)" valueColor="var(--success)" />
-        <StatPill label="Match mese" value={matchesThisMonth} icon={<span>📅</span>} accent="var(--club-red)" valueColor="var(--club-red)" />
-      </div>
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <StatPill label="Allievi" value={totalStudents} icon={<IconUsersTiny />} accent="var(--club-blue)" />
+          <StatPill label="Obiettivi attivi" value={activeGoals} icon={<span>🎯</span>} accent="#E65100" />
+          <StatPill label="Win Rate" value={`${winRate}%`} icon={<span>🏆</span>} accent="var(--success)" valueColor="var(--success)" />
+          <StatPill label="Match mese" value={matchesThisMonth} icon={<span>📅</span>} accent="var(--club-red)" valueColor="var(--club-red)" />
+        </div>
 
-      {/* Notifications */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <h3 className="text-base font-bold text-gray-900 tracking-[-0.01em]">Notifiche</h3>
+        {/* Notifications header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-gray-900 tracking-[-0.01em]">Notifiche</h3>
+            {notifications.length > 0 && (
+              <span className="text-[10px] font-bold text-white bg-[var(--club-red)] rounded-full px-2 py-0.5">
+                {notifications.length} {notifications.length === 1 ? 'nuova' : 'nuove'}
+              </span>
+            )}
+          </div>
           {notifications.length > 0 && (
-            <span className="text-[10px] font-bold text-white bg-[var(--club-red)] rounded-full px-2 py-0.5">
-              {notifications.length} {notifications.length === 1 ? 'nuova' : 'nuove'}
-            </span>
+            <button
+              onClick={onDismissAll}
+              className="text-[12px] font-medium text-gray-500 hover:text-[var(--club-red)] transition-colors"
+            >
+              Cancella tutto
+            </button>
           )}
         </div>
-        {notifications.length > 0 && (
-          <button
-            onClick={onDismissAll}
-            className="text-[12px] font-medium text-gray-500 hover:text-[var(--club-red)] transition-colors"
-          >
-            Cancella tutto
-          </button>
+
+        <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1">
+          <FilterPill active={notifFilter === 'all'} onClick={() => onNotifFilterChange('all')} label="Tutte" count={notifications.length} />
+          <FilterPill active={notifFilter === 'goal'} onClick={() => onNotifFilterChange('goal')} label="Obiettivi" count={goalNotifsCount} />
+          <FilterPill active={notifFilter === 'match'} onClick={() => onNotifFilterChange('match')} label="Match" count={matchNotifsCount} />
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-1 pb-24">
+        {loading ? (
+          <div className="flex justify-center py-12"><Spinner /></div>
+        ) : filteredNotifs.length === 0 ? (
+          <EmptyState icon="🔔" title="Nessuna notifica" message="Le attività degli allievi appariranno qui." />
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {filteredNotifs.map((n) => (
+              <NotificationCard key={n.id} notif={n} onDismiss={() => onDismissOne(n.id)} />
+            ))}
+          </div>
         )}
       </div>
-
-      <div className="flex gap-2 mb-4 overflow-x-auto -mx-4 px-4 pb-1">
-        <FilterPill active={notifFilter === 'all'} onClick={() => onNotifFilterChange('all')} label="Tutte" count={notifications.length} />
-        <FilterPill active={notifFilter === 'goal'} onClick={() => onNotifFilterChange('goal')} label="Obiettivi" count={goalNotifsCount} />
-        <FilterPill active={notifFilter === 'match'} onClick={() => onNotifFilterChange('match')} label="Match" count={matchNotifsCount} />
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-12"><Spinner /></div>
-      ) : filteredNotifs.length === 0 ? (
-        <EmptyState icon="🔔" title="Nessuna notifica" message="Le attività degli allievi appariranno qui." />
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {filteredNotifs.map((n) => (
-            <NotificationCard key={n.id} notif={n} onDismiss={() => onDismissOne(n.id)} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

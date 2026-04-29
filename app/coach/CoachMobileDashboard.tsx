@@ -138,9 +138,9 @@ export function CoachMobileDashboard() {
   // ─── Selected student detail (uses shared PlayerView) ─
   if (selectedStudent) {
     return (
-      <div className="min-h-screen bg-[var(--background)]">
+      <div className="h-[100dvh] flex flex-col bg-[var(--background)]">
         <MobileHeader onLogout={signOut} />
-        <main className="px-4 py-5 pb-28">
+        <main className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 pt-5">
           <PlayerView
             player={selectedStudent}
             mode="coach"
@@ -157,10 +157,10 @@ export function CoachMobileDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="h-[100dvh] flex flex-col bg-[var(--background)]">
       <MobileHeader onLogout={signOut} />
 
-      <main className="pb-24">
+      <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {tab === 'home' && (
           <HomeTab
             loading={loading}

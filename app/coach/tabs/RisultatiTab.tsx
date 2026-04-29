@@ -22,31 +22,35 @@ export function RisultatiTab({ loading, allMatches, resultFilter, onResultFilter
   const lossesCount = allMatches.filter((m) => m.result === 'loss').length;
 
   return (
-    <div className="px-4 py-5 animate-fade-in">
-      <h2
-        className="text-2xl font-bold text-gray-900 tracking-[-0.02em] mb-4"
-        style={{ fontFamily: 'var(--font-display)' }}
-      >
-        Risultati Agonistici
-      </h2>
+    <div className="flex flex-col h-full animate-fade-in">
+      <div className="px-4 pt-5 pb-4 shrink-0">
+        <h2
+          className="text-2xl font-bold text-gray-900 tracking-[-0.02em] mb-4"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Risultati Agonistici
+        </h2>
 
-      <div className="flex gap-2 mb-4">
-        <FilterPill active={resultFilter === 'all'} onClick={() => onResultFilterChange('all')} label="Tutti" count={allMatches.length} />
-        <FilterPill active={resultFilter === 'win'} onClick={() => onResultFilterChange('win')} label="Vittorie" count={winsCount} />
-        <FilterPill active={resultFilter === 'loss'} onClick={() => onResultFilterChange('loss')} label="Sconfitte" count={lossesCount} />
+        <div className="flex gap-2">
+          <FilterPill active={resultFilter === 'all'} onClick={() => onResultFilterChange('all')} label="Tutti" count={allMatches.length} />
+          <FilterPill active={resultFilter === 'win'} onClick={() => onResultFilterChange('win')} label="Vittorie" count={winsCount} />
+          <FilterPill active={resultFilter === 'loss'} onClick={() => onResultFilterChange('loss')} label="Sconfitte" count={lossesCount} />
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-12"><Spinner /></div>
-      ) : filtered.length === 0 ? (
-        <EmptyState icon="🏆" title="Nessun match" message="Non ci sono match registrati." />
-      ) : (
-        <div className="flex flex-col gap-2.5 stagger-children">
-          {filtered.map((m) => (
-            <CompactMatchCard key={m.id} match={m} />
-          ))}
-        </div>
-      )}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-24">
+        {loading ? (
+          <div className="flex justify-center py-12"><Spinner /></div>
+        ) : filtered.length === 0 ? (
+          <EmptyState icon="🏆" title="Nessun match" message="Non ci sono match registrati." />
+        ) : (
+          <div className="flex flex-col gap-2.5 stagger-children">
+            {filtered.map((m) => (
+              <CompactMatchCard key={m.id} match={m} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -99,134 +99,152 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
     ...LEVELS.map((lv) => ({ value: lv as LevelFilter, label: lv })),
   ];
 
-  return (
-    <div className="flex flex-col gap-4 pb-32 sm:pb-24">
-      {/* Header (sticky on mobile so filters stay visible while the list scrolls) */}
+  const filtersBlock = (
+    <div className="flex flex-col gap-2">
       <div
-        className={
-          isMobile
-            ? 'sticky top-[60px] z-10 -mx-4 px-4 pt-4 pb-3 bg-[var(--background)] flex flex-col gap-3 border-b border-gray-100'
-            : 'flex flex-col gap-3'
-        }
+        className={`flex gap-1.5 ${
+          isMobile ? 'overflow-x-auto flex-nowrap scrollbar-hidden -mx-1 px-1' : 'flex-wrap'
+        }`}
       >
-        <div>
-          <h2
-            className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Catalogo Obiettivi
-          </h2>
-          <p className="text-[12px] text-gray-500 mt-0.5">
-            {templates.length} {templates.length === 1 ? 'template' : 'template'} disponibili
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col gap-2">
-        <div
-          className={`flex gap-1.5 ${
-            isMobile ? 'overflow-x-auto flex-nowrap scrollbar-hidden -mx-1 px-1' : 'flex-wrap'
-          }`}
-        >
-          {categoryPills.map((p) => {
-            const isActive = categoryFilter === p.value;
-            return (
-              <button
-                key={p.value || 'all-cat'}
-                onClick={() => setCategoryFilter(p.value)}
-                className={`shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
-                  isActive
-                    ? 'bg-[var(--club-blue)] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {p.icon && <span>{p.icon}</span>}
-                {p.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div
-          className={`flex gap-1.5 ${
-            isMobile ? 'overflow-x-auto flex-nowrap scrollbar-hidden -mx-1 px-1' : 'flex-wrap'
-          }`}
-        >
-          {levelPills.map((p) => {
-            const isActive = levelFilter === p.value;
-            return (
-              <button
-                key={p.value || 'all-lvl'}
-                onClick={() => setLevelFilter(p.value)}
-                className={`shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
-                  isActive
-                    ? 'bg-[var(--club-red)] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {p.label}
-              </button>
-            );
-          })}
-        </div>
-
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Cerca per titolo o descrizione..."
-          />
-        </div>
+        {categoryPills.map((p) => {
+          const isActive = categoryFilter === p.value;
+          return (
+            <button
+              key={p.value || 'all-cat'}
+              onClick={() => setCategoryFilter(p.value)}
+              className={`shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
+                isActive
+                  ? 'bg-[var(--club-blue)] text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {p.icon && <span>{p.icon}</span>}
+              {p.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* List */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Spinner />
-        </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon="📋"
-          title={templates.length === 0 ? 'Nessun template' : 'Nessun risultato'}
-          message={
-            templates.length === 0
-              ? 'Crea il primo obiettivo per il catalogo.'
-              : 'Prova a cambiare filtri o ricerca.'
-          }
-          action={
-            templates.length === 0 ? (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setEditing(null);
-                  setFormOpen(true);
-                }}
-              >
-                Crea template
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : (
-        <div
-          className={
-            isMobile
-              ? 'flex flex-col gap-2.5'
-              : 'grid grid-cols-2 lg:grid-cols-3 gap-3 stagger-children'
-          }
+      <div
+        className={`flex gap-1.5 ${
+          isMobile ? 'overflow-x-auto flex-nowrap scrollbar-hidden -mx-1 px-1' : 'flex-wrap'
+        }`}
+      >
+        {levelPills.map((p) => {
+          const isActive = levelFilter === p.value;
+          return (
+            <button
+              key={p.value || 'all-lvl'}
+              onClick={() => setLevelFilter(p.value)}
+              className={`shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
+                isActive
+                  ? 'bg-[var(--club-red)] text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Cerca per titolo o descrizione..."
+      />
+    </div>
+  );
+
+  const headerBlock = (
+    <>
+      <div>
+        <h2
+          className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
+          style={{ fontFamily: 'var(--font-display)' }}
         >
-          {filtered.map((t) => (
-            <CoachTemplateCard
-              key={t.id}
-              template={t}
-              compact={isMobile}
-              onEdit={() => {
-                setEditing(t);
-                setFormOpen(true);
-              }}
-              onDelete={() => setConfirmDelete(t)}
-            />
-          ))}
-        </div>
+          Catalogo Obiettivi
+        </h2>
+        <p className="text-[12px] text-gray-500 mt-0.5">
+          {templates.length} {templates.length === 1 ? 'template' : 'template'} disponibili
+        </p>
+      </div>
+      {filtersBlock}
+    </>
+  );
+
+  const listBlock = loading ? (
+    <div className="flex justify-center py-12">
+      <Spinner />
+    </div>
+  ) : filtered.length === 0 ? (
+    <EmptyState
+      icon="📋"
+      title={templates.length === 0 ? 'Nessun template' : 'Nessun risultato'}
+      message={
+        templates.length === 0
+          ? 'Crea il primo obiettivo per il catalogo.'
+          : 'Prova a cambiare filtri o ricerca.'
+      }
+      action={
+        templates.length === 0 ? (
+          <Button
+            variant="primary"
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            Crea template
+          </Button>
+        ) : undefined
+      }
+    />
+  ) : (
+    <div
+      className={
+        isMobile
+          ? 'flex flex-col gap-2.5'
+          : 'grid grid-cols-2 lg:grid-cols-3 gap-3 stagger-children'
+      }
+    >
+      {filtered.map((t) => (
+        <CoachTemplateCard
+          key={t.id}
+          template={t}
+          compact={isMobile}
+          onEdit={() => {
+            setEditing(t);
+            setFormOpen(true);
+          }}
+          onDelete={() => setConfirmDelete(t)}
+        />
+      ))}
+    </div>
+  );
+
+  return (
+    <div
+      className={
+        isMobile
+          ? 'flex flex-col flex-1 min-h-0 overflow-hidden'
+          : 'flex flex-col gap-4 pb-24'
+      }
+    >
+      {isMobile ? (
+        <>
+          <div className="px-4 pt-4 pb-3 flex flex-col gap-3 shrink-0 border-b border-gray-100">
+            {headerBlock}
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-32">
+            {listBlock}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-3">{headerBlock}</div>
+          {listBlock}
+        </>
       )}
 
       {/* FAB (mobile and desktop) — su mobile alzato per non finire sotto la BottomNav */}
