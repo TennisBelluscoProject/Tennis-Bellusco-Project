@@ -174,12 +174,12 @@ export function PlayerView({
 
   // ─── Render ─────────────────────────────────────────
   return (
-    <>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Optional back link (coach mode) */}
       {isCoach && onBack && (
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-[13px] font-medium text-gray-500 hover:text-[var(--club-blue)] mb-4 transition-colors group"
+          className="flex items-center gap-2 text-[13px] font-medium text-gray-500 hover:text-[var(--club-blue)] mb-4 transition-colors group shrink-0"
         >
           <svg
             width="16"
@@ -198,7 +198,7 @@ export function PlayerView({
 
       {/* Hero stat card (dark navy) */}
       <div
-        className="rounded-2xl shadow-sm overflow-hidden mb-6 animate-slide-up relative"
+        className="rounded-2xl shadow-sm overflow-hidden mb-6 animate-slide-up relative shrink-0"
         style={{
           background:
             'linear-gradient(135deg, var(--club-blue-dark) 0%, var(--club-blue) 100%)',
@@ -248,16 +248,18 @@ export function PlayerView({
       </div>
 
       {/* Tabs */}
-      <Tabs
-        tabs={[
-          { id: 'obiettivi', label: 'Obiettivi' },
-          { id: 'match', label: 'Match' },
-        ]}
-        active={tab}
-        onChange={(v) => setTab(v as 'obiettivi' | 'match')}
-      />
+      <div className="shrink-0">
+        <Tabs
+          tabs={[
+            { id: 'obiettivi', label: 'Obiettivi' },
+            { id: 'match', label: 'Match' },
+          ]}
+          active={tab}
+          onChange={(v) => setTab(v as 'obiettivi' | 'match')}
+        />
+      </div>
 
-      <div className="mt-5 pb-24 sm:pb-6">
+      <div className="mt-5 pb-24 sm:pb-6 flex-1 min-h-0 overflow-y-auto">
         {loading ? (
           <div className="flex justify-center py-12">
             <Spinner />
@@ -424,7 +426,7 @@ export function PlayerView({
           currentNotes={coachNotesMatch?.coach_notes}
         />
       )}
-    </>
+    </div>
   );
 }
 

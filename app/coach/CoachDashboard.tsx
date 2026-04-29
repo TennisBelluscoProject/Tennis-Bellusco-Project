@@ -175,9 +175,9 @@ function CoachDesktopDashboard() {
   // ─── Student detail (uses shared PlayerView) ───────
   if (selectedStudent) {
     return (
-      <div className="min-h-screen bg-[var(--background)]">
+      <div className="h-screen flex flex-col bg-[var(--background)]">
         <Header />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <main className="flex-1 min-h-0 flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 overflow-hidden">
           <PlayerView
             player={selectedStudent}
             mode="coach"
@@ -195,9 +195,9 @@ function CoachDesktopDashboard() {
 
   // ─── Main view ─────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="h-screen flex flex-col bg-[var(--background)]">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 min-h-0 flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 overflow-hidden">
         <ClubOverview stats={clubStats} />
 
         <Tabs
@@ -211,7 +211,7 @@ function CoachDesktopDashboard() {
           onChange={(t) => setActiveTab(t as typeof activeTab)}
         />
 
-        <div className="mt-5">
+        <div className="mt-5 flex-1 min-h-0 overflow-y-auto pb-6">
           {activeTab === 'allievi' && (
             <>
               <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo per nome o email..." />

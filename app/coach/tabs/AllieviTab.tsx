@@ -30,24 +30,26 @@ export function AllieviTab({
   );
 
   return (
-    <div className="px-4 py-5 animate-fade-in">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2
-            className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Allievi
-          </h2>
-          <p className="text-[12px] text-gray-500 mt-0.5">
-            {total} {total === 1 ? 'attivo' : 'attivi'}
-          </p>
+    <div className="flex flex-col h-full animate-fade-in">
+      <div className="px-4 pt-5 pb-4 shrink-0">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2
+              className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Allievi
+            </h2>
+            <p className="text-[12px] text-gray-500 mt-0.5">
+              {total} {total === 1 ? 'attivo' : 'attivi'}
+            </p>
+          </div>
         </div>
+
+        <SearchBar value={search} onChange={onSearchChange} placeholder="Cerca allievo..." />
       </div>
 
-      <SearchBar value={search} onChange={onSearchChange} placeholder="Cerca allievo..." />
-
-      <div className="mt-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-24">
         {loading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : filtered.length === 0 ? (

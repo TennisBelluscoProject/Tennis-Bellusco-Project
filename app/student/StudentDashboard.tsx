@@ -25,9 +25,9 @@ export function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="h-[100dvh] sm:h-screen overflow-hidden flex flex-col bg-[var(--background)]">
       {/* Compact header — no avatar, no name (already in main card) */}
-      <header className="sticky top-0 z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80">
+      <header className="shrink-0 bg-white/98 backdrop-blur-lg border-b border-gray-100/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
@@ -45,9 +45,9 @@ export function StudentDashboard() {
           </div>
         </div>
       </header>
-      <div className="club-stripe" />
+      <div className="club-stripe shrink-0" />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 w-full flex-1 min-h-0 flex flex-col overflow-hidden">
         <PlayerView
           player={profile}
           mode="self"

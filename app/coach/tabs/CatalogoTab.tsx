@@ -8,7 +8,7 @@ interface Props {
 
 export function CatalogoTab({ coachId }: Props) {
   return (
-    <div className="px-4 py-5 animate-fade-in">
+    <div className="flex flex-col h-full animate-fade-in">
       <GoalTemplateManager coachId={coachId} />
     </div>
   );
