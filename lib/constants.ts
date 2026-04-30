@@ -3,7 +3,7 @@ import { GoalCategory, GoalStatus, SurfaceType, MatchResult } from './database.t
 export const CATEGORY_CONFIG: Record<GoalCategory, { label: string; icon: string; color: string; bg: string }> = {
   tecnica: { label: 'Tecnica', icon: '🎾', color: '#C41E3A', bg: '#F8E8EB' },
   tattica: { label: 'Tattica', icon: '🧠', color: '#1B3A5C', bg: '#E8EDF2' },
-  fisico: { label: 'Fisico', icon: '💪', color: '#2E7D32', bg: '#E8F5E9' },
+  fisico: { label: 'Fisico/Motori', icon: '💪', color: '#2E7D32', bg: '#E8F5E9' },
   mente: { label: 'Mente', icon: '🧘', color: '#7B1FA2', bg: '#F3E5F5' },
   agonismo: { label: 'Agonismo', icon: '🏆', color: '#E65100', bg: '#FFF3E0' },
 };
@@ -30,7 +30,7 @@ export const RESULT_LABELS: Record<MatchResult, string> = {
   walkover: 'Walkover',
 };
 
-export const LEVELS = ['Principiante', 'Intermedio', 'Avanzato'] as const;
+export const LEVELS = ['Delfino', 'Cerbiatto', 'Coccodrillo'] as const;
 
 export const ROUNDS = [
   'Primo turno', 'Secondo turno', 'Terzo turno',
@@ -46,7 +46,7 @@ export function getDisplayRanking(profile: { level: string | null; ranking: stri
   displayLevel: string;
   displayRanking: string;
 } {
-  const level = profile.level || 'Principiante';
+  const level = profile.level || 'Delfino';
   const ranking = profile.ranking || 'Non classificato';
 
   // Check if the level field contains what looks like a FIT ranking (a number like "4.1")
@@ -56,7 +56,7 @@ export function getDisplayRanking(profile: { level: string | null; ranking: stri
   if (levelLooksLikeRanking && rankingIsDefault) {
     // The ranking was saved in the level field by mistake
     return {
-      displayLevel: 'Principiante',
+      displayLevel: 'Delfino',
       displayRanking: level.trim(),
     };
   }
@@ -116,7 +116,7 @@ export function getAgeCategory(birthDate: string | null | undefined): string | n
   if (age <= 14) return 'U14';
   if (age <= 16) return 'U16';
   if (age <= 18) return 'U18';
-  if (age <= 34) return 'Open';
+  if (age <= 34) return 'NOR';
   const bucket = Math.min(80, Math.floor(age / 5) * 5);
   return `Over ${bucket}`;
 }
