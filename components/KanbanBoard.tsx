@@ -308,9 +308,10 @@ interface MobileTabViewProps {
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: GoalStatus) => void;
   onProgressChange: (id: string, progress: number) => void;
+  filterNode: React.ReactNode;
 }
 
-function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onProgressChange }: MobileTabViewProps) {
+function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onProgressChange, filterNode }: MobileTabViewProps) {
   const [activeStatus, setActiveStatus] = useState<GoalStatus>('in_progress');
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -356,65 +357,75 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
 
   return (
     <div className="flex flex-col">
-      {/* Tab bar */}
-      <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-4">
-        {STATUS_COLUMNS.map((status) => {
-          const count = goals.filter((g) => g.status === status).length;
-          const isActive = activeStatus === status;
-          return (
-            <button
-              key={status}
-              onClick={() => setActiveStatus(status)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                isActive
-                  ? 'bg-white shadow-sm'
-                  : 'text-gray-500 active:bg-gray-200'
-              }`}
-            >
-              <span
-                className={isActive ? 'font-bold' : ''}
-                style={isActive ? { color: statusColors[status] } : undefined}
+      <div className="sticky top-0 z-20 bg-[var(--background)] pt-1 pb-3 -mx-4 px-4 min-h-[120px]">
+        {/* Filter */}
+        <div className="mb-4">
+          {filterNode}
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-4">
+          {STATUS_COLUMNS.map((status) => {
+            const count = goals.filter((g) => g.status === status).length;
+            const isActive = activeStatus === status;
+            return (
+              <button
+                key={status}
+                onClick={() => setActiveStatus(status)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  isActive
+                    ? 'bg-white shadow-sm'
+                    : 'text-gray-500 active:bg-gray-200'
+                }`}
               >
-                {STATUS_CONFIG[status].labelIt}
-              </span>
-              {count > 0 && (
                 <span
-                  className="text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none"
-                  style={
-                    isActive
-                      ? { backgroundColor: statusColors[status], color: 'white' }
-                      : { backgroundColor: '#E5E7EB', color: '#6B7280' }
-                  }
+                  className={isActive ? 'font-bold' : ''}
+                  style={isActive ? { color: statusColors[status] } : undefined}
                 >
-                  {count}
+                  {STATUS_CONFIG[status].labelIt}
                 </span>
-              )}
-            </button>
-          );
-        })}
+                {count > 0 && (
+                  <span
+                    className="text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none"
+                    style={
+                      isActive
+                        ? { backgroundColor: statusColors[status], color: 'white' }
+                        : { backgroundColor: '#E5E7EB', color: '#6B7280' }
+                    }
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Swipe indicator dots */}
+        <div className="flex justify-center gap-1.5">
+          {STATUS_COLUMNS.map((status, i) => (
+            <div
+              key={status}
+              className="h-1 rounded-full transition-all duration-300"
+              style={{
+                width: i === currentIndex ? 16 : 6,
+                backgroundColor: i === currentIndex ? statusColors[activeStatus] : '#D1D5DB',
+              }}
+            />
+          ))}
+        </div>
+        
+        {/* Bottom fade effect for scrolling cards */}
+        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-b from-[var(--background)] to-transparent pointer-events-none translate-y-full" />
       </div>
 
-      {/* Swipe indicator dots */}
-      <div className="flex justify-center gap-1.5 mb-3">
-        {STATUS_COLUMNS.map((status, i) => (
-          <div
-            key={status}
-            className="h-1 rounded-full transition-all duration-300"
-            style={{
-              width: i === currentIndex ? 16 : 6,
-              backgroundColor: i === currentIndex ? statusColors[activeStatus] : '#D1D5DB',
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Card list (swipeable, fixed-height with internal scroll) */}
+      {/* Card list (swipeable, natural height) */}
       <div
         ref={contentRef}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="scrollbar-hidden h-[60dvh] min-h-[360px] overflow-y-auto overscroll-contain"
+        className="scrollbar-hidden pb-4 pt-2"
       >
         {filteredGoals.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
@@ -488,16 +499,6 @@ export function KanbanBoard({ goals, isCoach, onEdit, onDelete, onStatusChange, 
 
   return (
     <div>
-      {/* Filter */}
-      <div className="mb-4">
-        <Select
-          value={categoryFilter}
-          onChange={setCategoryFilter}
-          options={categoryOptions}
-          className="max-w-[220px]"
-        />
-      </div>
-
       {isMobile ? (
         <MobileTabView
           goals={filtered}
@@ -506,24 +507,42 @@ export function KanbanBoard({ goals, isCoach, onEdit, onDelete, onStatusChange, 
           onDelete={onDelete}
           onStatusChange={onStatusChange}
           onProgressChange={onProgressChange}
+          filterNode={
+            <Select
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              options={categoryOptions}
+            />
+          }
         />
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {STATUS_COLUMNS.map((status) => (
-            <KanbanColumn
-              key={status}
-              status={status}
-              goals={filtered.filter((g) => g.status === status)}
-              isCoach={isCoach}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onStatusChange={onStatusChange}
-              onProgressChange={onProgressChange}
-              onDragStart={handleDragStart}
-              onDrop={handleDrop}
+        <>
+          {/* Filter (Desktop) */}
+          <div className="mb-4">
+            <Select
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              options={categoryOptions}
+              className="max-w-[220px]"
             />
-          ))}
-        </div>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {STATUS_COLUMNS.map((status) => (
+              <KanbanColumn
+                key={status}
+                status={status}
+                goals={filtered.filter((g) => g.status === status)}
+                isCoach={isCoach}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onStatusChange={onStatusChange}
+                onProgressChange={onProgressChange}
+                onDragStart={handleDragStart}
+                onDrop={handleDrop}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
