@@ -10,6 +10,7 @@ import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
 import { MatchForm } from '@/components/MatchForm';
 import { CoachNotesForm } from '@/components/CoachNotesForm';
+import { useIsMobile } from '@/lib/hooks';
 
 export type PlayerViewMode = 'self' | 'coach';
 
@@ -36,6 +37,7 @@ export function PlayerView({
   onBack,
   onDataChanged,
 }: PlayerViewProps) {
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<'obiettivi' | 'match'>('obiettivi');
   const [goals, setGoals] = useState<Goal[]>([]);
   const [matches, setMatches] = useState<MatchResultRow[]>([]);
@@ -173,206 +175,259 @@ export function PlayerView({
   };
 
   // ─── Render ─────────────────────────────────────────
-  return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Optional back link (coach mode) */}
-      {isCoach && onBack && (
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-[13px] font-medium text-gray-500 hover:text-[var(--club-blue)] mb-4 transition-colors group shrink-0"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="group-hover:-translate-x-0.5 transition-transform"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Torna agli allievi
-        </button>
-      )}
-
-      {/* Hero stat card (dark navy) */}
-      <div
-        className="rounded-2xl shadow-sm overflow-hidden mb-6 animate-slide-up relative shrink-0"
-        style={{
-          background:
-            'linear-gradient(135deg, var(--club-blue-dark) 0%, var(--club-blue) 100%)',
-        }}
+  const backLink = isCoach && onBack && (
+    <button
+      onClick={onBack}
+      className="flex items-center gap-2 text-[13px] font-medium text-gray-500 hover:text-[var(--club-blue)] mb-4 transition-colors group shrink-0"
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="group-hover:-translate-x-0.5 transition-transform"
       >
-        <div className="p-5 sm:p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center text-white text-xl sm:text-2xl font-bold shrink-0 ring-1 ring-white/15">
-              {player.full_name.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2
-                className="text-xl sm:text-2xl font-bold text-white tracking-[-0.02em] truncate"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {player.full_name}
-              </h2>
-              <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                {ageCategory && <DarkBadge accent="#60A5FA">{ageCategory}</DarkBadge>}
-                {classified ? (
-                  <DarkBadge accent="#FCA5A5">FIT: {displayRanking}</DarkBadge>
-                ) : (
-                  <>
-                    <DarkBadge accent="#FCD34D">{displayLevel}</DarkBadge>
-                    <DarkBadge accent="rgba(255,255,255,0.55)">Non classificato</DarkBadge>
-                  </>
-                )}
-              </div>
-            </div>
-            {mode === 'self' && onEditProfile && (
-              <button
-                onClick={onEditProfile}
-                className="text-[12px] font-semibold text-white/80 hover:text-white px-3 py-1.5 rounded-lg border border-white/20 hover:border-white/40 hover:bg-white/5 transition-colors shrink-0"
-              >
-                Modifica
-              </button>
-            )}
-          </div>
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+      Torna agli allievi
+    </button>
+  );
 
-          <div className="grid grid-cols-4 gap-2 mt-5 pt-5 border-t border-white/10">
-            <StatCol value={activeGoals} label="Obiettivi" tone="blue" />
-            <StatCol value={wins} label="Vittorie" tone="green" />
-            <StatCol value={totalMatches} label="Match" tone="white" />
-            <StatCol value={`${winRate}%`} label="Win Rate" tone="amber" />
+  const heroCard = (
+    <div
+      className="rounded-2xl shadow-sm overflow-hidden mb-6 animate-slide-up relative shrink-0"
+      style={{
+        background:
+          'linear-gradient(135deg, var(--club-blue-dark) 0%, var(--club-blue) 100%)',
+      }}
+    >
+      <div className="p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center text-white text-xl sm:text-2xl font-bold shrink-0 ring-1 ring-white/15">
+            {player.full_name.charAt(0).toUpperCase()}
           </div>
+          <div className="flex-1 min-w-0">
+            <h2
+              className="text-xl sm:text-2xl font-bold text-white tracking-[-0.02em] truncate"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {player.full_name}
+            </h2>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              {ageCategory && <DarkBadge accent="#60A5FA">{ageCategory}</DarkBadge>}
+              {classified ? (
+                <DarkBadge accent="#FCA5A5">FIT: {displayRanking}</DarkBadge>
+              ) : (
+                <>
+                  <DarkBadge accent="#FCD34D">{displayLevel}</DarkBadge>
+                  <DarkBadge accent="rgba(255,255,255,0.55)">Non classificato</DarkBadge>
+                </>
+              )}
+            </div>
+          </div>
+          {mode === 'self' && onEditProfile && (
+            <button
+              onClick={onEditProfile}
+              className="text-[12px] font-semibold text-white/80 hover:text-white px-3 py-1.5 rounded-lg border border-white/20 hover:border-white/40 hover:bg-white/5 transition-colors shrink-0"
+            >
+              Modifica
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 mt-5 pt-5 border-t border-white/10">
+          <StatCol value={activeGoals} label="Obiettivi" tone="blue" />
+          <StatCol value={wins} label="Vittorie" tone="green" />
+          <StatCol value={totalMatches} label="Match" tone="white" />
+          <StatCol value={`${winRate}%`} label="Win Rate" tone="amber" />
         </div>
       </div>
+    </div>
+  );
 
-      {/* Tabs */}
-      <div className="shrink-0">
-        <Tabs
-          tabs={[
-            { id: 'obiettivi', label: 'Obiettivi' },
-            { id: 'match', label: 'Match' },
-          ]}
-          active={tab}
-          onChange={(v) => setTab(v as 'obiettivi' | 'match')}
-        />
+  const tabsBar = (
+    <Tabs
+      tabs={[
+        { id: 'obiettivi', label: 'Obiettivi' },
+        { id: 'match', label: 'Match' },
+      ]}
+      active={tab}
+      onChange={(v) => setTab(v as 'obiettivi' | 'match')}
+    />
+  );
+
+  const addMatchButton = (
+    <div className="hidden sm:flex justify-end">
+      <Button
+        variant="primary"
+        onClick={() => {
+          setEditingMatch(null);
+          setMatchFormOpen(true);
+        }}
+      >
+        + Aggiungi Match
+      </Button>
+    </div>
+  );
+
+  const addGoalButton = (
+    <div className="hidden sm:flex justify-end mb-4">
+      <Button
+        variant="primary"
+        onClick={() => {
+          setEditingGoal(null);
+          setGoalFormOpen(true);
+        }}
+      >
+        + Nuovo obiettivo
+      </Button>
+    </div>
+  );
+
+  const goalsContent =
+    goals.length === 0 ? (
+      <EmptyState
+        icon="🎯"
+        title="Nessun obiettivo"
+        message={
+          isCoach
+            ? "Crea il primo obiettivo per questo allievo."
+            : "Crea il tuo primo obiettivo per iniziare il tuo percorso!"
+        }
+        action={
+          <Button
+            variant="primary"
+            onClick={() => {
+              setEditingGoal(null);
+              setGoalFormOpen(true);
+            }}
+          >
+            Crea obiettivo
+          </Button>
+        }
+      />
+    ) : (
+      <KanbanBoard
+        goals={goals}
+        isCoach={isCoach}
+        onEdit={(g) => {
+          setEditingGoal(g);
+          setGoalFormOpen(true);
+        }}
+        onDelete={handleDeleteGoal}
+        onStatusChange={handleGoalStatusChange}
+        onProgressChange={handleGoalProgressChange}
+      />
+    );
+
+  const matchesContent =
+    matches.length === 0 ? (
+      <EmptyState
+        icon="🏆"
+        title="Nessun match"
+        message={
+          isCoach
+            ? "Questo allievo non ha ancora registrato match."
+            : "Registra il tuo primo match agonistico!"
+        }
+        action={
+          <Button
+            variant="primary"
+            onClick={() => {
+              setEditingMatch(null);
+              setMatchFormOpen(true);
+            }}
+          >
+            Aggiungi match
+          </Button>
+        }
+      />
+    ) : (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
+        {matches.map((m) => (
+          <MatchCard
+            key={m.id}
+            match={m}
+            isCoach={isCoach}
+            onEdit={(mm) => {
+              setEditingMatch(mm);
+              setMatchFormOpen(true);
+            }}
+            onDelete={handleDeleteMatch}
+            onEditCoachNotes={
+              isCoach
+                ? (mm) => {
+                    setCoachNotesMatch(mm);
+                    setCoachNotesOpen(true);
+                  }
+                : undefined
+            }
+          />
+        ))}
       </div>
+    );
 
-      <div className="mt-5 pb-24 sm:pb-6 flex-1 min-h-0 overflow-y-auto">
+  const layoutContents = isMobile ? (
+    /* Mobile: flex column with internal scroll, hero + tabs fixed */
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      {backLink}
+      {heroCard}
+      <div className="shrink-0">{tabsBar}</div>
+      <div className="mt-5 pb-24 flex-1 min-h-0 overflow-y-auto">
         {loading ? (
           <div className="flex justify-center py-12">
             <Spinner />
           </div>
         ) : tab === 'obiettivi' ? (
-          <>
-            <div className="hidden sm:flex justify-end mb-4">
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setEditingGoal(null);
-                  setGoalFormOpen(true);
-                }}
-              >
-                + Nuovo obiettivo
-              </Button>
-            </div>
-            {goals.length === 0 ? (
-              <EmptyState
-                icon="🎯"
-                title="Nessun obiettivo"
-                message={
-                  isCoach
-                    ? "Crea il primo obiettivo per questo allievo."
-                    : "Crea il tuo primo obiettivo per iniziare il tuo percorso!"
-                }
-                action={
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      setEditingGoal(null);
-                      setGoalFormOpen(true);
-                    }}
-                  >
-                    Crea obiettivo
-                  </Button>
-                }
-              />
-            ) : (
-              <KanbanBoard
-                goals={goals}
-                isCoach={isCoach}
-                onEdit={(g) => {
-                  setEditingGoal(g);
-                  setGoalFormOpen(true);
-                }}
-                onDelete={handleDeleteGoal}
-                onStatusChange={handleGoalStatusChange}
-                onProgressChange={handleGoalProgressChange}
-              />
-            )}
-          </>
+          <>{goalsContent}</>
         ) : (
-          <>
-            <div className="hidden sm:flex justify-end mb-4">
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setEditingMatch(null);
-                  setMatchFormOpen(true);
-                }}
-              >
-                + Aggiungi Match
-              </Button>
-            </div>
-            {matches.length === 0 ? (
-              <EmptyState
-                icon="🏆"
-                title="Nessun match"
-                message={
-                  isCoach
-                    ? "Questo allievo non ha ancora registrato match."
-                    : "Registra il tuo primo match agonistico!"
-                }
-                action={
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      setEditingMatch(null);
-                      setMatchFormOpen(true);
-                    }}
-                  >
-                    Aggiungi match
-                  </Button>
-                }
-              />
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
-                {matches.map((m) => (
-                  <MatchCard
-                    key={m.id}
-                    match={m}
-                    isCoach={isCoach}
-                    onEdit={(mm) => {
-                      setEditingMatch(mm);
-                      setMatchFormOpen(true);
-                    }}
-                    onDelete={handleDeleteMatch}
-                    onEditCoachNotes={
-                      isCoach
-                        ? (mm) => {
-                            setCoachNotesMatch(mm);
-                            setCoachNotesOpen(true);
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </>
+          <>{matchesContent}</>
         )}
       </div>
+    </div>
+  ) : tab === 'match' ? (
+    /* Desktop, match tab: sticky region with hero + tabs + add button */
+    <>
+      {backLink}
+      <div className="sticky top-16 z-20 bg-[var(--background)] -mx-4 sm:-mx-6 px-4 sm:px-6 pt-1 pb-4">
+        {heroCard}
+        {tabsBar}
+        <div className="mt-4">{addMatchButton}</div>
+      </div>
+      <div className="mt-5">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Spinner />
+          </div>
+        ) : (
+          matchesContent
+        )}
+      </div>
+    </>
+  ) : (
+    /* Desktop, obiettivi tab: regular page-scroll flow (no sticky) */
+    <>
+      {backLink}
+      {heroCard}
+      {tabsBar}
+      <div className="mt-5">
+        {addGoalButton}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Spinner />
+          </div>
+        ) : (
+          goalsContent
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {layoutContents}
 
       {/* Mobile FAB to add goal/match */}
       <button
@@ -426,7 +481,7 @@ export function PlayerView({
           currentNotes={coachNotesMatch?.coach_notes}
         />
       )}
-    </div>
+    </>
   );
 }
 

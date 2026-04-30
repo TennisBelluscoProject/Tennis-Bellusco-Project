@@ -18,15 +18,12 @@ import {
   Textarea,
 } from './UI';
 
-interface GoalTemplateManagerProps {
-  coachId: string;
-}
-
 type CategoryFilter = '' | GoalCategory;
 type LevelFilter = '' | PlayerLevel;
 
-export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
-  const isMobile = useIsMobile();
+// ─── Hook: state + handlers ────────────────────────────
+
+export function useGoalTemplates(coachId: string) {
   const [templates, setTemplates] = useState<GoalTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('');
@@ -87,76 +84,50 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
     setReloadTick((t) => t + 1);
   };
 
-  const categoryPills: { value: CategoryFilter; label: string; icon?: string }[] = [
-    { value: '', label: 'Tutte' },
-    ...(Object.entries(CATEGORY_CONFIG) as [GoalCategory, (typeof CATEGORY_CONFIG)[GoalCategory]][]).map(
-      ([k, v]) => ({ value: k as CategoryFilter, label: v.label, icon: v.icon })
-    ),
-  ];
+  return {
+    templates,
+    filtered,
+    loading,
+    categoryFilter,
+    setCategoryFilter,
+    levelFilter,
+    setLevelFilter,
+    search,
+    setSearch,
+    formOpen,
+    editing,
+    confirmDelete,
+    setConfirmDelete,
+    setFormOpen,
+    setEditing,
+    handleSave,
+    handleDelete,
+  };
+}
 
-  const levelPills: { value: LevelFilter; label: string }[] = [
-    { value: '', label: 'Tutti' },
-    ...LEVELS.map((lv) => ({ value: lv as LevelFilter, label: lv })),
-  ];
+export type GoalTemplatesCtx = ReturnType<typeof useGoalTemplates>;
 
-  const filtersBlock = (
-    <div className="flex flex-col gap-2">
-      <div
-        className={`flex gap-1.5 ${
-          isMobile ? 'overflow-x-auto flex-nowrap scrollbar-hidden -mx-1 px-1' : 'flex-wrap'
-        }`}
-      >
-        {categoryPills.map((p) => {
-          const isActive = categoryFilter === p.value;
-          return (
-            <button
-              key={p.value || 'all-cat'}
-              onClick={() => setCategoryFilter(p.value)}
-              className={`shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
-                isActive
-                  ? 'bg-[var(--club-blue)] text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {p.icon && <span>{p.icon}</span>}
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
+// ─── Header (title + filters + search) ─────────────────
 
-      <div
-        className={`flex gap-1.5 ${
-          isMobile ? 'overflow-x-auto flex-nowrap scrollbar-hidden -mx-1 px-1' : 'flex-wrap'
-        }`}
-      >
-        {levelPills.map((p) => {
-          const isActive = levelFilter === p.value;
-          return (
-            <button
-              key={p.value || 'all-lvl'}
-              onClick={() => setLevelFilter(p.value)}
-              className={`shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
-                isActive
-                  ? 'bg-[var(--club-red)] text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
+const categoryPillsBase: { value: CategoryFilter; label: string; icon?: string }[] = [
+  { value: '', label: 'Tutte' },
+  ...(Object.entries(CATEGORY_CONFIG) as [GoalCategory, (typeof CATEGORY_CONFIG)[GoalCategory]][]).map(
+    ([k, v]) => ({ value: k as CategoryFilter, label: v.label, icon: v.icon })
+  ),
+];
 
-      <SearchBar
-        value={search}
-        onChange={setSearch}
-        placeholder="Cerca per titolo o descrizione..."
-      />
-    </div>
-  );
+const levelPillsBase: { value: LevelFilter; label: string }[] = [
+  { value: '', label: 'Tutti' },
+  ...LEVELS.map((lv) => ({ value: lv as LevelFilter, label: lv })),
+];
 
-  const headerBlock = (
+interface HeaderProps {
+  ctx: GoalTemplatesCtx;
+  isMobile: boolean;
+}
+
+export function GoalTemplatesHeader({ ctx, isMobile }: HeaderProps) {
+  return (
     <>
       <div>
         <h2
@@ -166,93 +137,130 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
           Catalogo Obiettivi
         </h2>
         <p className="text-[12px] text-gray-500 mt-0.5">
-          {templates.length} {templates.length === 1 ? 'template' : 'template'} disponibili
+          {ctx.templates.length} {ctx.templates.length === 1 ? 'template' : 'template'} disponibili
         </p>
       </div>
-      {filtersBlock}
+
+      <div className="flex flex-col gap-2">
+        <div
+          className={`flex gap-1.5 ${
+            isMobile ? 'overflow-x-auto flex-nowrap scrollbar-hidden -mx-1 px-1' : 'flex-wrap'
+          }`}
+        >
+          {categoryPillsBase.map((p) => {
+            const isActive = ctx.categoryFilter === p.value;
+            return (
+              <button
+                key={p.value || 'all-cat'}
+                onClick={() => ctx.setCategoryFilter(p.value)}
+                className={`shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
+                  isActive
+                    ? 'bg-[var(--club-blue)] text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {p.icon && <span>{p.icon}</span>}
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          className={`flex gap-1.5 ${
+            isMobile ? 'overflow-x-auto flex-nowrap scrollbar-hidden -mx-1 px-1' : 'flex-wrap'
+          }`}
+        >
+          {levelPillsBase.map((p) => {
+            const isActive = ctx.levelFilter === p.value;
+            return (
+              <button
+                key={p.value || 'all-lvl'}
+                onClick={() => ctx.setLevelFilter(p.value)}
+                className={`shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
+                  isActive
+                    ? 'bg-[var(--club-red)] text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <SearchBar
+          value={ctx.search}
+          onChange={ctx.setSearch}
+          placeholder="Cerca per titolo o descrizione..."
+        />
+      </div>
     </>
   );
+}
 
-  const listBlock = loading ? (
-    <div className="flex justify-center py-12">
-      <Spinner />
-    </div>
-  ) : filtered.length === 0 ? (
-    <EmptyState
-      icon="📋"
-      title={templates.length === 0 ? 'Nessun template' : 'Nessun risultato'}
-      message={
-        templates.length === 0
-          ? 'Crea il primo obiettivo per il catalogo.'
-          : 'Prova a cambiare filtri o ricerca.'
-      }
-      action={
-        templates.length === 0 ? (
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            Crea template
-          </Button>
-        ) : undefined
-      }
-    />
-  ) : (
-    <div
-      className={
-        isMobile
-          ? 'flex flex-col gap-2.5'
-          : 'grid grid-cols-2 lg:grid-cols-3 gap-3 stagger-children'
-      }
-    >
-      {filtered.map((t) => (
-        <CoachTemplateCard
-          key={t.id}
-          template={t}
-          compact={isMobile}
-          onEdit={() => {
-            setEditing(t);
-            setFormOpen(true);
-          }}
-          onDelete={() => setConfirmDelete(t)}
-        />
-      ))}
-    </div>
-  );
+// ─── List + FAB + Modals ───────────────────────────────
+
+interface ListProps {
+  ctx: GoalTemplatesCtx;
+  isMobile: boolean;
+}
+
+export function GoalTemplatesList({ ctx, isMobile }: ListProps) {
+  const openCreate = () => {
+    ctx.setEditing(null);
+    ctx.setFormOpen(true);
+  };
 
   return (
-    <div
-      className={
-        isMobile
-          ? 'flex flex-col flex-1 min-h-0 overflow-hidden'
-          : 'flex flex-col gap-4 pb-24'
-      }
-    >
-      {isMobile ? (
-        <>
-          <div className="px-4 pt-4 pb-3 flex flex-col gap-3 shrink-0 border-b border-gray-100">
-            {headerBlock}
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-32">
-            {listBlock}
-          </div>
-        </>
+    <>
+      {ctx.loading ? (
+        <div className="flex justify-center py-12">
+          <Spinner />
+        </div>
+      ) : ctx.filtered.length === 0 ? (
+        <EmptyState
+          icon="📋"
+          title={ctx.templates.length === 0 ? 'Nessun template' : 'Nessun risultato'}
+          message={
+            ctx.templates.length === 0
+              ? 'Crea il primo obiettivo per il catalogo.'
+              : 'Prova a cambiare filtri o ricerca.'
+          }
+          action={
+            ctx.templates.length === 0 ? (
+              <Button variant="primary" onClick={openCreate}>
+                Crea template
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
-        <>
-          <div className="flex flex-col gap-3">{headerBlock}</div>
-          {listBlock}
-        </>
+        <div
+          className={
+            isMobile
+              ? 'flex flex-col gap-2.5'
+              : 'grid grid-cols-2 lg:grid-cols-3 gap-3 stagger-children'
+          }
+        >
+          {ctx.filtered.map((t) => (
+            <CoachTemplateCard
+              key={t.id}
+              template={t}
+              compact={isMobile}
+              onEdit={() => {
+                ctx.setEditing(t);
+                ctx.setFormOpen(true);
+              }}
+              onDelete={() => ctx.setConfirmDelete(t)}
+            />
+          ))}
+        </div>
       )}
 
-      {/* FAB (mobile and desktop) — su mobile alzato per non finire sotto la BottomNav */}
+      {/* FAB */}
       <button
-        onClick={() => {
-          setEditing(null);
-          setFormOpen(true);
-        }}
+        onClick={openCreate}
         className="fab"
         aria-label="Nuovo template"
         style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
@@ -272,30 +280,63 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
       </button>
 
       <TemplateForm
-        open={formOpen}
-        template={editing}
+        open={ctx.formOpen}
+        template={ctx.editing}
         onClose={() => {
-          setFormOpen(false);
-          setEditing(null);
+          ctx.setFormOpen(false);
+          ctx.setEditing(null);
         }}
-        onSave={handleSave}
+        onSave={ctx.handleSave}
       />
 
       <ConfirmDialog
-        open={!!confirmDelete}
+        open={!!ctx.confirmDelete}
         title="Elimina template"
         message={
-          confirmDelete
-            ? `Sei sicuro di voler eliminare "${confirmDelete.title}" dal catalogo? Gli obiettivi già copiati dagli allievi non verranno toccati.`
+          ctx.confirmDelete
+            ? `Sei sicuro di voler eliminare "${ctx.confirmDelete.title}" dal catalogo? Gli obiettivi già copiati dagli allievi non verranno toccati.`
             : ''
         }
         confirmLabel="Elimina"
         onConfirm={() => {
-          if (confirmDelete) handleDelete(confirmDelete);
-          setConfirmDelete(null);
+          if (ctx.confirmDelete) ctx.handleDelete(ctx.confirmDelete);
+          ctx.setConfirmDelete(null);
         }}
-        onCancel={() => setConfirmDelete(null)}
+        onCancel={() => ctx.setConfirmDelete(null)}
       />
+    </>
+  );
+}
+
+// ─── Manager (mobile-friendly composition) ─────────────
+
+interface GoalTemplateManagerProps {
+  coachId: string;
+}
+
+export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
+  const isMobile = useIsMobile();
+  const ctx = useGoalTemplates(coachId);
+
+  if (isMobile) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="px-4 pt-4 pb-3 flex flex-col gap-3 shrink-0 border-b border-gray-100">
+          <GoalTemplatesHeader ctx={ctx} isMobile />
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-32">
+          <GoalTemplatesList ctx={ctx} isMobile />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 pb-24">
+      <div className="flex flex-col gap-3">
+        <GoalTemplatesHeader ctx={ctx} isMobile={false} />
+      </div>
+      <GoalTemplatesList ctx={ctx} isMobile={false} />
     </div>
   );
 }
