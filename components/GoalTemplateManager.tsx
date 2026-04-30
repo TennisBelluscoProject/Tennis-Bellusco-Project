@@ -423,7 +423,7 @@ function TemplateForm({ open, template, onClose, onSave }: TemplateFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<GoalCategory>('tecnica');
-  const [level, setLevel] = useState<PlayerLevel>('Principiante');
+  const [level, setLevel] = useState<PlayerLevel>('DELFINO');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -438,7 +438,7 @@ function TemplateForm({ open, template, onClose, onSave }: TemplateFormProps) {
       setTitle('');
       setDescription('');
       setCategory('tecnica');
-      setLevel('Principiante');
+      setLevel('DELFINO');
     }
     setError('');
   }, [template, open]);

@@ -30,7 +30,7 @@ export const RESULT_LABELS: Record<MatchResult, string> = {
   walkover: 'Walkover',
 };
 
-export const LEVELS = ['Delfino', 'Cerbiatto', 'Coccodrillo'] as const;
+export const LEVELS = ['DELFINO', 'CERBIATTO', 'COCCODRILLO'] as const;
 
 export const ROUNDS = [
   'Primo turno', 'Secondo turno', 'Terzo turno',
@@ -46,7 +46,7 @@ export function getDisplayRanking(profile: { level: string | null; ranking: stri
   displayLevel: string;
   displayRanking: string;
 } {
-  const level = profile.level || 'Delfino';
+  const level = profile.level || 'DELFINO';
   const ranking = profile.ranking || 'Non classificato';
 
   // Check if the level field contains what looks like a FIT ranking (a number like "4.1")
@@ -56,7 +56,7 @@ export function getDisplayRanking(profile: { level: string | null; ranking: stri
   if (levelLooksLikeRanking && rankingIsDefault) {
     // The ranking was saved in the level field by mistake
     return {
-      displayLevel: 'Delfino',
+      displayLevel: 'DELFINO',
       displayRanking: level.trim(),
     };
   }

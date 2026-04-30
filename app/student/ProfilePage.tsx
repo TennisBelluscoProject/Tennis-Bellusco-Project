@@ -269,7 +269,7 @@ function ClassificaFields({
         <div className="flex flex-col gap-1.5">
           <label className="text-[13px] font-semibold text-gray-700">Livello tecnico</label>
           <div className="grid grid-cols-3 gap-2">
-            {(['Principiante', 'Intermedio', 'Avanzato'] as const).map((opt) => {
+            {(['DELFINO', 'CERBIATTO', 'COCCODRILLO'] as const).map((opt) => {
               const active = level === opt;
               return (
                 <button
@@ -297,7 +297,7 @@ function EditAllModal({ profile, onClose, onSaved }: { profile: Profile; onClose
   const initialClassified = isClassified(profile.ranking);
   const [unranked, setUnranked] = useState(!initialClassified);
   const [ranking, setRanking] = useState(initialClassified ? profile.ranking : '');
-  const [level, setLevel] = useState(profile.level || 'Principiante');
+  const [level, setLevel] = useState(profile.level || 'DELFINO');
   const [birthDate, setBirthDate] = useState(profile.birth_date ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -322,7 +322,7 @@ function EditAllModal({ profile, onClose, onSaved }: { profile: Profile; onClose
       .from('profiles')
       .update({
         ranking: unranked ? 'Non classificato' : ranking.trim(),
-        level: unranked ? level : 'Principiante',
+        level: unranked ? level : 'DELFINO',
         birth_date: birthDate || null,
       })
       .eq('id', profile.id);
@@ -370,7 +370,7 @@ function EditClassificaModal({ profile, onClose, onSaved }: { profile: Profile; 
   const initialClassified = isClassified(profile.ranking);
   const [unranked, setUnranked] = useState(!initialClassified);
   const [ranking, setRanking] = useState(initialClassified ? profile.ranking : '');
-  const [level, setLevel] = useState(profile.level || 'Principiante');
+  const [level, setLevel] = useState(profile.level || 'DELFINO');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -386,7 +386,7 @@ function EditClassificaModal({ profile, onClose, onSaved }: { profile: Profile; 
       .from('profiles')
       .update({
         ranking: unranked ? 'Non classificato' : ranking.trim(),
-        level: unranked ? level : 'Principiante',
+        level: unranked ? level : 'DELFINO',
       })
       .eq('id', profile.id);
     if (e) {

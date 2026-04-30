@@ -4,7 +4,7 @@ export type GoalStatus = 'planned' | 'in_progress' | 'completed';
 export type SurfaceType = 'terra_rossa' | 'erba' | 'cemento' | 'sintetico';
 export type MatchResult = 'win' | 'loss' | 'retired' | 'walkover';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
-export type PlayerLevel = 'Principiante' | 'Intermedio' | 'Avanzato';
+export type PlayerLevel = 'DELFINO' | 'CERBIATTO' | 'COCCODRILLO';
 
 export interface Profile {
   id: string;
