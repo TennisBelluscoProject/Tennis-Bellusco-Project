@@ -12,7 +12,11 @@ import { CoachNotesForm } from '@/components/CoachNotesForm';
 import { CoachMobileDashboard } from './CoachMobileDashboard';
 import { PendingCard } from './components/PendingCard';
 import { PlayerView } from '../student/PlayerView';
-import { GoalTemplateManager } from '@/components/GoalTemplateManager';
+import {
+  useGoalTemplates,
+  GoalTemplatesHeader,
+  GoalTemplatesList,
+} from '@/components/GoalTemplateManager';
 
 export function CoachDashboard() {
   return (
@@ -60,6 +64,8 @@ function CoachDesktopDashboard() {
 
   const [reloadTick, setReloadTick] = useState(0);
   const refresh = useCallback(() => setReloadTick((t) => t + 1), []);
+
+  const catalogCtx = useGoalTemplates(user?.id ?? '');
 
   useEffect(() => {
     let cancelled = false;
@@ -175,9 +181,9 @@ function CoachDesktopDashboard() {
   // ─── Student detail (uses shared PlayerView) ───────
   if (selectedStudent) {
     return (
-      <div className="h-screen flex flex-col bg-[var(--background)]">
+      <div className="min-h-screen bg-[var(--background)]">
         <Header />
-        <main className="flex-1 min-h-0 flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 overflow-hidden">
+        <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 pb-6">
           <PlayerView
             player={selectedStudent}
             mode="coach"
@@ -195,26 +201,55 @@ function CoachDesktopDashboard() {
 
   // ─── Main view ─────────────────────────────────────
   return (
-    <div className="h-screen flex flex-col bg-[var(--background)]">
+    <div className="min-h-screen bg-[var(--background)]">
       <Header />
-      <main className="flex-1 min-h-0 flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 overflow-hidden">
-        <ClubOverview stats={clubStats} />
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+        <div className="sticky top-16 z-30 bg-[var(--background)] -mx-4 sm:-mx-6 px-4 sm:px-6 pt-6 pb-3">
+          <ClubOverview stats={clubStats} />
 
-        <Tabs
-          tabs={[
-            { id: 'allievi', label: `Allievi (${students.length})` },
-            { id: 'catalogo', label: 'Catalogo' },
-            { id: 'risultati', label: 'Risultati Agonistici' },
-            { id: 'richieste', label: `Richieste${pendingProfiles.length > 0 ? ` · ${pendingProfiles.length}` : ''}` },
-          ]}
-          active={activeTab}
-          onChange={(t) => setActiveTab(t as typeof activeTab)}
-        />
+          <Tabs
+            tabs={[
+              { id: 'allievi', label: `Allievi (${students.length})` },
+              { id: 'catalogo', label: 'Catalogo' },
+              { id: 'risultati', label: 'Risultati Agonistici' },
+              { id: 'richieste', label: `Richieste${pendingProfiles.length > 0 ? ` · ${pendingProfiles.length}` : ''}` },
+            ]}
+            active={activeTab}
+            onChange={(t) => setActiveTab(t as typeof activeTab)}
+          />
 
-        <div className="mt-5 flex-1 min-h-0 overflow-y-auto pb-6">
+          {activeTab === 'allievi' && (
+            <div className="mt-4">
+              <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo per nome o email..." />
+            </div>
+          )}
+
+          {activeTab === 'catalogo' && (
+            <div className="mt-4 flex flex-col gap-3">
+              <GoalTemplatesHeader ctx={catalogCtx} isMobile={false} />
+            </div>
+          )}
+
+          {activeTab === 'richieste' && (
+            <div className="mt-4 card p-4 flex items-start gap-3 bg-blue-50/40 border-blue-100">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B3A5C" strokeWidth="2" className="shrink-0 mt-0.5">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-[var(--club-blue)]">Approvazioni allievi</p>
+                <p className="text-[12px] text-gray-600 leading-relaxed mt-0.5">
+                  Gli allievi si registrano in autonomia e attendono qui la tua approvazione. Una volta approvati potranno accedere alla loro dashboard.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5">
           {activeTab === 'allievi' && (
             <>
-              <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo per nome o email..." />
               {loading ? (
                 <div className="flex justify-center py-12"><Spinner /></div>
               ) : filteredStudents.length === 0 ? (
@@ -224,7 +259,7 @@ function CoachDesktopDashboard() {
                   message={search ? 'Nessun risultato per la ricerca.' : 'Non ci sono ancora allievi approvati. Le richieste di registrazione le trovi nella tab "Richieste".'}
                 />
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4 stagger-children">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
                   {filteredStudents.map((student) => (
                     <StudentCard key={student.id} student={student} onClick={() => setSelectedStudent(student)} />
                   ))}
@@ -234,9 +269,7 @@ function CoachDesktopDashboard() {
           )}
 
           {activeTab === 'catalogo' && (
-            <div className="mt-4">
-              <GoalTemplateManager coachId={user?.id ?? ''} />
-            </div>
+            <GoalTemplatesList ctx={catalogCtx} isMobile={false} />
           )}
 
           {activeTab === 'risultati' && (
@@ -246,7 +279,7 @@ function CoachDesktopDashboard() {
               ) : allMatches.length === 0 ? (
                 <EmptyState icon="🏆" title="Nessun risultato" message="Gli allievi non hanno ancora registrato match." />
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4 stagger-children">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
                   {allMatches.map((m) => (
                     <MatchCard
                       key={m.id}
@@ -274,20 +307,6 @@ function CoachDesktopDashboard() {
 
           {activeTab === 'richieste' && (
             <>
-              <div className="card p-4 mb-5 flex items-start gap-3 bg-blue-50/40 border-blue-100">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B3A5C" strokeWidth="2" className="shrink-0 mt-0.5">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--club-blue)]">Approvazioni allievi</p>
-                  <p className="text-[12px] text-gray-600 leading-relaxed mt-0.5">
-                    Gli allievi si registrano in autonomia e attendono qui la tua approvazione. Una volta approvati potranno accedere alla loro dashboard.
-                  </p>
-                </div>
-              </div>
-
               {loading ? (
                 <div className="flex justify-center py-12"><Spinner /></div>
               ) : pendingProfiles.length === 0 ? (
