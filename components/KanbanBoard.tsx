@@ -308,10 +308,9 @@ interface MobileTabViewProps {
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: GoalStatus) => void;
   onProgressChange: (id: string, progress: number) => void;
-  filterNode: React.ReactNode;
 }
 
-function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onProgressChange, filterNode }: MobileTabViewProps) {
+function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onProgressChange }: MobileTabViewProps) {
   const [activeStatus, setActiveStatus] = useState<GoalStatus>('in_progress');
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -357,12 +356,7 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="shrink-0 z-20 bg-[var(--background)] pt-1 pb-3 min-h-[120px] relative">
-        {/* Filter */}
-        <div className="mb-4">
-          {filterNode}
-        </div>
-
+      <div className="shrink-0 z-20 bg-[var(--background)] pt-2 pb-3 relative">
         {/* Tab bar */}
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-4">
           {STATUS_COLUMNS.map((status) => {
@@ -507,13 +501,6 @@ export function KanbanBoard({ goals, isCoach, onEdit, onDelete, onStatusChange, 
           onDelete={onDelete}
           onStatusChange={onStatusChange}
           onProgressChange={onProgressChange}
-          filterNode={
-            <Select
-              value={categoryFilter}
-              onChange={setCategoryFilter}
-              options={categoryOptions}
-            />
-          }
         />
       ) : (
         <>
