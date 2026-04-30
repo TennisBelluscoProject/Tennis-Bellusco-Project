@@ -357,7 +357,7 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
 
   return (
     <div className="flex flex-col">
-      <div className="sticky top-0 z-20 bg-[var(--background)] pt-1 pb-3 -mx-4 px-4 min-h-[120px]">
+      <div className="sticky top-0 z-20 bg-[var(--background)] pt-1 pb-3 min-h-[120px]">
         {/* Filter */}
         <div className="mb-4">
           {filterNode}
