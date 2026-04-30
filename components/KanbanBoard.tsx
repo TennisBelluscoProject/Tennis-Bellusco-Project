@@ -148,17 +148,6 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
               <span className="text-[11px] font-bold" style={{ color: cat.color }}>{goal.progress}%</span>
             </div>
             <ProgressBar value={goal.progress} color={cat.color} />
-            {(isCoach || goal.status === 'in_progress') && (
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={goal.progress}
-                onChange={(e) => onProgressChange?.(goal.id, parseInt(e.target.value))}
-                className="w-full mt-2 h-1 accent-[var(--club-blue)] cursor-pointer"
-              />
-            )}
           </div>
         )}
 

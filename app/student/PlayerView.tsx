@@ -379,7 +379,7 @@ export function PlayerView({
       {backLink}
       {heroCard}
       <div className="shrink-0">{tabsBar}</div>
-      <div className="mt-5 pb-24 flex-1 min-h-0 flex flex-col justify-stretch">
+      <div className="mt-5 flex-1 min-h-0 flex flex-col justify-stretch">
         {loading ? (
           <div className="flex justify-center py-12 flex-1">
             <Spinner />
