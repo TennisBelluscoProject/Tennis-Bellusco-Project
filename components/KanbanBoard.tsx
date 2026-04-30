@@ -356,8 +356,8 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
   }, [activeStatus]);
 
   return (
-    <div className="flex flex-col">
-      <div className="sticky top-0 z-20 bg-[var(--background)] pt-1 pb-3 min-h-[120px]">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="shrink-0 z-20 bg-[var(--background)] pt-1 pb-3 min-h-[120px] relative">
         {/* Filter */}
         <div className="mb-4">
           {filterNode}
@@ -419,13 +419,13 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
         <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-b from-[var(--background)] to-transparent pointer-events-none translate-y-full" />
       </div>
 
-      {/* Card list (swipeable, natural height) */}
+      {/* Card list (swipeable, internal isolated vertical scroll) */}
       <div
         ref={contentRef}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="scrollbar-hidden pb-4 pt-2"
+        className="scrollbar-hidden flex-1 min-h-0 overflow-y-auto pb-6 pt-2"
       >
         {filteredGoals.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
@@ -498,7 +498,7 @@ export function KanbanBoard({ goals, isCoach, onEdit, onDelete, onStatusChange, 
   ];
 
   return (
-    <div>
+    <div className="flex flex-col h-full overflow-hidden">
       {isMobile ? (
         <MobileTabView
           goals={filtered}

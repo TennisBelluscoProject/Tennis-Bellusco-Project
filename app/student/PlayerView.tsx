@@ -288,26 +288,28 @@ export function PlayerView({
 
   const goalsContent =
     goals.length === 0 ? (
-      <EmptyState
-        icon="🎯"
-        title="Nessun obiettivo"
-        message={
-          isCoach
-            ? "Crea il primo obiettivo per questo allievo."
-            : "Crea il tuo primo obiettivo per iniziare il tuo percorso!"
-        }
-        action={
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditingGoal(null);
-              setGoalFormOpen(true);
-            }}
-          >
-            Crea obiettivo
-          </Button>
-        }
-      />
+      <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center">
+        <EmptyState
+          icon="🎯"
+          title="Nessun obiettivo"
+          message={
+            isCoach
+              ? "Crea il primo obiettivo per questo allievo."
+              : "Crea il tuo primo obiettivo per iniziare il tuo percorso!"
+          }
+          action={
+            <Button
+              variant="primary"
+              onClick={() => {
+                setEditingGoal(null);
+                setGoalFormOpen(true);
+              }}
+            >
+              Crea obiettivo
+            </Button>
+          }
+        />
+      </div>
     ) : (
       <KanbanBoard
         goals={goals}
@@ -324,28 +326,30 @@ export function PlayerView({
 
   const matchesContent =
     matches.length === 0 ? (
-      <EmptyState
-        icon="🏆"
-        title="Nessun match"
-        message={
-          isCoach
-            ? "Questo allievo non ha ancora registrato match."
-            : "Registra il tuo primo match agonistico!"
-        }
-        action={
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditingMatch(null);
-              setMatchFormOpen(true);
-            }}
-          >
-            Aggiungi match
-          </Button>
-        }
-      />
+      <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center">
+        <EmptyState
+          icon="🏆"
+          title="Nessun match"
+          message={
+            isCoach
+              ? "Questo allievo non ha ancora registrato match."
+              : "Registra il tuo primo match agonistico!"
+          }
+          action={
+            <Button
+              variant="primary"
+              onClick={() => {
+                setEditingMatch(null);
+                setMatchFormOpen(true);
+              }}
+            >
+              Aggiungi match
+            </Button>
+          }
+        />
+      </div>
     ) : (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children flex-1 min-h-0 overflow-y-auto w-full content-start pb-6">
         {matches.map((m) => (
           <MatchCard
             key={m.id}
@@ -370,14 +374,14 @@ export function PlayerView({
     );
 
   const layoutContents = isMobile ? (
-    /* Mobile: flex column with internal scroll, hero + tabs fixed */
+    /* Mobile: flex column with internal scroll on the tabs, hero + tabs fixed */
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {backLink}
       {heroCard}
       <div className="shrink-0">{tabsBar}</div>
-      <div className="mt-5 pb-24 flex-1 min-h-0 overflow-y-auto">
+      <div className="mt-5 pb-24 flex-1 min-h-0 flex flex-col justify-stretch">
         {loading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-12 flex-1">
             <Spinner />
           </div>
         ) : tab === 'obiettivi' ? (
