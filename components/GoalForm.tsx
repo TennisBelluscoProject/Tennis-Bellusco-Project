@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ClipboardList, PencilLine } from 'lucide-react';
 import type { Goal, GoalCategory, GoalStatus, GoalTemplate, PlayerLevel } from '@/lib/database.types';
 import { CATEGORY_CONFIG, STATUS_CONFIG, STATUS_COLUMNS } from '@/lib/constants';
 import { Button, Input, Textarea, Select, Modal } from './UI';
 import { GoalTemplatePicker } from './GoalTemplatePicker';
+import { CategoryIcon } from './CategoryIcon';
 
 interface GoalFormProps {
   open: boolean;
@@ -12,7 +14,6 @@ interface GoalFormProps {
   onSave: (data: Partial<Goal>) => Promise<void>;
   goal?: Goal | null;
   isCoach?: boolean;
-  /** Livello dell'allievo, usato per pre-selezionare il filtro nel catalogo */
   playerLevel?: PlayerLevel;
 }
 
@@ -123,7 +124,7 @@ export function GoalForm({ open, onClose, onSave, goal, isCoach, playerLevel }: 
 
   const categoryOptions = Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({
     value: k,
-    label: `${v.icon} ${v.label}`,
+    label: v.label,
   }));
 
   const statusOptions = STATUS_COLUMNS.map((s) => ({
@@ -152,13 +153,13 @@ export function GoalForm({ open, onClose, onSave, goal, isCoach, playerLevel }: 
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <ChoiceCard
-              icon="📋"
+              icon={<ClipboardList size={22} strokeWidth={1.5} />}
               title="Scegli dal catalogo"
               description="Parti da un obiettivo predefinito dal maestro."
               onClick={() => setStep('catalog')}
             />
             <ChoiceCard
-              icon="✏️"
+              icon={<PencilLine size={22} strokeWidth={1.5} />}
               title="Crea il tuo"
               description="Scrivi un obiettivo da zero."
               onClick={handleStartCustom}
@@ -272,7 +273,7 @@ export function GoalForm({ open, onClose, onSave, goal, isCoach, playerLevel }: 
 }
 
 interface ChoiceCardProps {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
   onClick: () => void;
@@ -284,7 +285,7 @@ function ChoiceCard({ icon, title, description, onClick }: ChoiceCardProps) {
       onClick={onClick}
       className="text-left bg-white border border-gray-200 rounded-2xl p-4 min-h-[88px] flex items-start gap-3 hover:border-[var(--club-blue)] hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200"
     >
-      <div className="w-11 h-11 rounded-xl bg-[var(--club-blue-light)] flex items-center justify-center text-xl shrink-0">
+      <div className="w-11 h-11 rounded-xl bg-[var(--club-blue-light)] flex items-center justify-center text-[var(--club-blue)] shrink-0">
         {icon}
       </div>
       <div className="flex-1 min-w-0">

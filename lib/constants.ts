@@ -1,11 +1,11 @@
 import { GoalCategory, GoalStatus, SurfaceType, MatchResult } from './database.types';
 
 export const CATEGORY_CONFIG: Record<GoalCategory, { label: string; icon: string; color: string; bg: string }> = {
-  tecnica: { label: 'Tecnica', icon: '🎾', color: '#C41E3A', bg: '#F8E8EB' },
-  tattica: { label: 'Tattica', icon: '🧠', color: '#1B3A5C', bg: '#E8EDF2' },
-  fisico: { label: 'Fisico/Motori', icon: '💪', color: '#2E7D32', bg: '#E8F5E9' },
-  mente: { label: 'Mente', icon: '🧘', color: '#7B1FA2', bg: '#F3E5F5' },
-  agonismo: { label: 'Agonismo', icon: '🏆', color: '#E65100', bg: '#FFF3E0' },
+  tecnica: { label: 'Tecnica', icon: 'racquet', color: '#C41E3A', bg: '#F8E8EB' },
+  tattica: { label: 'Tattica', icon: 'brain', color: '#1B3A5C', bg: '#E8EDF2' },
+  fisico: { label: 'Fisico/Motori', icon: 'dumbbell', color: '#2E7D32', bg: '#E8F5E9' },
+  mente: { label: 'Mente', icon: 'sparkles', color: '#7B1FA2', bg: '#F3E5F5' },
+  agonismo: { label: 'Agonismo', icon: 'trophy', color: '#E65100', bg: '#FFF3E0' },
 };
 
 export const STATUS_CONFIG: Record<GoalStatus, { label: string; labelIt: string }> = {

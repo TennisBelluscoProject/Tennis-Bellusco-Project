@@ -26,13 +26,17 @@ export function StudentDashboard() {
 
   return (
     <div className="h-[100dvh] sm:h-auto sm:min-h-screen flex sm:block flex-col overflow-hidden sm:overflow-visible bg-[var(--background)]">
-      {/* Compact header — no avatar, no name (already in main card) */}
       <header className="shrink-0 sm:sticky sm:top-0 sm:z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-[var(--club-red)] flex items-center justify-center shadow-sm relative overflow-hidden">
-                <span className="text-lg relative z-10">🎾</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+                  <circle cx="13" cy="9" r="7" />
+                  <path d="M9.7 14.3L3 21" />
+                  <path d="M6 9h14" />
+                  <path d="M13 2v14" />
+                </svg>
                 <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
               </div>
               <span

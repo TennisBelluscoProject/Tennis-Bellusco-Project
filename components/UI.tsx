@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, ReactNode } from 'react';
+import { Loader2 } from 'lucide-react';
 
 // ─── Button ─────────────────────────────────────────
 interface ButtonProps {
@@ -294,7 +295,7 @@ export function Badge({ children, color = '#1B3A5C', bg = '#E8EDF2' }: BadgeProp
 interface StatCardProps {
   label: string;
   value: string | number;
-  icon?: string;
+  icon?: ReactNode;
   color?: string;
 }
 
@@ -354,7 +355,7 @@ export function ProgressBar({ value, color = 'var(--club-blue)', height = 6 }: P
 
 // ─── Empty State ────────────────────────────────────
 interface EmptyStateProps {
-  icon: string;
+  icon: ReactNode;
   title: string;
   message: string;
   action?: ReactNode;
@@ -363,8 +364,8 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="empty-illustration bg-gray-50">
-        <span className="text-3xl">{icon}</span>
+      <div className="w-16 h-16 rounded-2xl bg-gray-100/80 flex items-center justify-center mb-4 text-gray-400">
+        {icon}
       </div>
       <h3 className="text-base font-bold text-gray-900 mb-1.5">{title}</h3>
       <p className="text-sm text-gray-500 mb-5 max-w-xs leading-relaxed">{message}</p>
@@ -394,7 +395,7 @@ export function LoadingScreen() {
             style={{ animation: 'pulse-soft 2.4s ease-in-out infinite' }}
           >
             <div className="w-12 h-12 rounded-xl bg-[var(--club-red)] flex items-center justify-center shadow-sm">
-              <span className="text-2xl">🎾</span>
+              <Loader2 className="w-6 h-6 text-white animate-spin" />
             </div>
           </div>
         </div>

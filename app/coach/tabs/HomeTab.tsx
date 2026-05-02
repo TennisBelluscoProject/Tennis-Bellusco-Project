@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { Users, Target, Trophy, CalendarDays, BellOff } from 'lucide-react';
 import { Spinner, EmptyState } from '@/components/UI';
 import type { Goal, MatchResultRow, Profile } from '@/lib/database.types';
 import { isActiveToday, formatDateLong } from '@/lib/utils';
@@ -18,15 +19,6 @@ interface Props {
   dismissed: Set<string>;
   onDismissOne: (id: string) => void;
   onDismissAll: () => void;
-}
-
-function IconUsersTiny() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-    </svg>
-  );
 }
 
 export function HomeTab({
@@ -118,10 +110,10 @@ export function HomeTab({
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <StatPill label="Allievi" value={totalStudents} icon={<IconUsersTiny />} accent="var(--club-blue)" />
-          <StatPill label="Obiettivi attivi" value={activeGoals} icon={<span>🎯</span>} accent="#E65100" />
-          <StatPill label="Win Rate" value={`${winRate}%`} icon={<span>🏆</span>} accent="var(--success)" valueColor="var(--success)" />
-          <StatPill label="Match mese" value={matchesThisMonth} icon={<span>📅</span>} accent="var(--club-red)" valueColor="var(--club-red)" />
+          <StatPill label="Allievi" value={totalStudents} icon={<Users size={16} strokeWidth={2} />} accent="var(--club-blue)" />
+          <StatPill label="Obiettivi attivi" value={activeGoals} icon={<Target size={16} strokeWidth={2} />} accent="#E65100" />
+          <StatPill label="Win Rate" value={`${winRate}%`} icon={<Trophy size={16} strokeWidth={2} />} accent="var(--success)" valueColor="var(--success)" />
+          <StatPill label="Match mese" value={matchesThisMonth} icon={<CalendarDays size={16} strokeWidth={2} />} accent="var(--club-red)" valueColor="var(--club-red)" />
         </div>
 
         {/* Notifications header */}
@@ -155,7 +147,7 @@ export function HomeTab({
         {loading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : filteredNotifs.length === 0 ? (
-          <EmptyState icon="🔔" title="Nessuna notifica" message="Le attività degli allievi appariranno qui." />
+          <EmptyState icon={<BellOff size={32} strokeWidth={1.5} />} title="Nessuna notifica" message="Le attività degli allievi appariranno qui." />
         ) : (
           <div className="flex flex-col gap-2.5">
             {filteredNotifs.map((n) => (

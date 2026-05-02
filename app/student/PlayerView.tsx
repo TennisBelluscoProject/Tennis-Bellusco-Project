@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Target, Trophy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button, Tabs, Spinner, EmptyState } from '@/components/UI';
 import type { Profile, Goal, MatchResultRow, GoalStatus, PlayerLevel } from '@/lib/database.types';
@@ -15,17 +16,11 @@ import { useIsMobile } from '@/lib/hooks';
 export type PlayerViewMode = 'self' | 'coach';
 
 interface PlayerViewProps {
-  /** profile of the player whose data is shown */
   player: Profile;
-  /** who is looking */
   mode: PlayerViewMode;
-  /** auth user id of whoever is doing the writes (coach.id for coach, player.id for self) */
   writerId: string;
-  /** for self mode: open the profile editor */
   onEditProfile?: () => void;
-  /** for coach mode: go back to the student list */
   onBack?: () => void;
-  /** notify parent that data changed (e.g. coach refreshes student list stats) */
   onDataChanged?: () => void;
 }
 
@@ -77,13 +72,11 @@ export function PlayerView({
 
   const isCoach = mode === 'coach';
 
-  // ─── Stats ──────────────────────────────────────────
   const activeGoals = goals.filter((g) => g.status !== 'completed').length;
   const wins = matches.filter((m) => m.result === 'win').length;
   const totalMatches = matches.length;
   const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
-  // ─── Display values ─────────────────────────────────
   const { displayLevel, displayRanking } = getDisplayRanking(player);
   const classified = isClassified(displayRanking);
   const ageCategory = getAgeCategory(player.birth_date);
@@ -91,7 +84,6 @@ export function PlayerView({
     ? (displayLevel as PlayerLevel)
     : undefined;
 
-  // ─── Mutations ──────────────────────────────────────
   const triggerRefresh = async () => {
     refetch();
     onDataChanged?.();
@@ -174,7 +166,6 @@ export function PlayerView({
     }
   };
 
-  // ─── Render ─────────────────────────────────────────
   const backLink = isCoach && onBack && (
     <button
       onClick={onBack}
@@ -290,7 +281,7 @@ export function PlayerView({
     goals.length === 0 ? (
       <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center">
         <EmptyState
-          icon="🎯"
+          icon={<Target size={32} strokeWidth={1.5} />}
           title="Nessun obiettivo"
           message={
             isCoach
@@ -328,7 +319,7 @@ export function PlayerView({
     matches.length === 0 ? (
       <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center">
         <EmptyState
-          icon="🏆"
+          icon={<Trophy size={32} strokeWidth={1.5} />}
           title="Nessun match"
           message={
             isCoach
@@ -376,7 +367,6 @@ export function PlayerView({
     );
 
   const layoutContents = isMobile ? (
-    /* Mobile: flex column with internal scroll on the tabs, hero + tabs fixed */
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {backLink}
       {heroCard}
@@ -394,7 +384,6 @@ export function PlayerView({
       </div>
     </div>
   ) : tab === 'match' ? (
-    /* Desktop, match tab: sticky region with hero + tabs + add button */
     <>
       {backLink}
       <div className="sticky top-16 z-20 bg-[var(--background)] -mx-4 sm:-mx-6 px-4 sm:px-6 pt-1 pb-4">
@@ -413,7 +402,6 @@ export function PlayerView({
       </div>
     </>
   ) : (
-    /* Desktop, obiettivi tab: regular page-scroll flow (no sticky) */
     <>
       {backLink}
       {heroCard}
@@ -435,7 +423,6 @@ export function PlayerView({
     <>
       {layoutContents}
 
-      {/* Mobile FAB to add goal/match */}
       <button
         onClick={handleFab}
         className="sm:hidden fab"
@@ -490,8 +477,6 @@ export function PlayerView({
     </>
   );
 }
-
-// ─── Sub-components ─────────────────────────────────────
 
 function DarkBadge({ children, accent }: { children: React.ReactNode; accent: string }) {
   return (

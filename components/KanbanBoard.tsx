@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { ClipboardList, Zap, CircleCheck, type LucideIcon } from 'lucide-react';
 import type { Goal, GoalStatus } from '@/lib/database.types';
 import { CATEGORY_CONFIG, STATUS_CONFIG, STATUS_COLUMNS } from '@/lib/constants';
 import { useIsMobile } from '@/lib/hooks';
 import { Badge, ProgressBar, ConfirmDialog, Select } from './UI';
+import { CategoryIcon } from './CategoryIcon';
 
 // ─── GoalCard ───────────────────────────────────────
 
@@ -49,7 +51,9 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-500 line-through decoration-gray-300 truncate">{goal.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] text-gray-400">{cat.icon} {cat.label}</span>
+                <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                  <CategoryIcon name={cat.icon} size={10} /> {cat.label}
+                </span>
                 {completedDate && (
                   <span className="text-[10px] text-gray-400">· {completedDate}</span>
                 )}
@@ -119,7 +123,7 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
         {/* Category badge + deadline */}
         <div className="flex items-center justify-between mb-3 pl-2">
           <Badge color={cat.color} bg={cat.bg}>
-            <span>{cat.icon}</span> {cat.label}
+            <CategoryIcon name={cat.icon} size={12} /> {cat.label}
           </Badge>
           {goal.deadline && (
             <span className={`text-[11px] font-semibold ${
@@ -221,6 +225,13 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
     </>
   );
 }
+
+// ─── Status Empty Icon ──────────────────────────────
+const STATUS_EMPTY_ICONS: Record<GoalStatus, LucideIcon> = {
+  planned: ClipboardList,
+  in_progress: Zap,
+  completed: CircleCheck,
+};
 
 // ─── Kanban Column (desktop) ────────────────────────
 
@@ -412,10 +423,11 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
       >
         {filteredGoals.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="empty-illustration bg-gray-50 mb-2">
-              <span className="text-2xl">
-                {activeStatus === 'planned' ? '📋' : activeStatus === 'in_progress' ? '⚡' : '✅'}
-              </span>
+            <div className="w-14 h-14 rounded-2xl bg-gray-100/80 flex items-center justify-center mb-3 text-gray-400">
+              {(() => {
+                const Icon = STATUS_EMPTY_ICONS[activeStatus];
+                return <Icon size={24} strokeWidth={1.5} />;
+              })()}
             </div>
             <p className="text-sm text-gray-500 font-medium">
               {activeStatus === 'planned' && 'Nessun obiettivo in programma'}
@@ -477,7 +489,7 @@ export function KanbanBoard({ goals, isCoach, onEdit, onDelete, onStatusChange, 
 
   const categoryOptions = [
     { value: '', label: 'Tutte le categorie' },
-    ...Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({ value: k, label: `${v.icon} ${v.label}` })),
+    ...Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({ value: k, label: v.label })),
   ];
 
   return (
