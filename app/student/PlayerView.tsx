@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Target, Trophy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button, Tabs, Spinner, EmptyState } from '@/components/UI';
+import { AvatarDisplay } from '@/components/AvatarDisplay';
 import type { Profile, Goal, MatchResultRow, GoalStatus, PlayerLevel } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified, LEVELS } from '@/lib/constants';
 import { KanbanBoard } from '@/components/KanbanBoard';
@@ -196,8 +197,13 @@ export function PlayerView({
     >
       <div className="p-5 sm:p-6">
         <div className="flex items-start gap-4">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center text-white text-xl sm:text-2xl font-bold shrink-0 ring-1 ring-white/15">
-            {player.full_name.charAt(0).toUpperCase()}
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shrink-0 ring-1 ring-white/15">
+            <AvatarDisplay
+              photoUrl={player.photo_url}
+              fullName={player.full_name}
+              size={64}
+              className="ring-0 shadow-none w-full h-full"
+            />
           </div>
           <div className="flex-1 min-w-0">
             <h2

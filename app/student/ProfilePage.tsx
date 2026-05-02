@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/UI';
+import { AvatarUpload } from '@/components/AvatarUpload';
 import type { Profile } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
 
@@ -47,11 +48,17 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
       <main className="max-w-2xl mx-auto px-4 py-6 pb-24">
         {/* Avatar card */}
         <div className="card p-7 text-center mb-5 animate-slide-up">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--club-blue)] to-[var(--club-blue-dark)] flex items-center justify-center text-white text-3xl font-bold shadow-md mx-auto mb-4">
-            {profile.full_name.charAt(0).toUpperCase()}
-          </div>
+          <AvatarUpload
+            userId={profile.id}
+            currentUrl={profile.photo_url}
+            fullName={profile.full_name}
+            size={80}
+            onUploaded={async () => {
+              await refreshProfile();
+            }}
+          />
           <h2
-            className="text-xl font-bold text-gray-900 tracking-[-0.02em]"
+            className="text-xl font-bold text-gray-900 tracking-[-0.02em] mt-4"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             {profile.full_name}
@@ -72,12 +79,6 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
               </span>
             )}
           </div>
-          <button
-            onClick={() => setEditing('all')}
-            className="mt-5 px-5 py-2 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors"
-          >
-            Modifica profilo
-          </button>
         </div>
 
         {/* Editable rows */}

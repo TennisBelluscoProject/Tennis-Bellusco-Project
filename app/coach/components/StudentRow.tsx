@@ -1,6 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/UI';
+import { AvatarDisplay } from '@/components/AvatarDisplay';
 import type { Profile } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
 import { timeAgo } from '@/lib/utils';
@@ -22,9 +23,7 @@ export function StudentRow({ student, dot, stats, lastActivity, onClick }: Props
 
   return (
     <button onClick={onClick} className="card card-interactive p-4 text-left flex items-center gap-3.5">
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--club-blue)] to-[var(--club-blue-dark)] flex items-center justify-center text-white text-base font-bold shrink-0 shadow-sm">
-        {initial}
-      </div>
+      <AvatarDisplay photoUrl={student.photo_url} fullName={student.full_name} size={48} />
       <div className="flex-1 min-w-0">
         <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{student.full_name}</h3>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
