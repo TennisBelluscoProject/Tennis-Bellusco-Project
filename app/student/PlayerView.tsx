@@ -281,7 +281,7 @@ export function PlayerView({
     goals.length === 0 ? (
       <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center">
         <EmptyState
-          icon={<Target size={32} strokeWidth={1.5} />}
+          icon={<Target size={40} strokeWidth={1.5} />}
           title="Nessun obiettivo"
           message={
             isCoach
@@ -319,7 +319,7 @@ export function PlayerView({
     matches.length === 0 ? (
       <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center">
         <EmptyState
-          icon={<Trophy size={32} strokeWidth={1.5} />}
+          icon={<Trophy size={40} strokeWidth={1.5} />}
           title="Nessun match"
           message={
             isCoach

@@ -1,5 +1,6 @@
 'use client';
 
+import { Users } from 'lucide-react';
 import { SearchBar, Spinner, EmptyState } from '@/components/UI';
 import type { Profile } from '@/lib/database.types';
 import { getActivityDot } from '@/lib/utils';
@@ -54,7 +55,7 @@ export function AllieviTab({
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon="👥"
+            icon={<Users size={40} strokeWidth={1.5} />}
             title="Nessun allievo"
             message={search ? 'Nessun risultato per la ricerca.' : 'Nessun allievo approvato. Le richieste di registrazione le trovi nella tab Richieste.'}
           />

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { ClipboardList } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { GoalCategory, GoalTemplate, PlayerLevel } from '@/lib/database.types';
 import { CATEGORY_CONFIG, LEVELS } from '@/lib/constants';
 import { useIsMobile } from '@/lib/hooks';
 import { Badge, SearchBar, Spinner, EmptyState } from './UI';
+import { CategoryIcon } from './CategoryIcon';
 
 interface GoalTemplatePickerProps {
   defaultLevel?: PlayerLevel;
@@ -125,7 +127,7 @@ export function GoalTemplatePicker({
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {p.icon && <span>{p.icon}</span>}
+                {p.icon && <CategoryIcon name={p.icon} size={14} strokeWidth={2} />}
                 {p.label}
               </button>
             );
@@ -168,7 +170,7 @@ export function GoalTemplatePicker({
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon="📋"
+            icon={<ClipboardList size={40} strokeWidth={1.5} />}
             title="Nessun obiettivo trovato"
             message={
               templates.length === 0
@@ -205,7 +207,7 @@ function TemplateCard({ template, compact, onClick }: TemplateCardProps) {
       >
         <div className="flex items-center gap-2">
           <Badge color={cat.color} bg={cat.bg}>
-            <span>{cat.icon}</span> {cat.label}
+            <CategoryIcon name={cat.icon} size={12} /> {cat.label}
           </Badge>
           <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
             {template.level}
@@ -225,7 +227,7 @@ function TemplateCard({ template, compact, onClick }: TemplateCardProps) {
     >
       <div className="flex items-center gap-2 flex-wrap">
         <Badge color={cat.color} bg={cat.bg}>
-          <span>{cat.icon}</span> {cat.label}
+          <CategoryIcon name={cat.icon} size={12} /> {cat.label}
         </Badge>
         <Badge>{template.level}</Badge>
       </div>

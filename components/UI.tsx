@@ -363,12 +363,12 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-gray-100/80 flex items-center justify-center mb-4 text-gray-400">
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-20 h-20 rounded-3xl bg-gray-100/60 flex items-center justify-center mb-5 text-gray-300">
         {icon}
       </div>
-      <h3 className="text-base font-bold text-gray-900 mb-1.5">{title}</h3>
-      <p className="text-sm text-gray-500 mb-5 max-w-xs leading-relaxed">{message}</p>
+      <h3 className="text-lg font-bold text-gray-900 mb-2 tracking-[-0.01em]">{title}</h3>
+      <p className="text-[14px] text-gray-500 mb-6 max-w-sm leading-relaxed">{message}</p>
       {action}
     </div>
   );

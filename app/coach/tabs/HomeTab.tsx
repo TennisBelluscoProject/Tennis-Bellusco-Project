@@ -147,7 +147,7 @@ export function HomeTab({
         {loading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : filteredNotifs.length === 0 ? (
-          <EmptyState icon={<BellOff size={32} strokeWidth={1.5} />} title="Nessuna notifica" message="Le attività degli allievi appariranno qui." />
+          <EmptyState icon={<BellOff size={40} strokeWidth={1.5} />} title="Nessuna notifica" message="Le attività degli allievi appariranno qui." />
         ) : (
           <div className="flex flex-col gap-2.5">
             {filteredNotifs.map((n) => (

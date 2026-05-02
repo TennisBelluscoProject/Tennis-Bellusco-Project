@@ -1,5 +1,6 @@
 'use client';
 
+import { Trophy } from 'lucide-react';
 import { Spinner, EmptyState } from '@/components/UI';
 import type { MatchResultRow } from '@/lib/database.types';
 import { FilterPill } from '../components/Pills';
@@ -42,7 +43,7 @@ export function RisultatiTab({ loading, allMatches, resultFilter, onResultFilter
         {loading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : filtered.length === 0 ? (
-          <EmptyState icon="🏆" title="Nessun match" message="Non ci sono match registrati." />
+          <EmptyState icon={<Trophy size={40} strokeWidth={1.5} />} title="Nessun match" message="Non ci sono match registrati." />
         ) : (
           <div className="flex flex-col gap-2.5 stagger-children">
             {filtered.map((m) => (

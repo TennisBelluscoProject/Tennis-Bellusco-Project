@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { ClipboardList } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { GoalCategory, GoalTemplate, PlayerLevel } from '@/lib/database.types';
 import { CATEGORY_CONFIG, LEVELS } from '@/lib/constants';
 import { useIsMobile } from '@/lib/hooks';
+import { CategoryIcon } from './CategoryIcon';
 import {
   Badge,
   Button,
@@ -159,7 +161,7 @@ export function GoalTemplatesHeader({ ctx, isMobile }: HeaderProps) {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {p.icon && <span>{p.icon}</span>}
+                {p.icon && <CategoryIcon name={p.icon} size={14} strokeWidth={2} />}
                 {p.label}
               </button>
             );
@@ -220,7 +222,7 @@ export function GoalTemplatesList({ ctx, isMobile }: ListProps) {
         </div>
       ) : ctx.filtered.length === 0 ? (
         <EmptyState
-          icon="📋"
+          icon={<ClipboardList size={40} strokeWidth={1.5} />}
           title={ctx.templates.length === 0 ? 'Nessun template' : 'Nessun risultato'}
           message={
             ctx.templates.length === 0
@@ -361,7 +363,7 @@ function CoachTemplateCard({ template, compact, onEdit, onDelete }: CoachTemplat
     >
       <div className="flex items-center gap-2 flex-wrap">
         <Badge color={cat.color} bg={cat.bg}>
-          <span>{cat.icon}</span> {cat.label}
+          <CategoryIcon name={cat.icon} size={12} /> {cat.label}
         </Badge>
         <Badge>{template.level}</Badge>
       </div>
@@ -466,7 +468,7 @@ function TemplateForm({ open, template, onClose, onSave }: TemplateFormProps) {
 
   const categoryOptions = Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({
     value: k,
-    label: `${v.icon} ${v.label}`,
+    label: v.label,
   }));
 
   const levelOptions = LEVELS.map((lv) => ({ value: lv, label: lv }));

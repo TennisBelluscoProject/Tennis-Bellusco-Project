@@ -36,7 +36,7 @@ export function RichiesteTab({ loading, pending, actingOn, onApprove, onReject }
         {loading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : pending.length === 0 ? (
-          <EmptyState icon={<CircleCheck size={32} strokeWidth={1.5} />} title="Tutto in ordine" message="Nessuna registrazione in attesa." />
+          <EmptyState icon={<CircleCheck size={40} strokeWidth={1.5} />} title="Tutto in ordine" message="Nessuna registrazione in attesa." />
         ) : (
           <div className="flex flex-col gap-3 stagger-children">
             {pending.map((p) => (

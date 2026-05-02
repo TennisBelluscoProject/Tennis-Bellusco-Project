@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Users, CircleCheckBig, Trophy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
@@ -254,7 +255,7 @@ function CoachDesktopDashboard() {
                 <div className="flex justify-center py-12"><Spinner /></div>
               ) : filteredStudents.length === 0 ? (
                 <EmptyState
-                  icon="👥"
+                  icon={<Users size={40} strokeWidth={1.5} />}
                   title="Nessun allievo"
                   message={search ? 'Nessun risultato per la ricerca.' : 'Non ci sono ancora allievi approvati. Le richieste di registrazione le trovi nella tab "Richieste".'}
                 />
@@ -277,7 +278,7 @@ function CoachDesktopDashboard() {
               {allMatchesLoading ? (
                 <div className="flex justify-center py-12"><Spinner /></div>
               ) : allMatches.length === 0 ? (
-                <EmptyState icon="🏆" title="Nessun risultato" message="Gli allievi non hanno ancora registrato match." />
+                <EmptyState icon={<Trophy size={40} strokeWidth={1.5} />} title="Nessun risultato" message="Gli allievi non hanno ancora registrato match." />
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
                   {allMatches.map((m) => (
@@ -310,7 +311,7 @@ function CoachDesktopDashboard() {
               {loading ? (
                 <div className="flex justify-center py-12"><Spinner /></div>
               ) : pendingProfiles.length === 0 ? (
-                <EmptyState icon="✅" title="Tutto in ordine" message="Nessuna richiesta di registrazione in attesa." />
+                <EmptyState icon={<CircleCheckBig size={40} strokeWidth={1.5} />} title="Tutto in ordine" message="Nessuna richiesta di registrazione in attesa." />
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 stagger-children">
                   {pendingProfiles.map((p) => (

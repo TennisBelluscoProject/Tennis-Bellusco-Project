@@ -423,7 +423,7 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
       >
         {filteredGoals.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-14 h-14 rounded-2xl bg-gray-100/80 flex items-center justify-center mb-3 text-gray-400">
+            <div className="flex items-center justify-center mb-3 text-gray-300">
               {(() => {
                 const Icon = STATUS_EMPTY_ICONS[activeStatus];
                 return <Icon size={24} strokeWidth={1.5} />;

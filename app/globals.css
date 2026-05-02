@@ -419,14 +419,3 @@ input:focus, textarea:focus, select:focus {
   border-color: var(--club-blue) !important;
   box-shadow: 0 0 0 3px rgba(27, 58, 92, 0.08) !important;
 }
-
-/* ─── Empty state illustration ─── */
-.empty-illustration {
-  width: 80px;
-  height: 80px;
-  border-radius: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
-}
