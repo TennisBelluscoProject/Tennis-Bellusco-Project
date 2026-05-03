@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Button, Input } from '@/components/UI';
@@ -179,13 +180,14 @@ export function LoginPage() {
       <div className="w-full max-w-[420px] relative z-10">
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--club-red)] flex items-center justify-center mx-auto mb-5 shadow-lg relative overflow-hidden">
-            <span className="text-3xl relative z-10">🎾</span>
-            <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
-          </div>
-          <h1 className="text-[26px] font-bold text-[var(--club-blue)] tracking-[-0.02em] mb-1" style={{ fontFamily: 'var(--font-display)' }}>
-            Tennis Club Bellusco
-          </h1>
+          <Image
+            src="/logo-login.png"
+            alt="Tennis Bellusco 2012"
+            width={146}
+            height={72}
+            priority
+            className="mx-auto mb-3 object-contain"
+          />
           <div className="flex justify-center mt-3 mb-4 gap-1">
             <div className="w-8 h-[3px] rounded-full bg-[var(--club-red)]" />
             <div className="w-8 h-[3px] rounded-full bg-gray-200" />

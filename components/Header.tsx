@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function Header() {
@@ -16,17 +17,15 @@ export function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo & Title */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[var(--club-red)] flex items-center justify-center shadow-sm relative overflow-hidden">
-                <span className="text-xl relative z-10">🎾</span>
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-              </div>
+              <Image
+                src="/logo-header.png"
+                alt="Tennis Bellusco 2012"
+                width={73}
+                height={36}
+                priority
+                className="object-contain"
+              />
               <div className="flex flex-col">
-                <span
-                  className="text-[15px] font-bold text-[var(--club-blue)] leading-tight tracking-[-0.01em]"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  Tennis Club Bellusco
-                </span>
                 <span className="text-[11px] text-[var(--muted)] leading-tight mt-0.5">
                   {isCoach ? 'Dashboard Maestro' : `Ciao, ${profile?.first_name || profile?.full_name}!`}
                 </span>

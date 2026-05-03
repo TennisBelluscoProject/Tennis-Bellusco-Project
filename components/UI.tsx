@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, ReactNode } from 'react';
+import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 
 // ─── Button ─────────────────────────────────────────
@@ -391,21 +392,20 @@ export function LoadingScreen() {
         <div className="relative">
           {/* Outer ring */}
           <div
-            className="w-16 h-16 rounded-2xl border-2 border-[var(--club-red)]/20 flex items-center justify-center"
+            className="w-20 h-20 rounded-2xl border-2 border-[var(--club-red)]/20 flex items-center justify-center"
             style={{ animation: 'pulse-soft 2.4s ease-in-out infinite' }}
           >
-            <div className="w-12 h-12 rounded-xl bg-[var(--club-red)] flex items-center justify-center shadow-sm">
-              <Loader2 className="w-6 h-6 text-white animate-spin" />
-            </div>
+            <Image
+              src="/logo-header.png"
+              alt="Tennis Bellusco 2012"
+              width={73}
+              height={36}
+              priority
+              className="object-contain"
+            />
           </div>
         </div>
         <div className="flex flex-col items-center gap-1">
-          <p
-            className="text-sm font-semibold text-[var(--club-blue)] tracking-[-0.01em]"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Tennis Club Bellusco
-          </p>
           <p className="text-xs text-gray-400">Caricamento...</p>
         </div>
       </div>
