@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 interface Props {
   onLogout: () => void;
 }
@@ -10,17 +12,15 @@ export function MobileHeader({ onLogout }: Props) {
       <header className="sticky top-0 z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[var(--club-red)] flex items-center justify-center shadow-sm relative overflow-hidden shrink-0">
-              <span className="text-lg relative z-10">🎾</span>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
-            </div>
+            <Image
+              src="/logo-header.png"
+              alt="Tennis Bellusco 2012"
+              width={73}
+              height={36}
+              priority
+              className="object-contain shrink-0"
+            />
             <div className="flex flex-col min-w-0">
-              <span
-                className="text-[14px] font-bold text-[var(--club-blue)] leading-tight tracking-[-0.01em] truncate"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                Tennis Club Bellusco
-              </span>
               <span className="text-[11px] text-[var(--muted)] leading-tight mt-0.5">
                 Dashboard Maestro
               </span>

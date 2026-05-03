@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/UI';
@@ -38,9 +39,13 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
             </svg>
             <span className="text-[14px] font-semibold">Profilo</span>
           </button>
-          <div className="w-9 h-9 rounded-xl bg-[var(--club-red)] flex items-center justify-center shadow-sm shrink-0">
-            <span className="text-lg">🎾</span>
-          </div>
+          <Image
+            src="/logo-header.png"
+            alt="Tennis Bellusco 2012"
+            width={73}
+            height={36}
+            className="object-contain shrink-0"
+          />
         </div>
       </header>
       <div className="club-stripe" />
