@@ -393,7 +393,17 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
           {student.full_name.charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-gray-900 truncate tracking-[-0.01em]">{student.full_name}</h3>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h3 className="text-sm font-bold text-gray-900 truncate tracking-[-0.01em]">{student.full_name}</h3>
+            {student.is_fictitious && (
+              <span
+                className="shrink-0 inline-flex items-center px-1.5 py-px rounded-md text-[9px] font-bold tracking-[0.06em] uppercase bg-[var(--club-blue-light)] text-[var(--club-blue)]"
+                title="Account gestito dal maestro"
+              >
+                Gestito
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             {cardAgeCategory && <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{cardAgeCategory}</Badge>}
             {!cardClassified && <Badge>{displayLevel}</Badge>}

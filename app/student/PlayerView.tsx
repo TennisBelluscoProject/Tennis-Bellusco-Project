@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Target, Trophy } from 'lucide-react';
+import { Target, Trophy, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button, Tabs, Spinner, EmptyState } from '@/components/UI';
 import { AvatarDisplay } from '@/components/AvatarDisplay';
@@ -12,6 +12,7 @@ import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
 import { MatchForm } from '@/components/MatchForm';
 import { CoachNotesForm } from '@/components/CoachNotesForm';
+import { DeleteFictitiousStudentDialog } from '@/app/coach/components/DeleteFictitiousStudentDialog';
 import { useIsMobile } from '@/lib/hooks';
 
 export type PlayerViewMode = 'self' | 'coach';
@@ -45,6 +46,7 @@ export function PlayerView({
   const [editingMatch, setEditingMatch] = useState<MatchResultRow | null>(null);
   const [coachNotesOpen, setCoachNotesOpen] = useState(false);
   const [coachNotesMatch, setCoachNotesMatch] = useState<MatchResultRow | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const [reloadTick, setReloadTick] = useState(0);
   const refetch = useCallback(() => setReloadTick((t) => t + 1), []);
@@ -230,6 +232,16 @@ export function PlayerView({
               className="text-[12px] font-semibold text-white/80 hover:text-white px-3 py-1.5 rounded-lg border border-white/20 hover:border-white/40 hover:bg-white/5 transition-colors shrink-0"
             >
               Modifica
+            </button>
+          )}
+          {isCoach && player.is_fictitious && (
+            <button
+              onClick={() => setDeleteDialogOpen(true)}
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-red-200 hover:text-white px-3 py-1.5 rounded-lg border border-red-300/30 hover:border-red-300/60 hover:bg-red-500/15 transition-colors shrink-0"
+              title="Elimina allievo gestito"
+            >
+              <Trash2 size={14} strokeWidth={2.2} />
+              Elimina
             </button>
           )}
         </div>
@@ -478,6 +490,18 @@ export function PlayerView({
           }}
           onSave={handleSaveCoachNotes}
           currentNotes={coachNotesMatch?.coach_notes}
+        />
+      )}
+      {isCoach && player.is_fictitious && (
+        <DeleteFictitiousStudentDialog
+          open={deleteDialogOpen}
+          student={player}
+          onClose={() => setDeleteDialogOpen(false)}
+          onDeleted={() => {
+            setDeleteDialogOpen(false);
+            onDataChanged?.();
+            onBack?.();
+          }}
         />
       )}
     </>
