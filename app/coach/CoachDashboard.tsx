@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, CircleCheckBig, Trophy, UserPlus } from 'lucide-react';
+import { Users, CircleCheckBig, Trophy, UserPlus, UserCog } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
@@ -396,12 +396,14 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
           <div className="flex items-center gap-1.5 min-w-0">
             <h3 className="text-sm font-bold text-gray-900 truncate tracking-[-0.01em]">{student.full_name}</h3>
             {student.is_fictitious && (
-              <span
-                className="shrink-0 inline-flex items-center px-1.5 py-px rounded-md text-[9px] font-bold tracking-[0.06em] uppercase bg-[var(--club-blue-light)] text-[var(--club-blue)]"
-                title="Account gestito dal maestro"
+              <UserCog
+                size={13}
+                strokeWidth={2.2}
+                className="shrink-0 text-[var(--club-blue)]/70"
+                aria-label="Account gestito dal maestro"
               >
-                Gestito
-              </span>
+                <title>Account gestito dal maestro</title>
+              </UserCog>
             )}
           </div>
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">

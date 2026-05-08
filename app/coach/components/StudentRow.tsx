@@ -1,5 +1,6 @@
 'use client';
 
+import { UserCog } from 'lucide-react';
 import { Badge } from '@/components/UI';
 import { AvatarDisplay } from '@/components/AvatarDisplay';
 import type { Profile } from '@/lib/database.types';
@@ -27,12 +28,14 @@ export function StudentRow({ student, dot, stats, lastActivity, onClick }: Props
         <div className="flex items-center gap-1.5 min-w-0">
           <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{student.full_name}</h3>
           {student.is_fictitious && (
-            <span
-              className="shrink-0 inline-flex items-center px-1.5 py-px rounded-md text-[9px] font-bold tracking-[0.06em] uppercase bg-[var(--club-blue-light)] text-[var(--club-blue)]"
-              title="Account gestito dal maestro"
+            <UserCog
+              size={13}
+              strokeWidth={2.2}
+              className="shrink-0 text-[var(--club-blue)]/70"
+              aria-label="Account gestito dal maestro"
             >
-              Gestito
-            </span>
+              <title>Account gestito dal maestro</title>
+            </UserCog>
           )}
         </div>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
