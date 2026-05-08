@@ -22,6 +22,7 @@ export interface Profile {
   approval_status: ApprovalStatus;
   approved_at: string | null;
   approved_by: string | null;
+  is_fictitious: boolean;
   created_at: string;
 }
 

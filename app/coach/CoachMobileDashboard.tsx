@@ -12,6 +12,7 @@ import { AllieviTab } from './tabs/AllieviTab';
 import { CatalogoTab } from './tabs/CatalogoTab';
 import { RisultatiTab } from './tabs/RisultatiTab';
 import { RichiesteTab } from './tabs/RichiesteTab';
+import { CreateStudentForm } from './components/CreateStudentForm';
 import { PlayerView } from '../student/PlayerView';
 
 const DISMISSED_KEY = 'tcb-dismissed-notifs-v1';
@@ -45,6 +46,7 @@ export function CoachMobileDashboard() {
   const [selectedStudent, setSelectedStudent] = useState<Profile | null>(null);
   const [confirmReject, setConfirmReject] = useState<Profile | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const persistDismissed = (s: Set<string>) => {
     setDismissed(s);
@@ -190,6 +192,7 @@ export function CoachMobileDashboard() {
             search={search}
             onSearchChange={setSearch}
             onSelect={setSelectedStudent}
+            onAdd={() => setCreateOpen(true)}
           />
         )}
 
@@ -228,6 +231,12 @@ export function CoachMobileDashboard() {
         confirmLabel="Rifiuta"
         onConfirm={() => confirmReject && handleReject(confirmReject)}
         onCancel={() => setConfirmReject(null)}
+      />
+
+      <CreateStudentForm
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => fetchAll()}
       />
     </div>
   );

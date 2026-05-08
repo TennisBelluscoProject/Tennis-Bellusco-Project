@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, CircleCheckBig, Trophy } from 'lucide-react';
+import { Users, CircleCheckBig, Trophy, UserPlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
-import { Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog } from '@/components/UI';
+import { Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog, Button } from '@/components/UI';
 import type { Profile, MatchResultRow } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
 import { MatchCard } from '@/components/MatchCard';
 import { CoachNotesForm } from '@/components/CoachNotesForm';
 import { CoachMobileDashboard } from './CoachMobileDashboard';
 import { PendingCard } from './components/PendingCard';
+import { CreateStudentForm } from './components/CreateStudentForm';
 import { PlayerView } from '../student/PlayerView';
 import {
   useGoalTemplates,
@@ -62,6 +63,8 @@ function CoachDesktopDashboard() {
 
   const [confirmReject, setConfirmReject] = useState<Profile | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
+
+  const [createOpen, setCreateOpen] = useState(false);
 
   const [reloadTick, setReloadTick] = useState(0);
   const refresh = useCallback(() => setReloadTick((t) => t + 1), []);
@@ -220,8 +223,14 @@ function CoachDesktopDashboard() {
           />
 
           {activeTab === 'allievi' && (
-            <div className="mt-4">
-              <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo per nome o email..." />
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo per nome o email..." />
+              </div>
+              <Button variant="secondary" onClick={() => setCreateOpen(true)} className="shrink-0">
+                <UserPlus size={16} strokeWidth={2.2} />
+                Aggiungi allievo
+              </Button>
             </div>
           )}
 
@@ -338,6 +347,12 @@ function CoachDesktopDashboard() {
         confirmLabel="Rifiuta"
         onConfirm={() => confirmReject && handleReject(confirmReject)}
         onCancel={() => setConfirmReject(null)}
+      />
+
+      <CreateStudentForm
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => refresh()}
       />
     </div>
   );
