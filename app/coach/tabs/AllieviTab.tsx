@@ -1,6 +1,6 @@
 'use client';
 
-import { Users } from 'lucide-react';
+import { Users, UserPlus } from 'lucide-react';
 import { SearchBar, Spinner, EmptyState } from '@/components/UI';
 import type { Profile } from '@/lib/database.types';
 import { getActivityDot } from '@/lib/utils';
@@ -14,6 +14,7 @@ interface Props {
   search: string;
   onSearchChange: (s: string) => void;
   onSelect: (student: Profile) => void;
+  onAdd: () => void;
 }
 
 export function AllieviTab({
@@ -24,6 +25,7 @@ export function AllieviTab({
   search,
   onSearchChange,
   onSelect,
+  onAdd,
 }: Props) {
   const total = students.length;
   const filtered = students.filter((s) =>
@@ -45,6 +47,14 @@ export function AllieviTab({
               {total} {total === 1 ? 'attivo' : 'attivi'}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={onAdd}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--club-blue)] text-white text-[13px] font-semibold shadow-sm hover:bg-[var(--club-blue-dark)] active:scale-[0.97] transition-all"
+          >
+            <UserPlus size={16} strokeWidth={2.2} />
+            Aggiungi
+          </button>
         </div>
 
         <SearchBar value={search} onChange={onSearchChange} placeholder="Cerca allievo..." />
