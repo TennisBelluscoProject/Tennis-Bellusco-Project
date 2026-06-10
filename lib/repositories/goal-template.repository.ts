@@ -36,7 +36,7 @@ export class SupabaseGoalTemplateRepository implements IGoalTemplateRepository {
     const { data: inserted, error } = await this.client
       .from('goal_templates')
       .insert(
-        row as unknown as Database['public']['Tables']['goal_templates']['Insert']
+        [row] as Database['public']['Tables']['goal_templates']['Insert'][]
       )
       .select('*')
       .single();

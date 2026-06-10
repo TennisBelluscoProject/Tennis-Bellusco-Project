@@ -15,6 +15,7 @@ import { CoachMobileDashboard } from './CoachMobileDashboard';
 import { PendingCard } from './components/PendingCard';
 import { CreateStudentForm } from './components/CreateStudentForm';
 import { PlayerView } from '../student/PlayerView';
+import { PathManager } from '@/components/PathManager';
 import {
   useGoalTemplates,
   GoalTemplatesHeader,
@@ -48,6 +49,7 @@ interface ClubStats {
 function CoachDesktopDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'allievi' | 'catalogo' | 'risultati' | 'richieste'>('allievi');
+  const [catalogView, setCatalogView] = useState<'obiettivi' | 'percorsi'>('obiettivi');
   const [students, setStudents] = useState<Profile[]>([]);
   const [pendingProfiles, setPendingProfiles] = useState<Profile[]>([]);
   const [search, setSearch] = useState('');
@@ -225,7 +227,24 @@ function CoachDesktopDashboard() {
 
           {activeTab === 'catalogo' && (
             <div className="mt-4 flex flex-col gap-3">
-              <GoalTemplatesHeader ctx={catalogCtx} isMobile={false} />
+              <div className="flex gap-2">
+                {(['obiettivi', 'percorsi'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setCatalogView(v)}
+                    className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border transition-colors ${
+                      catalogView === v
+                        ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)]'
+                        : 'bg-white text-gray-500 border-gray-200'
+                    }`}
+                  >
+                    {v === 'obiettivi' ? 'Obiettivi' : 'Percorsi'}
+                  </button>
+                ))}
+              </div>
+              {catalogView === 'obiettivi' && (
+                <GoalTemplatesHeader ctx={catalogCtx} isMobile={false} />
+              )}
             </div>
           )}
 
@@ -268,7 +287,13 @@ function CoachDesktopDashboard() {
           )}
 
           {activeTab === 'catalogo' && (
-            <GoalTemplatesList ctx={catalogCtx} isMobile={false} />
+            catalogView === 'obiettivi' ? (
+              <GoalTemplatesList ctx={catalogCtx} isMobile={false} />
+            ) : (
+              <div className="h-[70vh]">
+                <PathManager coachId={user?.id ?? ''} />
+              </div>
+            )
           )}
 
           {activeTab === 'risultati' && (

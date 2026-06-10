@@ -34,9 +34,14 @@ import type {
   Profile,
   Goal,
   GoalStatus,
+  GoalCategory,
   MatchResultRow,
   GoalTemplate,
   ApprovalStatus,
+  Path,
+  PathNode,
+  PathEdge,
+  StudentPath,
 } from '../database.types';
 
 // ─── Shared types ──────────────────────────────────────────────────────────
@@ -61,6 +66,16 @@ export interface RepoError {
 export interface IGoalRepository {
   /** All goals of a single student, ordered by `sort_order`. */
   listByStudent(studentId: string): Promise<RepoResult<Goal[]>>;
+
+  /**
+   * Goals materializzati per uno specifico percorso attivato dall'allievo
+   * (quelli con `path_node_id` appartenente ai nodi di quel percorso).
+   * Sono separati dal Kanban: `listByStudent` filtra `path_node_id IS NULL`.
+   */
+  listByStudentPath(
+    studentId: string,
+    pathId: string
+  ): Promise<RepoResult<Goal[]>>;
 
   /** Lightweight count + created_at snapshot used for club-wide stats. */
   listAllForStats(): Promise<
@@ -152,4 +167,69 @@ export interface IGoalTemplateRepository {
   update(id: string, patch: Partial<GoalTemplate>): Promise<RepoResult<GoalTemplate>>;
 
   delete(id: string): Promise<RepoResult<void>>;
+}
+
+// ─── Percorsi (Skill Tree) ─────────────────────────────────────────────────
+
+/** Il grafo completo di un percorso: nodi + archi (prerequisiti). */
+export interface PathGraph {
+  nodes: PathNode[];
+  edges: PathEdge[];
+}
+
+/** Bozza di nodo usata dall'editor del maestro (id generato lato client). */
+export interface PathNodeDraft {
+  id: string;
+  title: string;
+  category: GoalCategory;
+  description: string | null;
+  goal_template_id: string | null;
+  sort_order: number;
+}
+
+export interface IPathRepository {
+  list(): Promise<RepoResult<Path[]>>;
+  getById(id: string): Promise<RepoResult<Path | null>>;
+  create(input: { createdBy: string; data: Partial<Path> }): Promise<RepoResult<Path>>;
+  update(id: string, patch: Partial<Path>): Promise<RepoResult<Path>>;
+  delete(id: string): Promise<RepoResult<void>>;
+
+  /** Nodi + archi di un percorso. */
+  getGraph(pathId: string): Promise<RepoResult<PathGraph>>;
+
+  /**
+   * Salva (sostituisce) nodi e archi del percorso in modo atomico (RPC).
+   * Il chiamante DEVE aver gia' validato l'aciclicita' con `isAcyclic`.
+   */
+  saveGraph(
+    pathId: string,
+    nodes: PathNodeDraft[],
+    edges: { from: string; to: string }[]
+  ): Promise<RepoResult<void>>;
+}
+
+/** Un percorso attivato per l'allievo, con i dati del percorso. */
+export interface ActiveStudentPath {
+  studentPath: StudentPath;
+  path: Path;
+}
+
+export interface IStudentPathRepository {
+  /** Percorsi attivi dell'allievo, dal piu' recente. */
+  listActiveByStudent(studentId: string): Promise<RepoResult<ActiveStudentPath[]>>;
+
+  /** Id degli allievi per cui il percorso e' attualmente attivo. */
+  listActivationsByPath(pathId: string): Promise<RepoResult<string[]>>;
+
+  /**
+   * Attiva un percorso per un allievo e materializza i nodi come goals
+   * (status `planned`). Idempotente. Ritorna l'id di `student_paths`.
+   */
+  activate(pathId: string, studentId: string): Promise<RepoResult<string>>;
+
+  /**
+   * Disattiva un percorso per un allievo: rimuove l'istanza e CANCELLA i goal
+   * materializzati per quell'allievo.
+   */
+  deactivate(pathId: string, studentId: string): Promise<RepoResult<void>>;
 }

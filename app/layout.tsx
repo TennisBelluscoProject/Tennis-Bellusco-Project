@@ -1,17 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Playfair_Display, DM_Mono } from "next/font/google";
+import { Instrument_Sans, Bricolage_Grotesque, DM_Mono } from "next/font/google";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+// Corpo/UI: Instrument Sans — grotesque pulita e leggibile, ottima su mobile.
+const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const playfairDisplay = Playfair_Display({
+// Titoli: Bricolage Grotesque — display sportivo con carattere da club.
+const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -52,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it" className={`h-full antialiased ${dmSans.variable} ${playfairDisplay.variable} ${dmMono.variable}`}>
+    <html lang="it" className={`h-full antialiased ${instrumentSans.variable} ${bricolageGrotesque.variable} ${dmMono.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>

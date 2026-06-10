@@ -19,7 +19,7 @@ export type PlayerLevel = 'DELFINO' | 'CERBIATTO' | 'COCCODRILLO';
 // `Goal`, etc. for backwards compatibility with the existing codebase —
 // every component imports them by these names.
 
-export interface Profile {
+export type Profile = {
   id: string;
   role: UserRole;
   full_name: string;
@@ -39,7 +39,7 @@ export interface Profile {
   created_at: string;
 }
 
-export interface InviteLink {
+export type InviteLink = {
   id: string;
   token: string;
   email: string;
@@ -50,7 +50,7 @@ export interface InviteLink {
   created_at: string;
 }
 
-export interface Goal {
+export type Goal = {
   id: string;
   student_id: string;
   category: GoalCategory;
@@ -65,9 +65,12 @@ export interface Goal {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  // FK opzionale al nodo di percorso che ha materializzato questo obiettivo.
+  // NULL = obiettivo "libero" del Kanban; NOT NULL = obiettivo di un Percorso.
+  path_node_id: string | null;
 }
 
-export interface MatchResultRow {
+export type MatchResultRow = {
   id: string;
   student_id: string;
   tournament_name: string | null;
@@ -88,7 +91,7 @@ export interface MatchResultRow {
   profiles?: Profile;
 }
 
-export interface GoalTemplate {
+export type GoalTemplate = {
   id: string;
   category: GoalCategory;
   level: PlayerLevel;
@@ -98,6 +101,52 @@ export interface GoalTemplate {
   created_at: string;
   updated_at: string;
   sort_order: number;
+}
+
+// ─── Percorsi di obiettivi (Skill Tree) ────────────────────────────────────
+//
+// Un Percorso e' un DAG di obiettivi-tipo: i nodi sono competenze, gli archi
+// sono prerequisiti. Allo stato bloccato/sbloccato NON corrisponde una colonna:
+// viene CALCOLATO attraversando il grafo (vedi lib/paths/topo.ts).
+
+export type Path = {
+  id: string;
+  title: string;
+  description: string | null;
+  difficulty: PlayerLevel;
+  created_by: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PathNode = {
+  id: string;
+  path_id: string;
+  goal_template_id: string | null;
+  title: string;
+  category: GoalCategory;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+// Arco del DAG: from_node_id e' PREREQUISITO di to_node_id.
+export type PathEdge = {
+  id: string;
+  path_id: string;
+  from_node_id: string;
+  to_node_id: string;
+  created_at: string;
+}
+
+// Istanza: un Percorso attivato per uno specifico allievo.
+export type StudentPath = {
+  id: string;
+  student_id: string;
+  path_id: string;
+  activated_at: string;
+  activated_by: string | null;
 }
 
 // ─── Database<T> shape expected by @supabase/supabase-js ───────────────────
@@ -152,6 +201,7 @@ type GoalInsert = Optionalize<
   | 'created_at'
   | 'updated_at'
   | 'completed_at'
+  | 'path_node_id'
 >;
 
 type MatchResultInsert = Optionalize<
@@ -182,37 +232,100 @@ type GoalTemplateInsert = Optionalize<
   | 'sort_order'
 >;
 
-export interface Database {
+type PathInsert = Optionalize<
+  Path,
+  'id' | 'description' | 'created_by' | 'is_active' | 'created_at' | 'updated_at'
+>;
+
+type PathNodeInsert = Optionalize<
+  PathNode,
+  'id' | 'goal_template_id' | 'description' | 'sort_order' | 'created_at'
+>;
+
+type PathEdgeInsert = Optionalize<PathEdge, 'id' | 'created_at'>;
+
+type StudentPathInsert = Optionalize<
+  StudentPath,
+  'id' | 'activated_at' | 'activated_by'
+>;
+
+export type Database = {
   public: {
     Tables: {
       profiles: {
         Row: Profile;
         Insert: ProfileInsert;
         Update: Partial<Profile>;
+        Relationships: [];
       };
       invite_links: {
         Row: InviteLink;
         Insert: InviteLinkInsert;
         Update: Partial<InviteLink>;
+        Relationships: [];
       };
       goals: {
         Row: Goal;
         Insert: GoalInsert;
         Update: Partial<Goal>;
+        Relationships: [];
       };
       match_results: {
         Row: MatchResultRow;
         Insert: MatchResultInsert;
         Update: Partial<MatchResultRow>;
+        Relationships: [];
       };
       goal_templates: {
         Row: GoalTemplate;
         Insert: GoalTemplateInsert;
         Update: Partial<GoalTemplate>;
+        Relationships: [];
+      };
+      paths: {
+        Row: Path;
+        Insert: PathInsert;
+        Update: Partial<Path>;
+        Relationships: [];
+      };
+      path_nodes: {
+        Row: PathNode;
+        Insert: PathNodeInsert;
+        Update: Partial<PathNode>;
+        Relationships: [];
+      };
+      path_edges: {
+        Row: PathEdge;
+        Insert: PathEdgeInsert;
+        Update: Partial<PathEdge>;
+        Relationships: [];
+      };
+      student_paths: {
+        Row: StudentPath;
+        Insert: StudentPathInsert;
+        Update: Partial<StudentPath>;
+        Relationships: [];
       };
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Views: { [_ in never]: never };
+    Functions: {
+      activate_path: {
+        Args: { p_path_id: string; p_student_id: string };
+        Returns: string;
+      };
+      save_path_graph: {
+        Args: {
+          p_path_id: string;
+          p_nodes: Record<string, unknown>[];
+          p_edges: Record<string, unknown>[];
+        };
+        Returns: undefined;
+      };
+      deactivate_path: {
+        Args: { p_path_id: string; p_student_id: string };
+        Returns: undefined;
+      };
+    };
     Enums: {
       user_role: UserRole;
       goal_category: GoalCategory;

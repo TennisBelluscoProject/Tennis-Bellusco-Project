@@ -24,6 +24,8 @@ import { SupabaseGoalRepository } from './goal.repository';
 import { SupabaseMatchRepository } from './match.repository';
 import { SupabaseProfileRepository } from './profile.repository';
 import { SupabaseGoalTemplateRepository } from './goal-template.repository';
+import { SupabasePathRepository } from './path.repository';
+import { SupabaseStudentPathRepository } from './student-path.repository';
 
 // Re-export contracts so consumers can import interface + instance from
 // the same module.
@@ -32,6 +34,11 @@ export type {
   IMatchRepository,
   IProfileRepository,
   IGoalTemplateRepository,
+  IPathRepository,
+  IStudentPathRepository,
+  PathGraph,
+  PathNodeDraft,
+  ActiveStudentPath,
   RepoResult,
   RepoError,
 } from './types';
@@ -42,9 +49,13 @@ export { SupabaseGoalRepository } from './goal.repository';
 export { SupabaseMatchRepository } from './match.repository';
 export { SupabaseProfileRepository } from './profile.repository';
 export { SupabaseGoalTemplateRepository } from './goal-template.repository';
+export { SupabasePathRepository } from './path.repository';
+export { SupabaseStudentPathRepository } from './student-path.repository';
 
 // ─── Default browser-bound instances ───────────────────────────────────────
 export const goalRepo = new SupabaseGoalRepository(supabase);
 export const matchRepo = new SupabaseMatchRepository(supabase);
 export const profileRepo = new SupabaseProfileRepository(supabase);
 export const templateRepo = new SupabaseGoalTemplateRepository(supabase);
+export const pathRepo = new SupabasePathRepository(supabase);
+export const studentPathRepo = new SupabaseStudentPathRepository(supabase);

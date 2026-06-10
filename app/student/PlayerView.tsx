@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Target, Trophy, Trash2 } from 'lucide-react';
-import { goalRepo, matchRepo } from '@/lib/repositories';
-import { Button, Tabs, Spinner, EmptyState } from '@/components/UI';
+import { goalRepo, matchRepo, studentPathRepo, pathRepo } from '@/lib/repositories';
+import type { ActiveStudentPath } from '@/lib/repositories';
+import { Button, Tabs, Spinner, EmptyState, ConfirmDialog } from '@/components/UI';
 import { AvatarDisplay } from '@/components/AvatarDisplay';
 import type { Profile, Goal, MatchResultRow, GoalStatus, PlayerLevel } from '@/lib/database.types';
-import { getDisplayRanking, getAgeCategory, isClassified, LEVELS } from '@/lib/constants';
+import { getDisplayRanking, getAgeCategory, isClassified, LEVELS, PATHS_PREVIEW } from '@/lib/constants';
 import { KanbanBoard } from '@/components/KanbanBoard';
+import { PathTreeView, type PathTreeData } from '@/components/PathTreeView';
+import { computePathState } from '@/lib/paths/topo';
 import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
 import { MatchForm } from '@/components/MatchForm';
@@ -35,7 +38,7 @@ export function PlayerView({
   onDataChanged,
 }: PlayerViewProps) {
   const isMobile = useIsMobile();
-  const [tab, setTab] = useState<'obiettivi' | 'match'>('obiettivi');
+  const [tab, setTab] = useState<'obiettivi' | 'match' | 'percorso'>('obiettivi');
   const [goals, setGoals] = useState<Goal[]>([]);
   const [matches, setMatches] = useState<MatchResultRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,17 +54,94 @@ export function PlayerView({
   const [reloadTick, setReloadTick] = useState(0);
   const refetch = useCallback(() => setReloadTick((t) => t + 1), []);
 
+  // ─── Percorso (skill tree) ──────────────────────────
+  const [activePaths, setActivePaths] = useState<ActiveStudentPath[]>([]);
+  const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
+  const [pathViews, setPathViews] = useState<Record<string, PathTreeData>>({});
+  const [deactivatePathOpen, setDeactivatePathOpen] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+
+  // Carica tutto in un colpo: obiettivi liberi, match e percorsi attivi (con
+  // grafo + goal materializzati). Calcola la frontiera sbloccata (Kahn) e
+  // costruisce sia la lista del Kanban (liberi + nodi SBLOCCATI) sia il
+  // view-model dell'albero per ogni percorso (tutti i nodi).
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [g, m] = await Promise.all([
+      const [freeRes, matchRes, activeRes] = await Promise.all([
         goalRepo.listByStudent(player.id),
         matchRepo.listByStudent(player.id),
+        studentPathRepo.listActiveByStudent(player.id),
       ]);
+      const free = freeRes.data ?? [];
+      const actives = activeRes.data ?? [];
+
+      const loaded = await Promise.all(
+        actives.map(async (ap) => {
+          const [graphRes, pgRes] = await Promise.all([
+            pathRepo.getGraph(ap.path.id),
+            goalRepo.listByStudentPath(player.id, ap.path.id),
+          ]);
+          return {
+            ap,
+            graph: graphRes.data ?? { nodes: [], edges: [] },
+            pathGoals: pgRes.data ?? [],
+          };
+        })
+      );
       if (cancelled) return;
-      setGoals(g.data ?? []);
-      setMatches(m.data ?? []);
+
+      const unlockedPathGoals: Goal[] = [];
+      const views: Record<string, PathTreeData> = {};
+
+      for (const L of loaded) {
+        const edges = L.graph.edges.map((e) => ({ from: e.from_node_id, to: e.to_node_id }));
+        const completion = new Set(
+          L.pathGoals
+            .filter((x) => x.status === 'completed' && x.path_node_id)
+            .map((x) => x.path_node_id as string)
+        );
+        const state = computePathState(
+          L.graph.nodes.map((n) => ({ id: n.id })),
+          edges,
+          completion
+        );
+        const goalByNode = new Map(
+          L.pathGoals.filter((x) => x.path_node_id).map((x) => [x.path_node_id as string, x])
+        );
+        // Kanban: includi i goal dei nodi SBLOCCATI (i bloccati restano nascosti).
+        for (const n of L.graph.nodes) {
+          const goal = goalByNode.get(n.id);
+          if (goal && state.unlocked[n.id]) unlockedPathGoals.push(goal);
+        }
+        // Albero: tutti i nodi (anche bloccati).
+        views[L.ap.path.id] = {
+          title: L.ap.path.title,
+          difficulty: L.ap.path.difficulty,
+          nodes: L.graph.nodes.map((n) => {
+            const g = goalByNode.get(n.id);
+            return {
+              id: n.id,
+              title: n.title,
+              category: n.category,
+              description: n.description,
+              status: g ? g.status : null,
+              progress: g ? g.progress : 0,
+              goalId: g ? g.id : undefined,
+            };
+          }),
+          edges,
+        };
+      }
+
+      setGoals([...free, ...unlockedPathGoals]);
+      setMatches(matchRes.data ?? []);
+      setActivePaths(actives);
+      setPathViews(views);
+      setSelectedPathId((cur) =>
+        cur && actives.some((a) => a.path.id === cur) ? cur : actives[0]?.path.id ?? null
+      );
       setLoading(false);
     })();
     return () => {
@@ -113,6 +193,44 @@ export function PlayerView({
     // Optimistic local update — keeps the slider responsive without waiting
     // for a full refetch round-trip.
     setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, progress } : g)));
+  };
+
+  // ─── Azioni sui nodi del percorso ───────────────────
+  const handlePathStart = async (goalId: string) => {
+    await goalRepo.changeStatus(goalId, 'in_progress');
+    await triggerRefresh();
+  };
+  const handlePathComplete = async (goalId: string) => {
+    await goalRepo.changeStatus(goalId, 'completed');
+    await triggerRefresh(); // il ricalcolo sblocca i nodi successivi (animazione)
+  };
+  const handlePathProgress = async (goalId: string, value: number) => {
+    await goalRepo.setProgress(goalId, value);
+    // Optimistic: aggiorna albero e Kanban senza ricaricare (il progresso non
+    // cambia la frontiera di sblocco).
+    setPathViews((prev) => {
+      const next: Record<string, PathTreeData> = {};
+      for (const [pid, v] of Object.entries(prev)) {
+        next[pid] = {
+          ...v,
+          nodes: v.nodes.map((n) => (n.goalId === goalId ? { ...n, progress: value } : n)),
+        };
+      }
+      return next;
+    });
+    setGoals((prev) => prev.map((g) => (g.id === goalId ? { ...g, progress: value } : g)));
+  };
+
+  // Solo maestro: disattiva il percorso selezionato per QUESTO allievo.
+  // La RPC `deactivate_path` rimuove l'istanza student_paths e CANCELLA gli
+  // obiettivi materializzati da quel percorso per l'allievo.
+  const handleDeactivatePath = async () => {
+    if (!selectedPathId || deactivating) return;
+    setDeactivating(true);
+    await studentPathRepo.deactivate(selectedPathId, player.id);
+    setDeactivating(false);
+    setDeactivatePathOpen(false);
+    await triggerRefresh();
   };
 
   const handleSaveMatch = async (data: Partial<MatchResultRow>) => {
@@ -238,10 +356,11 @@ export function PlayerView({
     <Tabs
       tabs={[
         { id: 'obiettivi', label: 'Obiettivi' },
+        ...(PATHS_PREVIEW ? [{ id: 'percorso', label: 'Il mio percorso' }] : []),
         { id: 'match', label: 'Match' },
       ]}
       active={tab}
-      onChange={(v) => setTab(v as 'obiettivi' | 'match')}
+      onChange={(v) => setTab(v as 'obiettivi' | 'match' | 'percorso')}
     />
   );
 
@@ -362,6 +481,55 @@ export function PlayerView({
       </div>
     );
 
+  const pathData = selectedPathId ? pathViews[selectedPathId] ?? null : null;
+
+  const percorsoContent = (
+    <div className="flex flex-col min-h-full">
+      {activePaths.length > 1 && (
+        <div className="shrink-0 flex gap-2 mb-3 overflow-x-auto scrollbar-hidden">
+          {activePaths.map((ap) => (
+            <button
+              key={ap.path.id}
+              onClick={() => setSelectedPathId(ap.path.id)}
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors ${
+                selectedPathId === ap.path.id
+                  ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)]'
+                  : 'bg-white text-gray-500 border-gray-200'
+              }`}
+            >
+              {ap.path.title}
+            </button>
+          ))}
+        </div>
+      )}
+      {loading && !pathData ? (
+        <div className="flex-1 flex items-center justify-center py-16">
+          <Spinner />
+        </div>
+      ) : !pathData ? (
+        <div className="flex-1 flex items-center justify-center py-10">
+          <EmptyState
+            icon={<Target size={40} strokeWidth={1.5} />}
+            title="Nessun percorso attivo"
+            message={
+              isCoach
+                ? 'Attiva un percorso per questo allievo dalla sezione Catalogo › Percorsi.'
+                : 'Il tuo maestro non ti ha ancora assegnato un percorso.'
+            }
+          />
+        </div>
+      ) : (
+        <PathTreeView
+          data={pathData}
+          onStart={handlePathStart}
+          onProgress={handlePathProgress}
+          onComplete={handlePathComplete}
+          onDeactivate={isCoach ? () => setDeactivatePathOpen(true) : undefined}
+        />
+      )}
+    </div>
+  );
+
   const layoutContents = isMobile ? (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {backLink}
@@ -374,6 +542,10 @@ export function PlayerView({
           </div>
         ) : tab === 'obiettivi' ? (
           <>{goalsContent}</>
+        ) : tab === 'percorso' ? (
+          // Lo scroll sta sul contenitore: l'albero del percorso non ha piu'
+          // una scrollbar interna e scorre insieme a tutto il contenuto.
+          <div className="flex-1 min-h-0 overflow-y-auto pb-6">{percorsoContent}</div>
         ) : (
           <>{matchesContent}</>
         )}
@@ -397,6 +569,14 @@ export function PlayerView({
         )}
       </div>
     </>
+  ) : tab === 'percorso' ? (
+    <>
+      {backLink}
+      {heroCard}
+      {tabsBar}
+      {/* Nessuna altezza fissa: l'albero cresce e scorre con la pagina. */}
+      <div className="mt-5">{percorsoContent}</div>
+    </>
   ) : (
     <>
       {backLink}
@@ -419,25 +599,27 @@ export function PlayerView({
     <>
       {layoutContents}
 
-      <button
-        onClick={handleFab}
-        className="sm:hidden fab"
-        aria-label={tab === 'obiettivi' ? 'Nuovo obiettivo' : 'Aggiungi match'}
-        style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
-      >
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
+      {tab !== 'percorso' && (
+        <button
+          onClick={handleFab}
+          className="sm:hidden fab"
+          aria-label={tab === 'obiettivi' ? 'Nuovo obiettivo' : 'Aggiungi match'}
+          style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
         >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+      )}
 
       <GoalForm
         open={goalFormOpen}
@@ -468,6 +650,16 @@ export function PlayerView({
           }}
           onSave={handleSaveCoachNotes}
           currentNotes={coachNotesMatch?.coach_notes}
+        />
+      )}
+      {isCoach && (
+        <ConfirmDialog
+          open={deactivatePathOpen}
+          title="Disattivare il percorso?"
+          message={`Il percorso "${pathData?.title ?? ''}" verra' rimosso per ${player.full_name} e tutti gli obiettivi creati da questo percorso verranno eliminati dalla sua scheda. Gli obiettivi liberi del Kanban non vengono toccati.`}
+          confirmLabel="Disattiva"
+          onConfirm={handleDeactivatePath}
+          onCancel={() => setDeactivatePathOpen(false)}
         />
       )}
       {isCoach && player.is_fictitious && (

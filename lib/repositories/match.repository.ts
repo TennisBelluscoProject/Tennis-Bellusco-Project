@@ -36,7 +36,9 @@ export class SupabaseMatchRepository implements IMatchRepository {
     return ok((data ?? []) as unknown as MatchResultRow[]);
   }
 
-  async listAllForStats() {
+  async listAllForStats(): Promise<
+    RepoResult<Pick<MatchResultRow, 'id' | 'result' | 'match_date'>[]>
+  > {
     const { data, error } = await this.client
       .from('match_results')
       .select('id, result, match_date');
