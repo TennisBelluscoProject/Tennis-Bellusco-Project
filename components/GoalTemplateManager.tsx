@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { ClipboardList } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { templateRepo } from '@/lib/repositories';
 import type { GoalCategory, GoalTemplate, PlayerLevel } from '@/lib/database.types';
 import { CATEGORY_CONFIG, LEVELS } from '@/lib/constants';
 import { useIsMobile } from '@/lib/hooks';
@@ -42,15 +42,9 @@ export function useGoalTemplates(coachId: string) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from('goal_templates')
-        .select('*')
-        .order('level')
-        .order('category')
-        .order('sort_order')
-        .order('title');
+      const res = await templateRepo.list();
       if (!cancelled) {
-        setTemplates((data as GoalTemplate[]) || []);
+        setTemplates(res.data ?? []);
         setLoading(false);
       }
     })();
@@ -74,15 +68,15 @@ export function useGoalTemplates(coachId: string) {
 
   const handleSave = async (data: Partial<GoalTemplate>) => {
     if (editing) {
-      await supabase.from('goal_templates').update(data).eq('id', editing.id);
+      await templateRepo.update(editing.id, data);
     } else {
-      await supabase.from('goal_templates').insert({ ...data, created_by: coachId });
+      await templateRepo.create({ createdBy: coachId, data });
     }
     setReloadTick((t) => t + 1);
   };
 
   const handleDelete = async (tpl: GoalTemplate) => {
-    await supabase.from('goal_templates').delete().eq('id', tpl.id);
+    await templateRepo.delete(tpl.id);
     setReloadTick((t) => t + 1);
   };
 

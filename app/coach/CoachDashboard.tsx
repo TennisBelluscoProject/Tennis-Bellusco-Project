@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Users, CircleCheckBig, Trophy, UserPlus, UserCog } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { profileRepo, goalRepo, matchRepo } from '@/lib/repositories';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
 import { Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog, Button } from '@/components/UI';
@@ -82,16 +83,16 @@ function CoachDesktopDashboard() {
       const prevMonthStartDay = prevMonthStart.toISOString().slice(0, 10);
 
       const [s, p, goalsRes, matchesRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('role', 'allievo').eq('approval_status', 'approved').eq('active', true).order('full_name'),
-        supabase.from('profiles').select('*').eq('role', 'allievo').eq('approval_status', 'pending').order('created_at', { ascending: false }),
-        supabase.from('goals').select('id, created_at'),
-        supabase.from('match_results').select('id, result, match_date'),
+        profileRepo.listApprovedStudents(),
+        profileRepo.listPendingStudents(),
+        goalRepo.listAllForStats(),
+        matchRepo.listAllForStats(),
       ]);
       if (cancelled) return;
 
-      const studentList = (s.data as Profile[]) || [];
-      const goals = (goalsRes.data as { id: string; created_at: string }[]) || [];
-      const matches = (matchesRes.data as { id: string; result: string; match_date: string }[]) || [];
+      const studentList = s.data ?? [];
+      const goals = goalsRes.data ?? [];
+      const matches = matchesRes.data ?? [];
 
       const studentsMonth = studentList.filter((st) => st.created_at >= monthStartIso).length;
       const goalsMonth = goals.filter((g) => g.created_at >= monthStartIso).length;
@@ -107,7 +108,7 @@ function CoachDesktopDashboard() {
         : wrThis;
 
       setStudents(studentList);
-      setPendingProfiles((p.data as Profile[]) || []);
+      setPendingProfiles(p.data ?? []);
       setClubStats({
         studentsTotal: studentList.length,
         studentsMonth,
@@ -128,13 +129,9 @@ function CoachDesktopDashboard() {
     let cancelled = false;
     (async () => {
       setAllMatchesLoading(true);
-      const { data } = await supabase
-        .from('match_results')
-        .select('*, profiles!match_results_student_id_fkey(full_name)')
-        .order('match_date', { ascending: false })
-        .limit(100);
+      const res = await matchRepo.listAllWithStudent(100);
       if (!cancelled) {
-        setAllMatches((data as MatchResultRow[]) || []);
+        setAllMatches(res.data ?? []);
         setAllMatchesLoading(false);
       }
     })();
@@ -148,22 +145,14 @@ function CoachDesktopDashboard() {
   // ─── Approve / Reject ──────────────────────────────
   const handleApprove = async (p: Profile) => {
     setActingOn(p.id);
-    await supabase.from('profiles').update({
-      approval_status: 'approved',
-      approved_at: new Date().toISOString(),
-      approved_by: user?.id ?? null,
-    }).eq('id', p.id);
+    await profileRepo.setApprovalStatus(p.id, 'approved', user?.id ?? null);
     refresh();
     setActingOn(null);
   };
 
   const handleReject = async (p: Profile) => {
     setActingOn(p.id);
-    await supabase.from('profiles').update({
-      approval_status: 'rejected',
-      approved_at: new Date().toISOString(),
-      approved_by: user?.id ?? null,
-    }).eq('id', p.id);
+    await profileRepo.setApprovalStatus(p.id, 'rejected', user?.id ?? null);
     refresh();
     setConfirmReject(null);
     setActingOn(null);
@@ -172,13 +161,13 @@ function CoachDesktopDashboard() {
   // ─── Match coach-notes from Risultati tab ──────────
   const handleSaveCoachNotes = async (notes: string) => {
     if (coachNotesMatch) {
-      await supabase.from('match_results').update({ coach_notes: notes || null }).eq('id', coachNotesMatch.id);
+      await matchRepo.setCoachNotes(coachNotesMatch.id, notes || null);
       refresh();
     }
   };
 
   const handleDeleteMatch = async (id: string) => {
-    await supabase.from('match_results').delete().eq('id', id);
+    await matchRepo.delete(id);
     refresh();
   };
 
@@ -368,6 +357,8 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Per-card stats: fetched in parallel. The 'count' queries are
+      // server-aggregated (head:true) so they don't transfer rows.
       const [{ count: goalsCount }, { count: completedCount }, { data: matchData }] = await Promise.all([
         supabase.from('goals').select('*', { count: 'exact', head: true }).eq('student_id', student.id),
         supabase.from('goals').select('*', { count: 'exact', head: true }).eq('student_id', student.id).eq('status', 'completed'),

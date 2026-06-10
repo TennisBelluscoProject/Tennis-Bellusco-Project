@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Target, Trophy, Trash2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { goalRepo, matchRepo } from '@/lib/repositories';
 import { Button, Tabs, Spinner, EmptyState } from '@/components/UI';
 import { AvatarDisplay } from '@/components/AvatarDisplay';
 import type { Profile, Goal, MatchResultRow, GoalStatus, PlayerLevel } from '@/lib/database.types';
@@ -55,17 +55,13 @@ export function PlayerView({
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [{ data: g }, { data: m }] = await Promise.all([
-        supabase.from('goals').select('*').eq('student_id', player.id).order('sort_order'),
-        supabase
-          .from('match_results')
-          .select('*')
-          .eq('student_id', player.id)
-          .order('match_date', { ascending: false }),
+      const [g, m] = await Promise.all([
+        goalRepo.listByStudent(player.id),
+        matchRepo.listByStudent(player.id),
       ]);
       if (cancelled) return;
-      setGoals((g as Goal[]) || []);
-      setMatches((m as MatchResultRow[]) || []);
+      setGoals(g.data ?? []);
+      setMatches(m.data ?? []);
       setLoading(false);
     })();
     return () => {
@@ -94,67 +90,49 @@ export function PlayerView({
 
   const handleSaveGoal = async (data: Partial<Goal>) => {
     if (editingGoal) {
-      await supabase
-        .from('goals')
-        .update({ ...data, updated_at: new Date().toISOString() })
-        .eq('id', editingGoal.id);
+      await goalRepo.update(editingGoal.id, data);
     } else {
-      await supabase
-        .from('goals')
-        .insert({ ...data, student_id: player.id, created_by: writerId });
+      await goalRepo.create({ studentId: player.id, createdBy: writerId, data });
     }
     await triggerRefresh();
     setEditingGoal(null);
   };
 
   const handleDeleteGoal = async (id: string) => {
-    await supabase.from('goals').delete().eq('id', id);
+    await goalRepo.delete(id);
     await triggerRefresh();
   };
 
   const handleGoalStatusChange = async (id: string, status: GoalStatus) => {
-    const updates: Partial<Goal> = { status, updated_at: new Date().toISOString() };
-    if (status === 'completed') {
-      updates.progress = 100;
-      updates.completed_at = new Date().toISOString();
-    }
-    if (status === 'planned') {
-      updates.progress = 0;
-      updates.completed_at = null;
-    }
-    await supabase.from('goals').update(updates).eq('id', id);
+    await goalRepo.changeStatus(id, status);
     await triggerRefresh();
   };
 
   const handleGoalProgressChange = async (id: string, progress: number) => {
-    await supabase
-      .from('goals')
-      .update({ progress, updated_at: new Date().toISOString() })
-      .eq('id', id);
+    await goalRepo.setProgress(id, progress);
+    // Optimistic local update — keeps the slider responsive without waiting
+    // for a full refetch round-trip.
     setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, progress } : g)));
   };
 
   const handleSaveMatch = async (data: Partial<MatchResultRow>) => {
     if (editingMatch) {
-      await supabase.from('match_results').update(data).eq('id', editingMatch.id);
+      await matchRepo.update(editingMatch.id, data);
     } else {
-      await supabase.from('match_results').insert({ ...data, student_id: player.id });
+      await matchRepo.create({ studentId: player.id, data });
     }
     await triggerRefresh();
     setEditingMatch(null);
   };
 
   const handleDeleteMatch = async (id: string) => {
-    await supabase.from('match_results').delete().eq('id', id);
+    await matchRepo.delete(id);
     await triggerRefresh();
   };
 
   const handleSaveCoachNotes = async (notes: string) => {
     if (coachNotesMatch) {
-      await supabase
-        .from('match_results')
-        .update({ coach_notes: notes || null })
-        .eq('id', coachNotesMatch.id);
+      await matchRepo.setCoachNotes(coachNotesMatch.id, notes || null);
       await triggerRefresh();
     }
   };

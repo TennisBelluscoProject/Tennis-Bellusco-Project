@@ -1,3 +1,10 @@
+// ─── Domain enums / literal unions ─────────────────────────────────────────
+//
+// These are application-level enums. They mirror what the Postgres schema
+// stores in dedicated `enum`/`check` columns. Keeping them as TS literal
+// unions (not just `string`) gives us exhaustive switch checks at compile
+// time and autocomplete everywhere they're used.
+
 export type UserRole = 'maestro' | 'allievo';
 export type GoalCategory = 'tecnica' | 'tattica' | 'fisico' | 'mente' | 'agonismo';
 export type GoalStatus = 'planned' | 'in_progress' | 'completed';
@@ -5,6 +12,12 @@ export type SurfaceType = 'terra_rossa' | 'erba' | 'cemento' | 'sintetico';
 export type MatchResult = 'win' | 'loss' | 'retired' | 'walkover';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 export type PlayerLevel = 'DELFINO' | 'CERBIATTO' | 'COCCODRILLO';
+
+// ─── Row types (what `.select('*')` returns) ───────────────────────────────
+//
+// One `*Row` interface per table. These are kept exported as `Profile`,
+// `Goal`, etc. for backwards compatibility with the existing codebase —
+// every component imports them by these names.
 
 export interface Profile {
   id: string;
@@ -71,7 +84,7 @@ export interface MatchResultRow {
   coach_notes: string | null;
   indoor: boolean;
   created_at: string;
-  // joined
+  // Joined columns when the query does `.select('*, profiles!...(...)')`.
   profiles?: Profile;
 }
 
@@ -87,14 +100,127 @@ export interface GoalTemplate {
   sort_order: number;
 }
 
+// ─── Database<T> shape expected by @supabase/supabase-js ───────────────────
+//
+// The Supabase TS generic expects this exact nested shape:
+//   Database['public']['Tables'][TableName]['Row'   | 'Insert' | 'Update']
+//
+// - Row    : what `.select()` returns. Required + nullable fields are exact.
+// - Insert : what `.insert(...)` accepts. Generated/DB-default columns are
+//            optional; not-null required columns stay required.
+// - Update : what `.update(...)` accepts. Everything is optional.
+//
+// Reference: https://supabase.com/docs/guides/api/rest/generating-types
+
+type Optionalize<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+// Columns that have a DB default or are auto-generated (UUID, timestamps,
+// boolean defaults). Insert can omit them.
+type ProfileInsert = Optionalize<
+  Profile,
+  | 'id'
+  | 'first_name'
+  | 'last_name'
+  | 'email'
+  | 'phone'
+  | 'birth_date'
+  | 'photo_url'
+  | 'level'
+  | 'ranking'
+  | 'active'
+  | 'approval_status'
+  | 'approved_at'
+  | 'approved_by'
+  | 'is_fictitious'
+  | 'created_at'
+>;
+
+type InviteLinkInsert = Optionalize<
+  InviteLink,
+  'id' | 'invited_by' | 'used_at' | 'created_at'
+>;
+
+type GoalInsert = Optionalize<
+  Goal,
+  | 'id'
+  | 'description'
+  | 'progress'
+  | 'deadline'
+  | 'sort_order'
+  | 'created_by'
+  | 'coach_notes'
+  | 'created_at'
+  | 'updated_at'
+  | 'completed_at'
+>;
+
+type MatchResultInsert = Optionalize<
+  MatchResultRow,
+  | 'id'
+  | 'tournament_name'
+  | 'location'
+  | 'surface'
+  | 'category'
+  | 'opponent_name'
+  | 'opponent_ranking'
+  | 'round'
+  | 'score'
+  | 'notes'
+  | 'coach_notes'
+  | 'indoor'
+  | 'created_at'
+  | 'profiles'
+>;
+
+type GoalTemplateInsert = Optionalize<
+  GoalTemplate,
+  | 'id'
+  | 'description'
+  | 'created_by'
+  | 'created_at'
+  | 'updated_at'
+  | 'sort_order'
+>;
+
 export interface Database {
   public: {
     Tables: {
-      profiles: { Row: Profile; Insert: Partial<Profile>; Update: Partial<Profile> };
-      invite_links: { Row: InviteLink; Insert: Partial<InviteLink>; Update: Partial<InviteLink> };
-      goals: { Row: Goal; Insert: Partial<Goal>; Update: Partial<Goal> };
-      match_results: { Row: MatchResultRow; Insert: Partial<MatchResultRow>; Update: Partial<MatchResultRow> };
-      goal_templates: { Row: GoalTemplate; Insert: Partial<GoalTemplate>; Update: Partial<GoalTemplate> };
+      profiles: {
+        Row: Profile;
+        Insert: ProfileInsert;
+        Update: Partial<Profile>;
+      };
+      invite_links: {
+        Row: InviteLink;
+        Insert: InviteLinkInsert;
+        Update: Partial<InviteLink>;
+      };
+      goals: {
+        Row: Goal;
+        Insert: GoalInsert;
+        Update: Partial<Goal>;
+      };
+      match_results: {
+        Row: MatchResultRow;
+        Insert: MatchResultInsert;
+        Update: Partial<MatchResultRow>;
+      };
+      goal_templates: {
+        Row: GoalTemplate;
+        Insert: GoalTemplateInsert;
+        Update: Partial<GoalTemplate>;
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: {
+      user_role: UserRole;
+      goal_category: GoalCategory;
+      goal_status: GoalStatus;
+      surface_type: SurfaceType;
+      match_result: MatchResult;
+      approval_status: ApprovalStatus;
+      player_level: PlayerLevel;
     };
   };
 }

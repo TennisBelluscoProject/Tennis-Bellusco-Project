@@ -1,0 +1,636 @@
+================================================================================
+  TENNIS CLUB BELLUSCO — DOCUMENTO DI ARCHITETTURA SOFTWARE
+================================================================================
+
+  Progetto:    Tennis Bellusco Project
+  Versione:    1.0 (post-refactoring repository pattern)
+  Data:        Maggio 2026
+  Stack:       Next.js 16.2.3 (App Router, Turbopack), React 19.2,
+               TypeScript 5, Tailwind CSS 4, Supabase (PostgreSQL + Auth)
+  Hosting:     Vercel (frontend) + Supabase (DB + Auth + Storage)
+  Riferimenti: Bass-Clements-Kazman, "Software Architecture in Practice", 4° ed.
+               Kruchten, "Architectural Blueprints — The 4+1 View Model" (IEEE, 1995).
+               ISO/IEC/IEEE 42010:2011.
+
+================================================================================
+  1. SCOPE & BUSINESS GOALS
+================================================================================
+
+  Il sistema gestisce le attività di una squadra di tennis di ~300 persone.
+  Due categorie di utenti:
+
+    - MAESTRO (account unico condiviso): vede tutti gli allievi, approva le
+      registrazioni, mantiene il catalogo degli obiettivi, prende nota dei
+      progressi, scrive note sui match.
+    - ALLIEVO: si autoregistra (email + password), attende l'approvazione del
+      maestro, poi crea obiettivi (kanban: Planned / In Progress / Completed),
+      registra match agonistici, monitora il proprio win rate.
+
+  Obiettivi di business:
+    G1. Tracciamento progressi tecnici / tattici / fisici / mentali / agonistici.
+    G2. Bassa frizione di adozione (no installazioni, mobile-first, PWA).
+    G3. Costi infrastrutturali ~0 (tier gratis di Vercel e Supabase).
+    G4. Affidabilità: la perdita di dati di un allievo è inaccettabile.
+
+================================================================================
+  2. QUALITY ATTRIBUTES (Bass et al., cap. 3)
+================================================================================
+
+  Per ciascun attributo: come l'architettura lo supporta.
+
+  - USABILITY      Il design è mobile-first con scheletro PWA (manifest +
+                   service worker). UI in italiano, colori del club
+                   (rosso/bianco/blu) come variabili CSS.
+
+  - RESPONSIVENESS L'aggiornamento del progress di un obiettivo applica un
+                   patch ottimistico locale (vedi `PlayerView.handleGoalProgressChange`)
+                   per evitare lag percepito sullo slider.
+
+  - SECURITY       Auth gestito da Supabase (PKCE flow, JWT in cookie HttpOnly
+                   refreshato dal proxy a ogni request). Header HTTP duri in
+                   `next.config.ts` (X-Frame-Options DENY, nosniff,
+                   referrer-policy strict-origin-when-cross-origin). Service
+                   Worker servito con CSP `default-src 'self'; script-src 'self'`.
+                   RLS (Row Level Security) di Postgres come ultima linea di
+                   difesa lato DB.
+
+  - AVAILABILITY   Vercel edge + Supabase managed. Failover gestito dai
+                   provider. Il client tollera errori di rete: ogni repository
+                   ritorna un `RepoResult` esplicito con campo `error`.
+
+  - MAINTAINABILITY Il refactor descritto in questa rev introduce un layer di
+                   "Repository Interfaces" che incapsula completamente Supabase.
+                   Cambiare DB o provider richiede di modificare solo i file
+                   in `lib/repositories/`, mai i componenti React.
+
+  - RESILIENCE     Il proxy (proxy.ts) refresha la sessione a ogni richiesta:
+                   anche se il client ha un token quasi scaduto, prima di
+                   raggiungere la pagina viene rinnovato.
+
+  - PORTABILITY    La logica di business sui goal (transizioni di stato,
+                   side effect di completed_at) è incapsulata nel repository.
+                   Migrare a un'altra UI (React Native, Flutter) richiederebbe
+                   di riusare il layer `lib/` e `repositories/` quasi as-is.
+
+================================================================================
+  3. KEY DESIGN PRINCIPLES — APPLICAZIONE AL PROGETTO
+================================================================================
+
+  Riferimento: Bass-Clements-Kazman + lezione "Five basic principles for Good
+  Design": Few interfaces, Small interfaces (Loose coupling), Explicit
+  interfaces, Information hiding, Cohesion.
+
+  ────────────────────────────────────────────────────────────────
+  3.1  FEW INTERFACES
+  ────────────────────────────────────────────────────────────────
+  Prima del refactor: i componenti React parlavano con Supabase tramite
+  l'oggetto `supabase` globale, da cui ricavavano un numero indefinito di
+  metodi (`.from('x').select()`, `.update()`, `.delete()`, `.auth.X`...).
+  Ogni componente aveva di fatto N "canali" verso il backend, nessuno
+  esplicito.
+
+  Dopo il refactor: ogni componente che ha bisogno di dati dichiara
+  l'import di UNO o DUE repository ben definiti:
+      import { goalRepo, matchRepo } from '@/lib/repositories';
+  Ogni repository espone 4-7 metodi. Il numero di canali è minimo e
+  conosciuto a priori.
+
+  ────────────────────────────────────────────────────────────────
+  3.2  SMALL INTERFACES (LOOSE COUPLING)
+  ────────────────────────────────────────────────────────────────
+  Le interfacce dei repository accettano e restituiscono SOLO tipi del
+  dominio applicativo (Goal, MatchResultRow, Profile, ...). Nessun tipo
+  Supabase (SupabaseClient, PostgrestError, RealtimeChannel) attraversa il
+  confine `repositories/` → `app/`. I componenti non sanno né che esiste
+  Postgres, né che il provider è Supabase, né che la lib è @supabase/ssr.
+
+  Esempio concreto del confine (ball-and-socket UML):
+
+      ┌──────────────────────┐                        ┌─────────────────────┐
+      │ PlayerView (RC client)│──(o─── IGoalRepository ──○─│ SupabaseGoalRepo   │
+      └──────────────────────┘  required        provided └─────────────────────┘
+                                                           ↓
+                                                         supabase-js
+                                                           ↓
+                                                         PostgREST
+                                                           ↓
+                                                         Postgres
+
+  Lo scambio dati è limitato a ciò che serve. Esempio: il consumer non passa
+  un cookieJar, un AuthSession, una list di header; passa solo
+  `studentId: string`, riceve `Goal[]`.
+
+  ────────────────────────────────────────────────────────────────
+  3.3  EXPLICIT INTERFACES  ← richiesta esplicita del prof.
+  ────────────────────────────────────────────────────────────────
+  Le dipendenze tra componenti React e layer dati sono dichiarate tramite
+  interfacce TypeScript pubbliche, esportate da `lib/repositories/types.ts`:
+
+      IGoalRepository          ─ provided da SupabaseGoalRepository
+      IMatchRepository         ─ provided da SupabaseMatchRepository
+      IProfileRepository       ─ provided da SupabaseProfileRepository
+      IGoalTemplateRepository  ─ provided da SupabaseGoalTemplateRepository
+
+  Mapping ai concetti UML del corso:
+    - "provided interface" (pallino, ball)    = la classe `Supabase*Repository`
+      implementa una `I*Repository` esposta come "ciò che offro al mondo".
+    - "required interface" (mezzaluna, socket) = il consumer (`PlayerView`,
+      `CoachDashboard`, `GoalTemplateManager`) importa `IGoalRepository` ed è
+      la "presa" che cerca un'implementazione compatibile.
+    - "contract" = tipo di ritorno `RepoResult<T> = { data, error }`:
+        pre-condizione: il chiamante deve gestire `error !== null`.
+        post-condizione: se `error === null`, `data` è del tipo dichiarato.
+    - "service interface" = i metodi (`listByStudent`, `create`, ecc.).
+    - "data interface" = i tipi del dominio (`Goal`, `Profile`, ...) esportati
+      da `lib/database.types.ts`.
+
+  In termini di codice (estratto da `lib/repositories/types.ts`):
+
+      export interface IGoalRepository {
+        listByStudent(studentId: string): Promise<RepoResult<Goal[]>>;
+        listAllForStats(): Promise<RepoResult<Pick<Goal,'id'|'created_at'>[]>>;
+        create(input: { studentId, createdBy, data }): Promise<RepoResult<Goal>>;
+        update(id: string, patch: Partial<Goal>): Promise<RepoResult<Goal>>;
+        changeStatus(id: string, status: GoalStatus): Promise<RepoResult<Goal>>;
+        setProgress(id: string, progress: number): Promise<RepoResult<void>>;
+        delete(id: string): Promise<RepoResult<void>>;
+      }
+
+  Conseguenze pratiche dell'esplicitazione:
+
+    a) Quando si modifica un metodo (rename, cambio di firma) il compilatore
+       TypeScript segnala IMMEDIATAMENTE ogni consumer rotto. Niente
+       refactor archeologici a mano.
+    b) Per testare un componente (es. PlayerView) si può iniettare un mock
+       che implementa la stessa interfaccia, senza toccare Supabase.
+    c) Per migrare a un altro backend (Firebase, REST custom, IndexedDB
+       offline-first) si crea un nuovo file `FirebaseGoalRepository implements
+       IGoalRepository` e si modifica solo l'export di `lib/repositories/index.ts`.
+
+  ────────────────────────────────────────────────────────────────
+  3.4  INFORMATION HIDING
+  ────────────────────────────────────────────────────────────────
+  Ciò che rimane PRIVATO dietro le interfacce dei repository:
+
+    - Nomi delle tabelle ('goals', 'match_results', 'profiles',
+      'goal_templates'). Mai esposti fuori da `lib/repositories/*.ts`.
+    - Sintassi delle query (filter chain, `.eq()`, `.order()`, `.single()`,
+      `.is()`, `count: 'exact'`...).
+    - Sintassi dei join Supabase (`'*, profiles!match_results_student_id_fkey(...)'`).
+    - Codici di errore PostgREST (PGRST116 = no rows on .single()).
+    - Logica di side effect su `goal.completed_at` quando lo stato diventa
+      `completed` (incapsulata in `SupabaseGoalRepository.changeStatus`).
+
+  Tutto questo è IMPLEMENTAZIONE. L'unica cosa pubblica è "Goal ⇒ Goal".
+
+  Analogo `AuthContext`: i metodi privati `fetchProfile`, gli stati
+  `mountedRef`, il setTimeout(0) per evitare il deadlock di onAuthStateChange
+  sono dettagli che il consumer non vede; il consumer riceve solo l'API
+  `useAuth()` con `user`, `profile`, `signIn`, `signUp`, ecc.
+
+  ────────────────────────────────────────────────────────────────
+  3.5  COHESION
+  ────────────────────────────────────────────────────────────────
+  Livello del corso raggiunto: COHESION OBJECT-LEVEL (forte).
+
+  Ogni repository gestisce un'unica entità aggregata:
+
+    SupabaseGoalRepository           — solo Goal (kanban, transizioni stato).
+    SupabaseMatchRepository          — solo MatchResultRow (match agonistici).
+    SupabaseProfileRepository        — solo Profile (allievi + coach).
+    SupabaseGoalTemplateRepository   — solo GoalTemplate (catalogo).
+
+  Tutte le operazioni di un repo lavorano sullo stesso "oggetto" del dominio
+  e la sua identità relazionale.
+
+  Anche i componenti React sono coesi per responsabilità:
+
+    KanbanBoard           — solo rendering kanban (3 colonne, drag & drop,
+                            view mobile a tab swipe).
+    GoalForm              — solo create/edit obiettivo (catalogo + custom).
+    MatchForm             — solo create/edit match.
+    GoalTemplateManager   — solo gestione catalogo (CRUD template).
+    GoalTemplatePicker    — solo scelta di un template da catalogo.
+
+================================================================================
+  4. STRUTTURE & VIEWS (modello 4+1 di Kruchten)
+================================================================================
+
+  ────────────────────────────────────────────────────────────────
+  4.1  LOGICAL VIEW — cosa fa il sistema (funzionalità)
+  ────────────────────────────────────────────────────────────────
+
+  Componenti logici principali e loro relazioni (notazione testuale C&C):
+
+      ╔════════════════════════════════════════════════════════════════╗
+      ║                       UI LAYER (React)                          ║
+      ║                                                                 ║
+      ║   ┌──────────────┐    ┌──────────────────┐  ┌────────────────┐ ║
+      ║   │  LoginPage   │    │ CoachDashboard   │  │ PlayerView     │ ║
+      ║   │ (Auth flows) │    │ (Allievi /Cat./  │  │ (Goals + Match)│ ║
+      ║   │              │    │  Match / Pending)│  │                │ ║
+      ║   └──────┬───────┘    └─────────┬────────┘  └────────┬───────┘ ║
+      ║          │                      │                    │         ║
+      ╚══════════╪══════════════════════╪════════════════════╪═════════╝
+                 │                      │                    │
+                 ▼                      ▼                    ▼
+      ╔══════════════════════════════════════════════════════════════╗
+      ║              CROSS-CUTTING (Context + Hooks)                  ║
+      ║                                                               ║
+      ║   ┌────────────────┐   ┌──────────────────┐                  ║
+      ║   │ AuthContext    │   │ useAsyncResource │                  ║
+      ║   │ - user/profile │   │ (caching, retry) │                  ║
+      ║   │ - signIn/Up/Out│   └──────────────────┘                  ║
+      ║   └────────┬───────┘                                          ║
+      ╚════════════╪══════════════════════════════════════════════════╝
+                   │
+                   │              ┌──────────────────────────────────┐
+                   ▼              │   provides:                       │
+      ╔══════════════════════════ │  IGoalRepository                  ║
+      ║   REPOSITORY LAYER        │  IMatchRepository                 ║
+      ║   (Explicit Interfaces) ◀ │  IProfileRepository               ║
+      ║                           │  IGoalTemplateRepository          ║
+      ║   • goalRepo              └──────────────────────────────────┘
+      ║   • matchRepo
+      ║   • profileRepo
+      ║   • templateRepo
+      ╚════════════╤═════════════════════════════════════════════════╗
+                   │                                                   ║
+                   ▼                                                   ║
+      ╔══════════════════════════════════════════════════════════════╗
+      ║              INFRASTRUCTURE LAYER                              ║
+      ║                                                                ║
+      ║   ┌──────────────────┐   ┌────────────────────────────┐       ║
+      ║   │ supabase-js      │   │ proxy.ts (auth refresh)    │       ║
+      ║   │ (browser/server) │   │ Next.js 16 file convention │       ║
+      ║   └────────┬─────────┘   └────────────────────────────┘       ║
+      ║            │                                                  ║
+      ╚════════════╪══════════════════════════════════════════════════╝
+                   │
+                   ▼
+        ╔══════════════════════════════════════════╗
+        ║   Supabase Cloud                         ║
+        ║   - PostgreSQL (RLS, triggers)           ║
+        ║   - Auth (PKCE, OTP, Reset Password)     ║
+        ║   - Storage (avatars bucket)             ║
+        ╚══════════════════════════════════════════╝
+
+  Componenti chiave (nome, responsabilità, interfacce provided/required):
+
+    [LoginPage]
+       provides: nulla (è una pagina)
+       requires: AuthContext (signIn, signUp, verifySignupOtp, resendSignupOtp)
+                 supabase.auth.resetPasswordForEmail (per "password dimenticata")
+
+    [CoachDashboard]
+       provides: nulla (pagina)
+       requires: AuthContext, IProfileRepository, IGoalRepository,
+                 IMatchRepository, IGoalTemplateRepository (via useGoalTemplates)
+
+    [PlayerView]
+       provides: nulla (pagina re-usata sia dal maestro che dall'allievo)
+       requires: AuthContext, IGoalRepository, IMatchRepository
+
+    [KanbanBoard]
+       provides: nulla (componente di presentazione puro)
+       requires: dipendenze passate via props (onEdit, onDelete, onStatusChange,
+                 onProgressChange). NESSUNA dipendenza diretta dal data layer.
+
+    [AuthContext]
+       provides: useAuth() → { user, profile, signIn, signUp, signOut, ... }
+       requires: supabase.auth (e implicitamente IProfileRepository, attualmente
+                 ancora chiamato come `supabase.from('profiles').single()`
+                 in `fetchProfile` — refactor possibile in futuro).
+
+  ────────────────────────────────────────────────────────────────
+  4.2  PROCESS VIEW — comportamento a runtime
+  ────────────────────────────────────────────────────────────────
+
+  Processi e thread del sistema:
+
+    1) MAIN BROWSER THREAD
+       Esegue il bundle React. Single-thread cooperativo (event loop).
+       Stato: AuthContext + state locale dei componenti.
+
+    2) SERVICE WORKER (background)
+       Registrato in `app/layout.tsx`. Serve file da cache anche offline.
+
+    3) NEXT.JS PROXY (server)
+       File `proxy.ts` (ex `middleware.ts` in Next.js ≤15: rinominato in
+       Next.js 16 — vedi changelog ufficiale, ottobre 2025).
+       Runtime: Node.js (in Next.js 16 il proxy NON gira più su Edge
+       runtime, è scelta architetturale upstream).
+       Funzione: per ogni request matchata dal config.matcher chiama
+       `updateSession(request)` che a sua volta chiama
+       `supabase.auth.getUser()` per refreshare il JWT in cookie.
+
+    4) ROUTE HANDLER (server)
+       File `app/auth/callback/route.ts`. Gestisce il ritorno OAuth/OTP
+       da Supabase: scambia `code` per session (PKCE), o verifica
+       `token_hash` (implicit/email link), poi redirect a `/`.
+
+  Sequenza tipica "allievo crea obiettivo":
+
+       Allievo (browser)
+         │
+         │  click "+ Nuovo obiettivo"
+         ▼
+       PlayerView ── setGoalFormOpen(true) ──▶ GoalForm (modal)
+                                                 │
+                                                 │  click "Crea obiettivo"
+                                                 ▼
+                                              handleSaveGoal(data)
+                                                 │
+                                                 ▼
+                                              goalRepo.create({
+                                                studentId, createdBy, data
+                                              })
+                                                 │
+                                                 ▼
+                                              supabase-js
+                                                 │  HTTPS + JWT
+                                                 ▼
+                                              Supabase PostgREST
+                                                 │
+                                                 ▼
+                                              Postgres (INSERT into goals)
+                                                 │
+                                                 ▼  return Goal
+                                              ─────────
+                                              triggerRefresh() → reloadTick++
+                                                 │
+                                                 ▼
+                                              useEffect re-fetch
+                                                 │
+                                                 ▼
+                                              UI rerender (nuova card kanban)
+
+  ────────────────────────────────────────────────────────────────
+  4.3  DEVELOPMENT VIEW — organizzazione del codice
+  ────────────────────────────────────────────────────────────────
+
+  Struttura cartelle (post-refactor):
+
+    /
+    ├── app/                         Next.js App Router
+    │   ├── auth/
+    │   │   └── callback/route.ts    OAuth/OTP callback handler (server)
+    │   ├── coach/
+    │   │   ├── CoachDashboard.tsx   Pagina principale maestro (desktop)
+    │   │   ├── CoachMobileDashboard.tsx
+    │   │   ├── components/          UI fissa del maestro
+    │   │   └── tabs/                Le tab della home mobile
+    │   ├── student/
+    │   │   ├── StudentDashboard.tsx
+    │   │   ├── PlayerView.tsx       Shared view (usata anche dal coach)
+    │   │   └── ProfilePage.tsx
+    │   ├── login/LoginPage.tsx
+    │   ├── reset-password/page.tsx
+    │   ├── layout.tsx               RootLayout (font, SW registration)
+    │   ├── page.tsx                 AppRouter (routing logico per ruolo)
+    │   └── manifest.ts              PWA manifest
+    │
+    ├── components/                  Componenti riusabili cross-page
+    │   ├── UI.tsx                   Primitive: Button, Input, Modal, ...
+    │   ├── KanbanBoard.tsx
+    │   ├── GoalForm.tsx
+    │   ├── MatchCard.tsx / MatchForm.tsx
+    │   ├── GoalTemplateManager.tsx  (catalogo lato coach)
+    │   ├── GoalTemplatePicker.tsx   (catalogo lato studente — picker)
+    │   ├── Header.tsx, AvatarUpload.tsx, etc.
+    │
+    ├── contexts/
+    │   └── AuthContext.tsx          Provider auth + profile globale
+    │
+    ├── lib/
+    │   ├── database.types.ts        Tipi DB (Row/Insert/Update)
+    │   ├── constants.ts             CATEGORY_CONFIG, SURFACE_LABELS, age,
+    │   │                            getDisplayRanking, isClassified
+    │   ├── hooks.ts                 useIsMobile
+    │   ├── use-async-resource.ts    NEW — generic hook fetch+refetch
+    │   ├── utils.ts                 timeAgo, formatDateLong, ...
+    │   ├── supabase.ts              Re-export comodo del browser client
+    │   ├── supabase/
+    │   │   ├── client.ts            createBrowserClient<Database>()
+    │   │   ├── server.ts            createServerClient<Database>()
+    │   │   └── middleware.ts        updateSession() per il proxy
+    │   └── repositories/            ★ NEW — Explicit Interfaces ★
+    │       ├── types.ts             I*Repository + RepoResult/RepoError
+    │       ├── errors.ts            toRepoError(), ok(), fail()
+    │       ├── goal.repository.ts        SupabaseGoalRepository
+    │       ├── match.repository.ts       SupabaseMatchRepository
+    │       ├── profile.repository.ts     SupabaseProfileRepository
+    │       ├── goal-template.repository.ts SupabaseGoalTemplateRepository
+    │       └── index.ts             Default instances + re-export
+    │
+    ├── proxy.ts                     Next.js 16 proxy (era middleware.ts)
+    ├── next.config.ts               Headers di sicurezza + SW caching
+    ├── tsconfig.json
+    └── package.json
+
+  Dipendenze tra layer (verso il basso, mai verso l'alto):
+
+    app/, components/  ──depends on──▶  contexts/, lib/repositories/
+    contexts/           ──depends on──▶  lib/supabase
+    lib/repositories/   ──depends on──▶  lib/supabase, lib/database.types
+    lib/supabase/       ──depends on──▶  @supabase/ssr
+
+  Non ci sono cicli di dipendenza.
+
+  ────────────────────────────────────────────────────────────────
+  4.4  PHYSICAL / DEPLOYMENT VIEW — dove gira il software
+  ────────────────────────────────────────────────────────────────
+
+    ┌───────────────────────┐              ┌────────────────────────┐
+    │  Browser dell'utente  │              │  Mobile (PWA installata)│
+    │  (Chrome / Safari)    │              │  iOS Safari / Android   │
+    │                       │              │                         │
+    │  + React bundle       │              │  + React bundle         │
+    │  + Service Worker     │              │  + Service Worker       │
+    └──────────┬────────────┘              └────────────┬────────────┘
+               │ HTTPS                                  │ HTTPS
+               └────────────────┬───────────────────────┘
+                                │
+                                ▼
+                ┌────────────────────────────────┐
+                │  Vercel Edge Network            │
+                │  - hosts Next.js app (build)    │
+                │  - CDN + ISR cache              │
+                │  - runs Server Components       │
+                │  - runs proxy.ts (Node.js rt)   │
+                └────────────────┬───────────────┘
+                                 │  HTTPS (REST + WS)
+                                 ▼
+                ┌────────────────────────────────┐
+                │  Supabase Cloud (managed)       │
+                │  ┌─────────────────────────┐    │
+                │  │ PostgREST API           │    │
+                │  ├─────────────────────────┤    │
+                │  │ GoTrue (Auth)           │    │
+                │  ├─────────────────────────┤    │
+                │  │ PostgreSQL 15           │    │
+                │  │  • profiles             │    │
+                │  │  • goals                │    │
+                │  │  • match_results        │    │
+                │  │  • goal_templates       │    │
+                │  │  • invite_links         │    │
+                │  │  • RLS policies         │    │
+                │  │  • triggers (handle_new_user)│
+                │  ├─────────────────────────┤    │
+                │  │ Storage (avatars bucket)│    │
+                │  └─────────────────────────┘    │
+                └─────────────────────────────────┘
+
+  Vincoli operativi (tier gratuito Supabase + Vercel):
+    - 500 MB DB, 1 GB storage, 50K MAU autenticati. Ampiamente sufficienti
+      per 300 utenti del club.
+    - Cold start trascurabile su Vercel grazie a Edge cache.
+
+  ────────────────────────────────────────────────────────────────
+  4.5  SCENARIO VIEW (il +1) — use case che attraversano tutte le viste
+  ────────────────────────────────────────────────────────────────
+
+  Scenario S1 — Registrazione di un nuovo allievo
+
+    1. Allievo apre la web app, va su `LoginPage` (mode = register).
+    2. Compila nome/cognome/email/password/data nascita/ranking.
+    3. `signUp` chiama `supabase.auth.signUp` con metadata. Un trigger
+       Postgres `handle_new_user` legge i metadata e crea atomicamente
+       la riga in `profiles` con `approval_status='pending'`.
+    4. Supabase Auth invia OTP via email.
+    5. Allievo inserisce OTP → `verifySignupOtp` → status email "confirmed".
+    6. `AppRouter` (in `app/page.tsx`) vede `profile.approval_status='pending'`
+       e mostra `PendingApprovalScreen`.
+    7. Maestro nella tab "Richieste" vede la card pending; click Approva →
+       `profileRepo.setApprovalStatus(id, 'approved', coachId)`.
+    8. Allievo (al prossimo refresh o login) entra in `StudentDashboard`.
+
+  Scenario S2 — Allievo crea un obiettivo "rovescio in topspin"
+
+    Vedi diagramma di sequenza in sezione 4.2.
+    Comprende: PlayerView → GoalForm → ChoiceCard → GoalTemplatePicker
+    (eventualmente) → goalRepo.create → refetch.
+
+  Scenario S3 — Maestro aggiunge una nota su un match dell'allievo
+
+    1. Maestro in CoachDashboard → tab "Risultati Agonistici".
+    2. Click sull'icona "Note" della MatchCard → apre `CoachNotesForm`.
+    3. Scrive la nota → `matchRepo.setCoachNotes(matchId, notes)`.
+    4. `refresh()` → `matchRepo.listAllWithStudent(100)` → render aggiornato.
+    5. Allievo, alla prossima apertura di PlayerView (tab "Match"),
+       vede la nota nella `MatchCard` (sezione "Note del maestro").
+
+================================================================================
+  5. DECISIONI ARCHITETTURALI CHIAVE (ADR — Architectural Design Records)
+================================================================================
+
+  ADR-1: Adozione del Repository Pattern (Maggio 2026)
+    Context: Le chiamate dirette a `supabase.from('x')` erano sparse in 7+
+             componenti React. Cambiare schema o provider DB avrebbe richiesto
+             modifiche in ogni file.
+    Decision: Introdurre interfacce esplicite (`I*Repository`) e implementazioni
+              Supabase incapsulate in `lib/repositories/`.
+    Consequences: + Loose coupling, + testabilità (mock impl), + readability.
+                  − Un nuovo livello di indirezione (1 file di codice in più
+                    per ogni feature). Costo ritenuto accettabile.
+
+  ADR-2: Account maestro unico condiviso
+    Context: Il club Bellusco ha un solo coach principale.
+    Decision: Niente multi-tenant lato coach. RLS Postgres applica
+              `role='maestro'` come booleano: chiunque sia loggato come maestro
+              vede tutti gli allievi.
+    Consequences: Semplicità massima. Se in futuro arriva un secondo coach,
+                  va aggiunta la colonna `coach_id` alle tabelle e va estesa
+                  RLS. Non bloccante.
+
+  ADR-3: Auth con password (non magic-link)
+    Context: La specifica iniziale prevedeva auth via link. Il requirement è
+             cambiato in corsa.
+    Decision: Email + password + OTP a 6 cifre per la verifica iniziale.
+              Approval workflow del maestro per chi entra (anti-spam).
+    Consequences: Più flussi (login, register, verify, forgot, reset) ma è il
+                  pattern più familiare agli utenti.
+
+  ADR-4: Next.js App Router + 'use client' diffuso
+    Context: La gran parte delle pagine è altamente interattiva (kanban
+             draggable, modali, FAB, dashboard live).
+    Decision: Quasi tutti i componenti sono `'use client'`. I Server Components
+              sono usati solo dove non serve interattività (es. layout, route
+              handler di callback).
+    Consequences: Bundle JS più grande. Mitigato dal code-splitting automatico
+                  di Next.js per route. Niente SEO server-rendered: per
+                  un'app interna a un club è scelta sostenibile.
+
+  ADR-5: Stato globale tramite React Context, niente Redux/Zustand
+    Context: L'unico stato veramente globale è la sessione auth + profilo.
+    Decision: Un singolo `AuthContext`. Tutto il resto è stato locale di
+              componente, gestito con `useState` + `useEffect`.
+    Consequences: Semplicità. Costo: alcuni `useEffect` di refetch ripetuti
+                  (mitigato dal nuovo hook `useAsyncResource` dove serve).
+
+  ADR-6: Repo migration applicata a 3 componenti chiave, non a tutti
+    Context: Migrare in un colpo solo tutti i 15+ file che usavano
+             `supabase.from()` sarebbe stato rischioso a progetto finito.
+    Decision: Migrare PlayerView, CoachDashboard, GoalTemplateManager,
+              GoalTemplatePicker. Lasciare invariati i componenti minori
+              (es. CreateStudentForm, AvatarUpload, ProfilePage,
+              DeleteFictitiousStudentDialog), perché:
+                a) il pattern è ora chiaramente dimostrato;
+                b) i file rimanenti possono migrare incrementalmente quando
+                   si toccano per altre ragioni;
+                c) `AuthContext` resta volontariamente accoppiato a
+                   `supabase.auth.*` perché Auth è un dominio Supabase-specifico
+                   e non un dominio dati riusabile su altri backend.
+    Consequences: Coesione "media" del refactor invece che 100%. Beneficio:
+                  zero regressioni a progetto già funzionante.
+
+================================================================================
+  6. NOTE TECNICHE SUL TIPO Database
+================================================================================
+
+  Il file `lib/database.types.ts` segue il formato Supabase ufficiale (vedi
+  https://supabase.com/docs/guides/api/rest/generating-types):
+
+      Database['public']['Tables']['goals']['Row']     ─ shape ritornata da SELECT
+      Database['public']['Tables']['goals']['Insert']  ─ shape per INSERT
+      Database['public']['Tables']['goals']['Update']  ─ shape per UPDATE (tutto opzionale)
+
+  I tipi di dominio (Profile, Goal, MatchResultRow, GoalTemplate, InviteLink)
+  sono interfacce TS esportate AL FIANCO della struttura Database, così sia il
+  vecchio import "named" (`import type { Goal } from '@/lib/database.types'`)
+  che il nuovo client tipizzato (`supabase.from('goals').select('*')`
+  ritorna `Goal[]` senza cast) funzionano.
+
+  In particolare:
+    - `createBrowserClient<Database>(...)` e `createServerClient<Database>(...)`
+      sono i punti dove il generic viene applicato. Da quel momento ogni
+      `.from('goals')` è type-safe.
+    - I `Partial<XxxRow>` accettati dai metodi `update` dei repository sono
+      la traduzione del pattern Supabase `Update = tutti opzionali`.
+
+================================================================================
+  7. PUNTI APERTI E POSSIBILI EVOLUZIONI
+================================================================================
+
+  E1. Migrare anche AvatarUpload, ProfilePage, CreateStudentForm e le tab
+      mobile del coach al pattern repository (refactor incrementale, basso
+      rischio).
+
+  E2. Sostituire `fetchProfile` in `AuthContext` con `profileRepo.getById(id)`.
+
+  E3. Aggiungere test di unità ai repository iniettando un mock di
+      `SupabaseClient<Database>`. Pattern già abilitato dall'interfaccia.
+
+  E4. Integrazione con API Match Fit / Tennis Stalker per import automatico
+      dei risultati. Richiede valutazione delle API ufficiali e di un
+      possibile rate limit; per ora i match si inseriscono manualmente.
+
+  E5. Realtime: usare `supabase.channel(...)` per notificare in push al coach
+      quando un allievo registra un nuovo match (oggi serve refresh manuale).
+
+  E6. Aggiungere RLS test in `scripts/sql/` per garantire che un allievo non
+      possa MAI leggere goals di altri allievi anche se modificasse il client.
+
+================================================================================
+                                FINE DEL DOCUMENTO
+================================================================================
