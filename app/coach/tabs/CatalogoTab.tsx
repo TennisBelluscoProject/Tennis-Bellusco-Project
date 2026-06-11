@@ -28,7 +28,7 @@ export function CatalogoTab({ coachId }: Props) {
           </button>
         ))}
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 flex flex-col">
         {view === 'obiettivi' ? (
           <GoalTemplateManager coachId={coachId} />
         ) : (
