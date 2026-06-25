@@ -38,13 +38,11 @@ export function AvatarUpload({
 
     setError('');
 
-    // Validate type
     if (!ACCEPTED_TYPES.includes(file.type)) {
       setError('Formato non supportato. Usa JPG, PNG o WebP.');
       return;
     }
 
-    // Validate size
     if (file.size > MAX_FILE_SIZE) {
       setError('Immagine troppo grande. Massimo 2 MB.');
       return;
@@ -72,7 +70,6 @@ export function AvatarUpload({
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from(BUCKET)
         .getPublicUrl(filePath);

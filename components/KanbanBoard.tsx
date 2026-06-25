@@ -8,7 +8,7 @@ import { useIsMobile } from '@/lib/hooks';
 import { Badge, ProgressBar, ConfirmDialog, Select } from './UI';
 import { CategoryIcon } from './CategoryIcon';
 
-// ─── GoalCard ───────────────────────────────────────
+// GoalCard
 
 interface GoalCardProps {
   goal: Goal;
@@ -32,7 +32,7 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
   const nextStatus = currentIndex < STATUS_COLUMNS.length - 1 ? STATUS_COLUMNS[currentIndex + 1] : null;
   const prevStatus = currentIndex > 0 ? STATUS_COLUMNS[currentIndex - 1] : null;
 
-  // ─── Completed card: compact style ──────────────
+  // Completed card: compact style
   if (isCompleted) {
     const completedDate = goal.completed_at
       ? new Date(goal.completed_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
@@ -109,7 +109,7 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
     );
   }
 
-  // ─── Normal card (planned / in_progress) ────────
+  // Normal card (planned / in_progress)
   return (
     <>
       <div
@@ -226,14 +226,14 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
   );
 }
 
-// ─── Status Empty Icon ──────────────────────────────
+// Status Empty Icon
 const STATUS_EMPTY_ICONS: Record<GoalStatus, LucideIcon> = {
   planned: ClipboardList,
   in_progress: Zap,
   completed: CircleCheck,
 };
 
-// ─── Kanban Column (desktop) ────────────────────────
+// Kanban Column (desktop)
 
 interface KanbanColumnProps {
   status: GoalStatus;
@@ -299,7 +299,7 @@ function KanbanColumn({ status, goals, isCoach, onEdit, onDelete, onStatusChange
   );
 }
 
-// ─── Mobile Tab View ────────────────────────────────
+// Mobile Tab View
 
 interface MobileTabViewProps {
   goals: Goal[];
@@ -456,7 +456,7 @@ function MobileTabView({ goals, isCoach, onEdit, onDelete, onStatusChange, onPro
   );
 }
 
-// ─── KanbanBoard (main export) ──────────────────────
+// KanbanBoard (main export)
 
 interface KanbanBoardProps {
   goals: Goal[];

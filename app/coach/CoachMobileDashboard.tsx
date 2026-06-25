@@ -106,7 +106,7 @@ export function CoachMobileDashboard() {
     };
   }, [reloadTick]);
 
-  // ─── Approve / Reject ─────────────────────────────────
+  // Approve / Reject
   const handleApprove = async (p: Profile) => {
     setActingOn(p.id);
     await supabase
@@ -135,7 +135,7 @@ export function CoachMobileDashboard() {
     setActingOn(null);
   };
 
-  // ─── Selected student detail (uses shared PlayerView) ─
+  // Selected student detail (uses shared PlayerView)
   if (selectedStudent) {
     return (
       <div className="h-[100dvh] flex flex-col bg-[var(--background)]">

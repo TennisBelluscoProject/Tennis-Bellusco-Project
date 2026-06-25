@@ -1,4 +1,4 @@
-// ─── Generic UI helpers shared across the app ─────────
+// Generic UI helpers shared across the app
 
 export function timeAgo(date: Date): string {
   const sec = Math.floor((Date.now() - date.getTime()) / 1000);

@@ -120,10 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // Safety timeout — if no auth event fires at all (very rare)
+    // Safety timeout: if no auth event fires at all (very rare)
     const timeout = setTimeout(() => {
       if (mountedRef.current && loading) {
-        console.warn('[Auth] Timeout — no auth event in 12s, forcing login');
+        console.warn('[Auth] Timeout: no auth event in 12s, forcing login');
         setLoading(false);
       }
     }, 12000);

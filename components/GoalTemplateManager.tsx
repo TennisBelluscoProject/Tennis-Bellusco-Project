@@ -23,7 +23,7 @@ import {
 type CategoryFilter = '' | GoalCategory;
 type LevelFilter = '' | PlayerLevel;
 
-// ─── Hook: state + handlers ────────────────────────────
+// Hook: state + handlers
 
 export function useGoalTemplates(coachId: string) {
   const [templates, setTemplates] = useState<GoalTemplate[]>([]);
@@ -109,7 +109,7 @@ export function useGoalTemplates(coachId: string) {
 
 export type GoalTemplatesCtx = ReturnType<typeof useGoalTemplates>;
 
-// ─── Header (title + filters + search) ─────────────────
+// Header (title + filters + search)
 
 const categoryPillsBase: { value: CategoryFilter; label: string; icon?: string }[] = [
   { value: '', label: 'Tutte' },
@@ -201,7 +201,7 @@ export function GoalTemplatesHeader({ ctx, isMobile }: HeaderProps) {
   );
 }
 
-// ─── List + FAB + Modals ───────────────────────────────
+// List + FAB + Modals
 
 interface ListProps {
   ctx: GoalTemplatesCtx;
@@ -310,7 +310,7 @@ export function GoalTemplatesList({ ctx, isMobile }: ListProps) {
   );
 }
 
-// ─── Manager (mobile-friendly composition) ─────────────
+// Manager (mobile-friendly composition)
 
 interface GoalTemplateManagerProps {
   coachId: string;
@@ -343,7 +343,7 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
   );
 }
 
-// ─── Coach template card ──────────────────────────────
+// Coach template card
 
 interface CoachTemplateCardProps {
   template: GoalTemplate;
@@ -412,7 +412,7 @@ function CoachTemplateCard({ template, compact, onEdit, onDelete }: CoachTemplat
   );
 }
 
-// ─── Form (create / edit template) ────────────────────
+// Form (create / edit template)
 
 interface TemplateFormProps {
   open: boolean;

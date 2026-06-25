@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, ReactNode } from 'react';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 
-// ─── Button ─────────────────────────────────────────
+// Button
 interface ButtonProps {
   children: ReactNode;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -50,7 +50,7 @@ export function Button({
   );
 }
 
-// ─── Input ──────────────────────────────────────────
+// Input
 interface InputProps {
   label?: string;
   type?: string;
@@ -86,7 +86,7 @@ export function Input({ label, type = 'text', value, onChange, placeholder, requ
   );
 }
 
-// ─── Textarea ───────────────────────────────────────
+// Textarea
 interface TextareaProps {
   label?: string;
   value: string;
@@ -111,7 +111,7 @@ export function Textarea({ label, value, onChange, placeholder, rows = 3, classN
   );
 }
 
-// ─── Select ─────────────────────────────────────────
+// Select
 interface SelectProps {
   label?: string;
   value: string;
@@ -146,7 +146,7 @@ export function Select({ label, value, onChange, options, placeholder, className
   );
 }
 
-// ─── Checkbox ───────────────────────────────────────
+// Checkbox
 interface CheckboxProps {
   label: string;
   checked: boolean;
@@ -172,7 +172,7 @@ export function Checkbox({ label, checked, onChange }: CheckboxProps) {
   );
 }
 
-// ─── Dialog (Confirm) ───────────────────────────────
+// Dialog (Confirm)
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -207,7 +207,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Conferma',
   );
 }
 
-// ─── Modal ──────────────────────────────────────────
+// Modal
 interface ModalProps {
   open: boolean;
   onClose: () => void;
@@ -243,7 +243,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   );
 }
 
-// ─── Tabs ───────────────────────────────────────────
+// Tabs
 interface TabsProps {
   tabs: { id: string; label: string; icon?: string }[];
   active: string;
@@ -274,7 +274,7 @@ export function Tabs({ tabs, active, onChange }: TabsProps) {
   );
 }
 
-// ─── Badge ──────────────────────────────────────────
+// Badge
 interface BadgeProps {
   children: ReactNode;
   color?: string;
@@ -292,7 +292,7 @@ export function Badge({ children, color = '#1B3A5C', bg = '#E8EDF2' }: BadgeProp
   );
 }
 
-// ─── StatCard ───────────────────────────────────────
+// StatCard
 interface StatCardProps {
   label: string;
   value: string | number;
@@ -312,7 +312,7 @@ export function StatCard({ label, value, icon, color = 'var(--club-blue)' }: Sta
   );
 }
 
-// ─── SearchBar ──────────────────────────────────────
+// SearchBar
 interface SearchBarProps {
   value: string;
   onChange: (val: string) => void;
@@ -336,7 +336,7 @@ export function SearchBar({ value, onChange, placeholder = 'Cerca...' }: SearchB
   );
 }
 
-// ─── ProgressBar ────────────────────────────────────
+// ProgressBar
 interface ProgressBarProps {
   value: number;
   color?: string;
@@ -354,7 +354,7 @@ export function ProgressBar({ value, color = 'var(--club-blue)', height = 6 }: P
   );
 }
 
-// ─── Empty State ────────────────────────────────────
+// Empty State
 interface EmptyStateProps {
   icon: ReactNode;
   title: string;
@@ -375,7 +375,7 @@ export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
   );
 }
 
-// ─── Loading Spinner ────────────────────────────────
+// Loading Spinner
 export function Spinner({ size = 24 }: { size?: number }) {
   return (
     <svg className="animate-spin" width={size} height={size} viewBox="0 0 24 24" fill="none">

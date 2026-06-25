@@ -43,3 +43,6 @@ next-env.d.ts
 
 # misc project files
 psw.txt
+
+# claude code
+.claude/
