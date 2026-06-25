@@ -57,7 +57,7 @@ export function LoginPage() {
     setSuccess('');
   };
 
-  // ─── Handlers ─────────────────────────────────────────
+  // Handlers
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
@@ -161,7 +161,7 @@ export function LoginPage() {
     setSubmitting(false);
   };
 
-  // ─── Page chrome ──────────────────────────────────────
+  // Page chrome
   const getTitle = () => {
     if (mode === 'login') return 'Bentornato';
     if (mode === 'register') return 'Crea il tuo account';

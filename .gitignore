@@ -44,10 +44,5 @@ next-env.d.ts
 # misc project files
 psw.txt
 
-# Playwright
-node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
+# claude code
+.claude/

@@ -104,14 +104,14 @@ export function getAge(birthDate: string | null | undefined): number | null {
  * or null if birth_date is missing/invalid.
  *
  * Brackets:
- *   - U10: ≤10 years
- *   - U12: 11–12
- *   - U14: 13–14
- *   - U16: 15–16
- *   - U18: 17–18
- *   - Open: 19–34
- *   - Over X: from 35, in 5-year buckets (35–39 → Over 35, 40–44 → Over 40, …)
- *   - Capped at Over 80 for ages ≥80.
+ *   - U10: <=10 years
+ *   - U12: 11-12
+ *   - U14: 13-14
+ *   - U16: 15-16
+ *   - U18: 17-18
+ *   - Open: 19-34
+ *   - Over X: from 35, in 5-year buckets (35-39 -> Over 35, 40-44 -> Over 40, ...)
+ *   - Capped at Over 80 for ages >=80.
  */
 export function getAgeCategory(birthDate: string | null | undefined): string | null {
   const age = getAge(birthDate);

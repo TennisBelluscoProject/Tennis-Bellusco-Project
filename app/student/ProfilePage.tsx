@@ -163,7 +163,7 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
   );
 }
 
-// ─── Pieces ─────────────────────────────────────────────
+// Pieces
 
 function ProfileRow({
   label,
@@ -200,7 +200,7 @@ function ProfileRow({
   );
 }
 
-// ─── Modals ──────────────────────────────────────────────
+// Modals
 
 interface ModalShellProps {
   title: string;

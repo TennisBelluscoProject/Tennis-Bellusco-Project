@@ -144,7 +144,7 @@ function CoachDesktopDashboard() {
     `${s.full_name} ${s.email}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  // ─── Approve / Reject ──────────────────────────────
+  // Approve / Reject
   const handleApprove = async (p: Profile) => {
     setActingOn(p.id);
     await profileRepo.setApprovalStatus(p.id, 'approved', user?.id ?? null);
@@ -160,7 +160,7 @@ function CoachDesktopDashboard() {
     setActingOn(null);
   };
 
-  // ─── Match coach-notes from Risultati tab ──────────
+  // Match coach-notes from Risultati tab
   const handleSaveCoachNotes = async (notes: string) => {
     if (coachNotesMatch) {
       await matchRepo.setCoachNotes(coachNotesMatch.id, notes || null);
@@ -173,7 +173,7 @@ function CoachDesktopDashboard() {
     refresh();
   };
 
-  // ─── Student detail (uses shared PlayerView) ───────
+  // Student detail (uses shared PlayerView)
   if (selectedStudent) {
     return (
       <div className="min-h-screen bg-[var(--background)]">
@@ -194,7 +194,7 @@ function CoachDesktopDashboard() {
     );
   }
 
-  // ─── Main view ─────────────────────────────────────
+  // Main view
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <Header />
@@ -372,7 +372,7 @@ function CoachDesktopDashboard() {
   );
 }
 
-// ─── Desktop StudentCard (in the Allievi list) ─────────
+// Desktop StudentCard (in the Allievi list)
 function StudentCard({ student, onClick }: { student: Profile; onClick: () => void }) {
   const [stats, setStats] = useState({ goals: 0, completed: 0, matches: 0, wins: 0 });
   const { displayLevel, displayRanking } = getDisplayRanking(student);
@@ -459,7 +459,7 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
   );
 }
 
-// ─── Club Overview Panel ──────────────────────────────
+// Club Overview Panel
 const IT_MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 
 function ClubOverview({ stats }: { stats: ClubStats | null }) {

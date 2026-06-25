@@ -75,7 +75,7 @@ export function GoalTemplatePicker({
   return (
     // Altezza fissa: il dialog non cambia in base al numero di template
     <div className="flex flex-col h-[65dvh] min-h-[420px] max-h-[560px] gap-3">
-      {/* Header (sticky) — back link, filtri, ricerca */}
+      {/* Header (sticky): back link, filtri, ricerca */}
       <div className="shrink-0 flex flex-col gap-3 pb-2 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <button
