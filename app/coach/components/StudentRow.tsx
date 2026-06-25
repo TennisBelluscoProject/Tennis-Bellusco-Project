@@ -1,5 +1,6 @@
 'use client';
 
+import { UserCog } from 'lucide-react';
 import { Badge } from '@/components/UI';
 import { AvatarDisplay } from '@/components/AvatarDisplay';
 import type { Profile } from '@/lib/database.types';
@@ -16,7 +17,6 @@ interface Props {
 
 export function StudentRow({ student, dot, stats, lastActivity, onClick }: Props) {
   const { displayLevel, displayRanking } = getDisplayRanking(student);
-  const initial = student.full_name.charAt(0).toUpperCase();
   const winPct = stats.matches > 0 ? Math.round((stats.wins / stats.matches) * 100) : 0;
   const classified = isClassified(displayRanking);
   const ageCategory = getAgeCategory(student.birth_date);
@@ -25,7 +25,19 @@ export function StudentRow({ student, dot, stats, lastActivity, onClick }: Props
     <button onClick={onClick} className="card card-interactive p-4 text-left flex items-center gap-3.5">
       <AvatarDisplay photoUrl={student.photo_url} fullName={student.full_name} size={48} />
       <div className="flex-1 min-w-0">
-        <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{student.full_name}</h3>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{student.full_name}</h3>
+          {student.is_fictitious && (
+            <UserCog
+              size={13}
+              strokeWidth={2.2}
+              className="shrink-0 text-[var(--club-blue)]/70"
+              aria-label="Account gestito dal maestro"
+            >
+              <title>Account gestito dal maestro</title>
+            </UserCog>
+          )}
+        </div>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           {ageCategory && <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{ageCategory}</Badge>}
           {classified ? (

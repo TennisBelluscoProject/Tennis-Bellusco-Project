@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { ClipboardList } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { templateRepo } from '@/lib/repositories';
 import type { GoalCategory, GoalTemplate, PlayerLevel } from '@/lib/database.types';
 import { CATEGORY_CONFIG, LEVELS } from '@/lib/constants';
 import { useIsMobile } from '@/lib/hooks';
@@ -36,13 +36,9 @@ export function GoalTemplatePicker({
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from('goal_templates')
-        .select('*')
-        .order('sort_order', { ascending: true })
-        .order('title', { ascending: true });
+      const res = await templateRepo.list();
       if (!cancelled) {
-        setTemplates((data as GoalTemplate[]) || []);
+        setTemplates(res.data ?? []);
         setLoading(false);
       }
     })();

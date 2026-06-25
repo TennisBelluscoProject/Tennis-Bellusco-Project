@@ -32,6 +32,11 @@ export const RESULT_LABELS: Record<MatchResult, string> = {
 
 export const LEVELS = ['DELFINO', 'CERBIATTO', 'COCCODRILLO'] as const;
 
+// Feature flag — mostra la tab "Il mio percorso" (anteprima Iterazione A, su
+// dati di esempio). Impostare a `false` per nasconderla agli utenti reali
+// finche' l'Iterazione B (attivazione + materializzazione) non e' completa.
+export const PATHS_PREVIEW = true;
+
 export const ROUNDS = [
   'Primo turno', 'Secondo turno', 'Terzo turno',
   'Ottavi di finale', 'Quarti di finale', 'Semifinale', 'Finale',

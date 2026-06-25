@@ -1,18 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, CircleCheckBig, Trophy } from 'lucide-react';
+import { Users, CircleCheckBig, Trophy, UserPlus, UserCog } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { profileRepo, goalRepo, matchRepo } from '@/lib/repositories';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
-import { Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog } from '@/components/UI';
+import { Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog, Button } from '@/components/UI';
 import type { Profile, MatchResultRow } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
 import { MatchCard } from '@/components/MatchCard';
 import { CoachNotesForm } from '@/components/CoachNotesForm';
 import { CoachMobileDashboard } from './CoachMobileDashboard';
 import { PendingCard } from './components/PendingCard';
+import { CreateStudentForm } from './components/CreateStudentForm';
 import { PlayerView } from '../student/PlayerView';
+import { PathManager } from '@/components/PathManager';
 import {
   useGoalTemplates,
   GoalTemplatesHeader,
@@ -46,6 +49,7 @@ interface ClubStats {
 function CoachDesktopDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'allievi' | 'catalogo' | 'risultati' | 'richieste'>('allievi');
+  const [catalogView, setCatalogView] = useState<'obiettivi' | 'percorsi'>('obiettivi');
   const [students, setStudents] = useState<Profile[]>([]);
   const [pendingProfiles, setPendingProfiles] = useState<Profile[]>([]);
   const [search, setSearch] = useState('');
@@ -63,6 +67,8 @@ function CoachDesktopDashboard() {
   const [confirmReject, setConfirmReject] = useState<Profile | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
 
+  const [createOpen, setCreateOpen] = useState(false);
+
   const [reloadTick, setReloadTick] = useState(0);
   const refresh = useCallback(() => setReloadTick((t) => t + 1), []);
 
@@ -79,16 +85,16 @@ function CoachDesktopDashboard() {
       const prevMonthStartDay = prevMonthStart.toISOString().slice(0, 10);
 
       const [s, p, goalsRes, matchesRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('role', 'allievo').eq('approval_status', 'approved').eq('active', true).order('full_name'),
-        supabase.from('profiles').select('*').eq('role', 'allievo').eq('approval_status', 'pending').order('created_at', { ascending: false }),
-        supabase.from('goals').select('id, created_at'),
-        supabase.from('match_results').select('id, result, match_date'),
+        profileRepo.listApprovedStudents(),
+        profileRepo.listPendingStudents(),
+        goalRepo.listAllForStats(),
+        matchRepo.listAllForStats(),
       ]);
       if (cancelled) return;
 
-      const studentList = (s.data as Profile[]) || [];
-      const goals = (goalsRes.data as { id: string; created_at: string }[]) || [];
-      const matches = (matchesRes.data as { id: string; result: string; match_date: string }[]) || [];
+      const studentList = s.data ?? [];
+      const goals = goalsRes.data ?? [];
+      const matches = matchesRes.data ?? [];
 
       const studentsMonth = studentList.filter((st) => st.created_at >= monthStartIso).length;
       const goalsMonth = goals.filter((g) => g.created_at >= monthStartIso).length;
@@ -104,7 +110,7 @@ function CoachDesktopDashboard() {
         : wrThis;
 
       setStudents(studentList);
-      setPendingProfiles((p.data as Profile[]) || []);
+      setPendingProfiles(p.data ?? []);
       setClubStats({
         studentsTotal: studentList.length,
         studentsMonth,
@@ -125,13 +131,9 @@ function CoachDesktopDashboard() {
     let cancelled = false;
     (async () => {
       setAllMatchesLoading(true);
-      const { data } = await supabase
-        .from('match_results')
-        .select('*, profiles!match_results_student_id_fkey(full_name)')
-        .order('match_date', { ascending: false })
-        .limit(100);
+      const res = await matchRepo.listAllWithStudent(100);
       if (!cancelled) {
-        setAllMatches((data as MatchResultRow[]) || []);
+        setAllMatches(res.data ?? []);
         setAllMatchesLoading(false);
       }
     })();
@@ -145,22 +147,14 @@ function CoachDesktopDashboard() {
   // Approve / Reject
   const handleApprove = async (p: Profile) => {
     setActingOn(p.id);
-    await supabase.from('profiles').update({
-      approval_status: 'approved',
-      approved_at: new Date().toISOString(),
-      approved_by: user?.id ?? null,
-    }).eq('id', p.id);
+    await profileRepo.setApprovalStatus(p.id, 'approved', user?.id ?? null);
     refresh();
     setActingOn(null);
   };
 
   const handleReject = async (p: Profile) => {
     setActingOn(p.id);
-    await supabase.from('profiles').update({
-      approval_status: 'rejected',
-      approved_at: new Date().toISOString(),
-      approved_by: user?.id ?? null,
-    }).eq('id', p.id);
+    await profileRepo.setApprovalStatus(p.id, 'rejected', user?.id ?? null);
     refresh();
     setConfirmReject(null);
     setActingOn(null);
@@ -169,13 +163,13 @@ function CoachDesktopDashboard() {
   // Match coach-notes from Risultati tab
   const handleSaveCoachNotes = async (notes: string) => {
     if (coachNotesMatch) {
-      await supabase.from('match_results').update({ coach_notes: notes || null }).eq('id', coachNotesMatch.id);
+      await matchRepo.setCoachNotes(coachNotesMatch.id, notes || null);
       refresh();
     }
   };
 
   const handleDeleteMatch = async (id: string) => {
-    await supabase.from('match_results').delete().eq('id', id);
+    await matchRepo.delete(id);
     refresh();
   };
 
@@ -220,14 +214,37 @@ function CoachDesktopDashboard() {
           />
 
           {activeTab === 'allievi' && (
-            <div className="mt-4">
-              <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo per nome o email..." />
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo per nome o email..." />
+              </div>
+              <Button variant="secondary" onClick={() => setCreateOpen(true)} className="shrink-0">
+                <UserPlus size={16} strokeWidth={2.2} />
+                Aggiungi allievo
+              </Button>
             </div>
           )}
 
           {activeTab === 'catalogo' && (
             <div className="mt-4 flex flex-col gap-3">
-              <GoalTemplatesHeader ctx={catalogCtx} isMobile={false} />
+              <div className="flex gap-2">
+                {(['obiettivi', 'percorsi'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setCatalogView(v)}
+                    className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border transition-colors ${
+                      catalogView === v
+                        ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)]'
+                        : 'bg-white text-gray-500 border-gray-200'
+                    }`}
+                  >
+                    {v === 'obiettivi' ? 'Obiettivi' : 'Percorsi'}
+                  </button>
+                ))}
+              </div>
+              {catalogView === 'obiettivi' && (
+                <GoalTemplatesHeader ctx={catalogCtx} isMobile={false} />
+              )}
             </div>
           )}
 
@@ -270,7 +287,13 @@ function CoachDesktopDashboard() {
           )}
 
           {activeTab === 'catalogo' && (
-            <GoalTemplatesList ctx={catalogCtx} isMobile={false} />
+            catalogView === 'obiettivi' ? (
+              <GoalTemplatesList ctx={catalogCtx} isMobile={false} />
+            ) : (
+              <div className="h-[70vh]">
+                <PathManager coachId={user?.id ?? ''} />
+              </div>
+            )
           )}
 
           {activeTab === 'risultati' && (
@@ -339,6 +362,12 @@ function CoachDesktopDashboard() {
         onConfirm={() => confirmReject && handleReject(confirmReject)}
         onCancel={() => setConfirmReject(null)}
       />
+
+      <CreateStudentForm
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => refresh()}
+      />
     </div>
   );
 }
@@ -353,6 +382,8 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Per-card stats: fetched in parallel. The 'count' queries are
+      // server-aggregated (head:true) so they don't transfer rows.
       const [{ count: goalsCount }, { count: completedCount }, { data: matchData }] = await Promise.all([
         supabase.from('goals').select('*', { count: 'exact', head: true }).eq('student_id', student.id),
         supabase.from('goals').select('*', { count: 'exact', head: true }).eq('student_id', student.id).eq('status', 'completed'),
@@ -378,7 +409,19 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
           {student.full_name.charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-gray-900 truncate tracking-[-0.01em]">{student.full_name}</h3>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h3 className="text-sm font-bold text-gray-900 truncate tracking-[-0.01em]">{student.full_name}</h3>
+            {student.is_fictitious && (
+              <UserCog
+                size={13}
+                strokeWidth={2.2}
+                className="shrink-0 text-[var(--club-blue)]/70"
+                aria-label="Account gestito dal maestro"
+              >
+                <title>Account gestito dal maestro</title>
+              </UserCog>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             {cardAgeCategory && <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{cardAgeCategory}</Badge>}
             {!cardClassified && <Badge>{displayLevel}</Badge>}
