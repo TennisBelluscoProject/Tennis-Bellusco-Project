@@ -80,12 +80,31 @@ migrazioni SQL presenti nella cartella `scripts`. Dalla dashboard di Supabase,
 in **SQL Editor**, esegui nell'ordine:
 
 1. `scripts/sql/2026_goal_templates.sql` (tabella dei template di obiettivi)
-2. `scripts/setup-avatars-bucket.sql` (bucket storage per le foto avatar e relative policy)
+2. `scripts/sql/2026_kids_paths.sql` (Percorsi Kids: i 12 passi del Diario del Tennis)
+3. `scripts/setup-avatars-bucket.sql` (bucket storage per le foto avatar e relative policy)
 
 Va inoltre predisposta la struttura delle tabelle principali (`profiles`, `goals`,
 `match_results`, `invite_links`) e il trigger `handle_new_user` che crea il profilo
 alla registrazione. Se ci si collega al progetto Supabase già esistente del club,
 questi passaggi non servono perché lo schema è già configurato.
+
+## Percorsi Kids (i 12 passi)
+
+La sezione **Catalogo > Percorsi Kids** e la scheda **12 passi** dell'allievo
+richiedono la migrazione `scripts/sql/2026_kids_paths.sql`. Senza di essa il
+percorso si disegna comunque, ma le spunte non vengono salvate.
+
+Alcune note utili:
+
+- Il CONTENUTO dei tre percorsi (208 obiettivi in tutto) sta nel codice, in
+  `lib/kids/curriculum.ts`: e' materiale didattico FIT uguale per tutti gli
+  allievi. Sul database finiscono solo le spunte.
+- Se si aggiungono o tolgono obiettivi bisogna aggiornare anche la tabella
+  `kids_level_totals` (usata dal server per validare il passaggio di livello).
+  Il test `lib/kids/__tests__/progress.test.ts` fallisce apposta se i due
+  valori divergono.
+- La sezione si puo' nascondere agli utenti mettendo `KIDS_PATHS = false` in
+  `lib/constants.ts`.
 
 ## Risoluzione dei problemi
 

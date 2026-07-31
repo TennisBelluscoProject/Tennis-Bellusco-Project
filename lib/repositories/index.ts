@@ -23,9 +23,11 @@ import { supabase } from '../supabase';
 import { SupabaseGoalRepository } from './goal.repository';
 import { SupabaseMatchRepository } from './match.repository';
 import { SupabaseProfileRepository } from './profile.repository';
+import { SupabaseGroupRepository } from './group.repository';
 import { SupabaseGoalTemplateRepository } from './goal-template.repository';
 import { SupabasePathRepository } from './path.repository';
 import { SupabaseStudentPathRepository } from './student-path.repository';
+import { SupabaseKidsPathRepository } from './kids-path.repository';
 
 // Re-export contracts so consumers can import interface + instance from
 // the same module.
@@ -33,9 +35,13 @@ export type {
   IGoalRepository,
   IMatchRepository,
   IProfileRepository,
+  IGroupRepository,
+  GroupMemberView,
   IGoalTemplateRepository,
   IPathRepository,
   IStudentPathRepository,
+  IKidsPathRepository,
+  KidsProgressCount,
   PathGraph,
   PathNodeDraft,
   ActiveStudentPath,
@@ -48,14 +54,18 @@ export type {
 export { SupabaseGoalRepository } from './goal.repository';
 export { SupabaseMatchRepository } from './match.repository';
 export { SupabaseProfileRepository } from './profile.repository';
+export { SupabaseGroupRepository } from './group.repository';
 export { SupabaseGoalTemplateRepository } from './goal-template.repository';
 export { SupabasePathRepository } from './path.repository';
 export { SupabaseStudentPathRepository } from './student-path.repository';
+export { SupabaseKidsPathRepository } from './kids-path.repository';
 
 // ─── Default browser-bound instances ───────────────────────────────────────
 export const goalRepo = new SupabaseGoalRepository(supabase);
 export const matchRepo = new SupabaseMatchRepository(supabase);
 export const profileRepo = new SupabaseProfileRepository(supabase);
+export const groupRepo = new SupabaseGroupRepository(supabase);
 export const templateRepo = new SupabaseGoalTemplateRepository(supabase);
 export const pathRepo = new SupabasePathRepository(supabase);
 export const studentPathRepo = new SupabaseStudentPathRepository(supabase);
+export const kidsPathRepo = new SupabaseKidsPathRepository(supabase);

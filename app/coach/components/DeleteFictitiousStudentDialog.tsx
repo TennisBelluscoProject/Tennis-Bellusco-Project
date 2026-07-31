@@ -57,6 +57,12 @@ export function DeleteFictitiousStudentDialog({ open, student, onClose, onDelete
 
   if (!open) return null;
 
+  // Lo stesso dialogo serve anche per i GRUPPI di lezione, che sono profili
+  // gestiti (`is_fictitious = true`) con `is_group = true`: cambia solo il
+  // vocabolario, la procedura di sicurezza e' identica.
+  const isGroup = student.is_group;
+  const soggetto = isGroup ? 'il gruppo' : 'l\u2019allievo';
+
   const expectedPhrase = `cancella ${student.full_name}`;
   const normalize = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
   const isMatch = normalize(confirmText) === normalize(expectedPhrase);
@@ -104,12 +110,15 @@ export function DeleteFictitiousStudentDialog({ open, student, onClose, onDelete
         </div>
 
         <h3 id="delete-fictitious-title" className="text-lg font-bold text-gray-900 mb-1.5">
-          Eliminare definitivamente l&apos;allievo?
+          Eliminare definitivamente {soggetto}?
         </h3>
         <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-          Stai per cancellare il profilo gestito di{' '}
-          <span className="font-semibold text-gray-700">{student.full_name}</span>. Verranno
-          rimossi anche tutti i suoi obiettivi, risultati e dati associati. L&apos;operazione è
+          Stai per cancellare {isGroup ? 'il gruppo' : 'il profilo gestito di'}{' '}
+          <span className="font-semibold text-gray-700">{student.full_name}</span>.{' '}
+          {isGroup
+            ? 'Verranno rimossi i suoi obiettivi, i percorsi attivati e l\u2019elenco dei partecipanti. Gli allievi che ne facevano parte NON vengono toccati.'
+            : 'Verranno rimossi anche tutti i suoi obiettivi, risultati e dati associati.'}{' '}
+          L&apos;operazione è
           <span className="font-semibold text-[var(--club-red)]"> irreversibile</span>.
         </p>
 

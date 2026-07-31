@@ -42,7 +42,10 @@ import type {
   PathNode,
   PathEdge,
   StudentPath,
+  PlayerLevel,
+  KidsLevelCompletion,
 } from '../database.types';
+import type { KidsGoalLink, KidsGoalPlan } from '../kids/goals';
 
 // ─── Shared types ──────────────────────────────────────────────────────────
 
@@ -152,6 +155,75 @@ export interface IProfileRepository {
     status: ApprovalStatus,
     coachId: string | null
   ): Promise<RepoResult<void>>;
+
+  /**
+   * Attiva (`level`) o cambia il percorso Kids di un allievo. Con `null` lo
+   * disattiva E LO AZZERA: spunte, livelli conclusi e card dei 12 passi
+   * vengono cancellati, quindi riattivarlo riparte da zero.
+   * Solo il maestro: il percorso non parte mai da solo.
+   */
+  setKidsPath(
+    studentId: string,
+    level: PlayerLevel | null,
+    coachId: string | null
+  ): Promise<RepoResult<void>>;
+}
+
+// ─── Gruppi di lezione ─────────────────────────────────────────────────────
+//
+// Un gruppo e' una riga di `profiles` con `is_group = true` (vedi
+// scripts/sql/2026_gruppi.sql, ADR-5-1): questo repository si occupa SOLO
+// dell'anagrafica del gruppo e della sua composizione. Obiettivi, percorsi e
+// 12 passi del gruppo passano dai repository gia' esistenti, con l'id del
+// gruppo al posto di quello dell'allievo — e' esattamente il punto della
+// scelta di modellazione.
+
+/**
+ * Un partecipante gia' risolto per la UI: il nome e' stato scelto (profilo
+ * collegato o nome libero), cosi' i componenti non devono fare join a mano.
+ */
+export interface GroupMemberView {
+  /** Id della riga `group_members`, non dell'allievo. Serve per rimuoverlo. */
+  id: string;
+  /** Id del profilo, se il partecipante e' un allievo a sistema. */
+  studentId: string | null;
+  name: string;
+}
+
+export interface IGroupRepository {
+  /** Tutti i gruppi attivi, in ordine alfabetico. */
+  list(): Promise<RepoResult<Profile[]>>;
+
+  /**
+   * Crea il gruppo. Imposta da se' i flag che lo rendono un soggetto
+   * allenabile gestito dal maestro (`role='allievo'`, `is_fictitious`,
+   * `is_group`, `approval_status='approved'`): il chiamante passa solo il nome.
+   */
+  create(input: { coachId: string | null; name: string }): Promise<RepoResult<Profile>>;
+
+  rename(groupId: string, name: string): Promise<RepoResult<Profile>>;
+
+  /**
+   * Elimina il gruppo. I suoi obiettivi, percorsi e spunte se ne vanno in
+   * cascata (FK `on delete cascade` su `profiles.id`). Gli allievi che ne
+   * facevano parte NON vengono toccati: sparisce solo la loro appartenenza.
+   */
+  delete(groupId: string): Promise<RepoResult<void>>;
+
+  /** Composizione del gruppo, con i nomi gia' risolti. */
+  listMembers(groupId: string): Promise<RepoResult<GroupMemberView[]>>;
+
+  /** Numero di partecipanti per ogni gruppo (per le card della lista). */
+  countMembers(groupIds: string[]): Promise<RepoResult<Record<string, number>>>;
+
+  /** Aggiunge un allievo gia' a sistema. Idempotente: se c'e' gia', non fa nulla. */
+  addStudent(groupId: string, studentId: string): Promise<RepoResult<void>>;
+
+  /** Aggiunge un partecipante col solo nome (nessun profilo dietro). */
+  addName(groupId: string, displayName: string): Promise<RepoResult<void>>;
+
+  /** Rimuove un partecipante (per id di riga, non per id allievo). */
+  removeMember(memberId: string): Promise<RepoResult<void>>;
 }
 
 // ─── Goal Template (catalog) ───────────────────────────────────────────────
@@ -232,4 +304,86 @@ export interface IStudentPathRepository {
    * materializzati per quell'allievo.
    */
   deactivate(pathId: string, studentId: string): Promise<RepoResult<void>>;
+}
+
+// ─── Percorsi Kids (12 passi) ──────────────────────────────────────
+//
+// A differenza dei Percorsi "liberi", qui la struttura e' fissa e vive nel
+// codice (lib/kids/curriculum.ts). Il repository si occupa solo delle
+// SPUNTE dell'allievo e del passaggio di livello.
+
+/** Riepilogo per la vista maestro: quanti obiettivi ha spuntato ogni allievo. */
+export interface KidsProgressCount {
+  studentId: string;
+  done: number;
+}
+
+export interface IKidsPathRepository {
+  /** Chiavi degli obiettivi gia' spuntati dall'allievo per quel livello. */
+  listProgress(
+    studentId: string,
+    level: PlayerLevel
+  ): Promise<RepoResult<string[]>>;
+
+  /**
+   * Spunta / de-spunta un obiettivo. Idempotente in entrambe le direzioni.
+   * `actorId` finisce in `checked_by` (maestro o allievo stesso).
+   */
+  setObjective(input: {
+    studentId: string;
+    level: PlayerLevel;
+    objectiveKey: string;
+    done: boolean;
+    actorId: string;
+  }): Promise<RepoResult<void>>;
+
+  /** Spunta / de-spunta in blocco tutti gli obiettivi di una tappa. */
+  setObjectives(input: {
+    studentId: string;
+    level: PlayerLevel;
+    objectiveKeys: string[];
+    done: boolean;
+    actorId: string;
+  }): Promise<RepoResult<void>>;
+
+  /**
+   * Chiude il percorso e promuove l'allievo al livello successivo (RPC che
+   * ri-verifica lato server che tutti gli obiettivi siano completati).
+   * Ritorna il nuovo livello.
+   */
+  completeLevel(
+    studentId: string,
+    level: PlayerLevel
+  ): Promise<RepoResult<PlayerLevel>>;
+
+  /** Storico dei percorsi conclusi dall'allievo. */
+  listCompletions(studentId: string): Promise<RepoResult<KidsLevelCompletion[]>>;
+
+  /** Conteggio degli obiettivi spuntati, per allievo, su un dato livello. */
+  countsByLevel(level: PlayerLevel): Promise<RepoResult<KidsProgressCount[]>>;
+
+  /**
+   * Allinea la sezione Obiettivi ai 12 passi: crea una card per ogni
+   * obiettivo dei passi SBLOCCATI, adotta quelle create a mano dal catalogo
+   * con lo stesso testo, rimuove quelle di un passo che si e' richiuso.
+   *
+   * E' l'equivalente Kids di `activate_path`, con una differenza: qui la
+   * materializzazione e' INCREMENTALE, perche' i passi si aprono uno dopo
+   * l'altro. Idempotente: chiamarla a ogni caricamento non fa danni e nel
+   * caso normale (niente da fare) non scrive nulla.
+   *
+   * Ritorna il piano applicato, cosi' il chiamante sa se deve ricaricare.
+   */
+  syncGoals(input: {
+    studentId: string;
+    level: PlayerLevel;
+    actorId: string;
+  }): Promise<RepoResult<KidsGoalPlan>>;
+
+  /**
+   * Tutte le card dell'allievo ridotte al minimo che serve per decidere il
+   * piano (id, titolo, stato, i due legami). Include le card libere: sono
+   * quelle candidate all'adozione.
+   */
+  listGoalLinks(studentId: string): Promise<RepoResult<KidsGoalLink[]>>;
 }

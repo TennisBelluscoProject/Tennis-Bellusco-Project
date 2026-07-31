@@ -54,6 +54,9 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
                 <span className="text-[10px] text-gray-400 flex items-center gap-1">
                   <CategoryIcon name={cat.icon} size={10} /> {cat.label}
                 </span>
+                {goal.kids_objective_key && (
+                  <span className="text-[10px] text-gray-400">· 12 passi</span>
+                )}
                 {completedDate && (
                   <span className="text-[10px] text-gray-400">· {completedDate}</span>
                 )}
@@ -121,10 +124,22 @@ function GoalCard({ goal, isCoach, isMobile, onEdit, onDelete, onStatusChange, o
         style={{ '--cat-color': cat.color } as React.CSSProperties}
       >
         {/* Category badge + deadline */}
-        <div className="flex items-center justify-between mb-3 pl-2">
-          <Badge color={cat.color} bg={cat.bg}>
-            <CategoryIcon name={cat.icon} size={12} /> {cat.label}
-          </Badge>
+        <div className="flex items-center justify-between mb-3 pl-2 gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Badge color={cat.color} bg={cat.bg}>
+              <CategoryIcon name={cat.icon} size={12} /> {cat.label}
+            </Badge>
+            {/* Card nata da un obiettivo dei 12 passi: si spunta anche dalla
+                mappa del percorso Kids, e le due viste restano allineate. */}
+            {goal.kids_objective_key && (
+              <span
+                className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold text-gray-500 bg-gray-100"
+                title="Obiettivo del percorso 12 passi"
+              >
+                12 passi
+              </span>
+            )}
+          </div>
           {goal.deadline && (
             <span className={`text-[11px] font-semibold ${
               daysLeft !== null && daysLeft < 0

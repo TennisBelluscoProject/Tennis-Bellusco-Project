@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Users, CircleCheckBig, Trophy, UserPlus, UserCog } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { profileRepo, goalRepo, matchRepo } from '@/lib/repositories';
+import { profileRepo, goalRepo, matchRepo, groupRepo } from '@/lib/repositories';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
 import { Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog, Button } from '@/components/UI';
@@ -14,8 +14,13 @@ import { CoachNotesForm } from '@/components/CoachNotesForm';
 import { CoachMobileDashboard } from './CoachMobileDashboard';
 import { PendingCard } from './components/PendingCard';
 import { CreateStudentForm } from './components/CreateStudentForm';
+import { CreateGroupForm } from './components/CreateGroupForm';
+import { GroupRow } from './components/GroupRow';
 import { PlayerView } from '../student/PlayerView';
 import { PathManager } from '@/components/PathManager';
+import { KidsPathCatalog } from '@/components/kids/KidsPathCatalog';
+import { KIDS_PATHS } from '@/lib/constants';
+import { KIDS_PROGRAMS } from '@/lib/kids/curriculum';
 import {
   useGoalTemplates,
   GoalTemplatesHeader,
@@ -48,9 +53,12 @@ interface ClubStats {
 
 function CoachDesktopDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'allievi' | 'catalogo' | 'risultati' | 'richieste'>('allievi');
-  const [catalogView, setCatalogView] = useState<'obiettivi' | 'percorsi'>('obiettivi');
+  const [activeTab, setActiveTab] = useState<'allievi' | 'gruppi' | 'catalogo' | 'risultati' | 'richieste'>('allievi');
+  const [catalogView, setCatalogView] = useState<'obiettivi' | 'percorsi' | 'kids'>('obiettivi');
   const [students, setStudents] = useState<Profile[]>([]);
+  const [groups, setGroups] = useState<Profile[]>([]);
+  const [groupMembers, setGroupMembers] = useState<Record<string, number>>({});
+  const [groupGoals, setGroupGoals] = useState<Record<string, number>>({});
   const [pendingProfiles, setPendingProfiles] = useState<Profile[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -68,6 +76,7 @@ function CoachDesktopDashboard() {
   const [actingOn, setActingOn] = useState<string | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
 
   const [reloadTick, setReloadTick] = useState(0);
   const refresh = useCallback(() => setReloadTick((t) => t + 1), []);
@@ -84,13 +93,32 @@ function CoachDesktopDashboard() {
       const monthStartDay = monthStartIso.slice(0, 10);
       const prevMonthStartDay = prevMonthStart.toISOString().slice(0, 10);
 
-      const [s, p, goalsRes, matchesRes] = await Promise.all([
+      const [s, p, goalsRes, matchesRes, groupsRes] = await Promise.all([
         profileRepo.listApprovedStudents(),
         profileRepo.listPendingStudents(),
         goalRepo.listAllForStats(),
         matchRepo.listAllForStats(),
+        groupRepo.list(),
       ]);
       if (cancelled) return;
+
+      // I gruppi di lezione sono profili con `is_group = true`: le liste
+      // allievi li escludono, qui li carichiamo a parte (ADR-5-1).
+      const groupList = groupsRes.data ?? [];
+      const groupIds = groupList.map((g) => g.id);
+      const [membersRes, groupGoalsRes] = await Promise.all([
+        groupRepo.countMembers(groupIds),
+        groupIds.length > 0
+          ? supabase.from('goals').select('student_id, status').in('student_id', groupIds)
+          : Promise.resolve({ data: [] as { student_id: string; status: string }[] }),
+      ]);
+      if (cancelled) return;
+
+      const gGoals: Record<string, number> = {};
+      for (const id of groupIds) gGoals[id] = 0;
+      for (const row of (groupGoalsRes.data ?? []) as { student_id: string; status: string }[]) {
+        if (row.status !== 'completed') gGoals[row.student_id] = (gGoals[row.student_id] ?? 0) + 1;
+      }
 
       const studentList = s.data ?? [];
       const goals = goalsRes.data ?? [];
@@ -110,6 +138,9 @@ function CoachDesktopDashboard() {
         : wrThis;
 
       setStudents(studentList);
+      setGroups(groupList);
+      setGroupMembers(membersRes.data ?? {});
+      setGroupGoals(gGoals);
       setPendingProfiles(p.data ?? []);
       setClubStats({
         studentsTotal: studentList.length,
@@ -142,6 +173,10 @@ function CoachDesktopDashboard() {
 
   const filteredStudents = students.filter((s) =>
     `${s.full_name} ${s.email}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredGroups = groups.filter((g) =>
+    g.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
   // Approve / Reject
@@ -205,12 +240,19 @@ function CoachDesktopDashboard() {
           <Tabs
             tabs={[
               { id: 'allievi', label: `Allievi (${students.length})` },
+              { id: 'gruppi', label: `Gruppi (${groups.length})` },
               { id: 'catalogo', label: 'Catalogo' },
               { id: 'risultati', label: 'Risultati Agonistici' },
               { id: 'richieste', label: `Richieste${pendingProfiles.length > 0 ? ` · ${pendingProfiles.length}` : ''}` },
             ]}
             active={activeTab}
-            onChange={(t) => setActiveTab(t as typeof activeTab)}
+            onChange={(t) => {
+              setActiveTab(t as typeof activeTab);
+              // La barra di ricerca e' condivisa fra Allievi e Gruppi: senza
+              // azzerarla, cambiando scheda si vedrebbe un falso "nessun
+              // risultato" dovuto alla query precedente.
+              setSearch('');
+            }}
           />
 
           {activeTab === 'allievi' && (
@@ -225,22 +267,45 @@ function CoachDesktopDashboard() {
             </div>
           )}
 
+          {activeTab === 'gruppi' && (
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <SearchBar value={search} onChange={setSearch} placeholder="Cerca gruppo per nome..." />
+              </div>
+              <Button variant="primary" onClick={() => setCreateGroupOpen(true)} className="shrink-0">
+                <Users size={16} strokeWidth={2.2} />
+                Nuovo gruppo
+              </Button>
+            </div>
+          )}
+
           {activeTab === 'catalogo' && (
             <div className="mt-4 flex flex-col gap-3">
               <div className="flex gap-2">
-                {(['obiettivi', 'percorsi'] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setCatalogView(v)}
-                    className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border transition-colors ${
-                      catalogView === v
-                        ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)]'
-                        : 'bg-white text-gray-500 border-gray-200'
-                    }`}
-                  >
-                    {v === 'obiettivi' ? 'Obiettivi' : 'Percorsi'}
-                  </button>
-                ))}
+                {(KIDS_PATHS
+                  ? (['obiettivi', 'percorsi', 'kids'] as const)
+                  : (['obiettivi', 'percorsi'] as const)
+                ).map((v) => {
+                  const isActive = catalogView === v;
+                  const activeColor =
+                    v === 'kids' ? KIDS_PROGRAMS.DELFINO.colors.accent : 'var(--club-blue)';
+                  const label =
+                    v === 'obiettivi' ? 'Obiettivi' : v === 'percorsi' ? 'Percorsi' : 'Percorsi Kids';
+                  return (
+                    <button
+                      key={v}
+                      onClick={() => setCatalogView(v)}
+                      className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border transition-colors"
+                      style={{
+                        background: isActive ? activeColor : '#FFFFFF',
+                        borderColor: isActive ? activeColor : '#E5E7EB',
+                        color: isActive ? '#FFFFFF' : '#6B7280',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
               {catalogView === 'obiettivi' && (
                 <GoalTemplatesHeader ctx={catalogCtx} isMobile={false} />
@@ -286,12 +351,44 @@ function CoachDesktopDashboard() {
             </>
           )}
 
+          {activeTab === 'gruppi' && (
+            <>
+              {loading ? (
+                <div className="flex justify-center py-12"><Spinner /></div>
+              ) : filteredGroups.length === 0 ? (
+                <EmptyState
+                  icon={<Users size={40} strokeWidth={1.5} />}
+                  title="Nessun gruppo"
+                  message={search
+                    ? 'Nessun risultato per la ricerca.'
+                    : 'Crea un gruppo per le tue ore di lezione: potrai assegnargli obiettivi e percorsi esattamente come a un allievo.'}
+                />
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
+                  {filteredGroups.map((g) => (
+                    <GroupRow
+                      key={g.id}
+                      group={g}
+                      members={groupMembers[g.id] ?? 0}
+                      openGoals={groupGoals[g.id] ?? 0}
+                      onClick={() => setSelectedStudent(g)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
           {activeTab === 'catalogo' && (
             catalogView === 'obiettivi' ? (
               <GoalTemplatesList ctx={catalogCtx} isMobile={false} />
-            ) : (
+            ) : catalogView === 'percorsi' ? (
               <div className="h-[70vh]">
                 <PathManager coachId={user?.id ?? ''} />
+              </div>
+            ) : (
+              <div className="h-[70vh]">
+                <KidsPathCatalog onOpenStudent={setSelectedStudent} />
               </div>
             )
           )}
@@ -366,6 +463,13 @@ function CoachDesktopDashboard() {
       <CreateStudentForm
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+        onCreated={() => refresh()}
+      />
+
+      <CreateGroupForm
+        open={createGroupOpen}
+        coachId={user?.id ?? null}
+        onClose={() => setCreateGroupOpen(false)}
         onCreated={() => refresh()}
       />
     </div>

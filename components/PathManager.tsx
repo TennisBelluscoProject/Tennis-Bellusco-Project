@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Path, Profile } from '@/lib/database.types';
-import { pathRepo, studentPathRepo, profileRepo } from '@/lib/repositories';
+import { pathRepo, studentPathRepo, profileRepo, groupRepo } from '@/lib/repositories';
 import { useIsMobile } from '@/lib/hooks';
 import {
   Button,
@@ -80,7 +80,7 @@ export function PathManager({ coachId }: Props) {
     <div className={`flex flex-col h-full min-h-0 ${mobilePad}`}>
       <div className="shrink-0 flex items-center justify-between mb-3">
         <p className="text-[12px] text-gray-500">
-          Crea percorsi a tappe e attivali per gli allievi.
+          Crea percorsi a tappe e attivali per allievi o gruppi.
         </p>
         <Button
           variant="secondary"
@@ -173,7 +173,7 @@ function PathCard({
         <p className="text-[12px] text-gray-500 line-clamp-2 leading-relaxed">{path.description}</p>
       )}
       <div className="flex items-center gap-2 mt-1 pt-2 border-t border-gray-100">
-        <Button variant="secondary" size="sm" onClick={onActivate}>Attiva per allievo</Button>
+        <Button variant="secondary" size="sm" onClick={onActivate}>Attiva</Button>
         <button onClick={onEdit} className="text-[12px] font-semibold text-gray-500 hover:text-[var(--club-blue)] px-2 py-1">
           Modifica
         </button>
@@ -192,6 +192,10 @@ function PathCard({
 
 function ActivateModal({ path, onClose }: { path: Path; onClose: () => void }) {
   const [students, setStudents] = useState<Profile[]>([]);
+  // Un percorso si attiva anche per un GRUPPO di lezione: le tappe diventano
+  // obiettivi del gruppo. Il meccanismo e' lo stesso (`activate_path` lavora
+  // su un id di `profiles`), cambia solo chi c'e' dall'altra parte.
+  const [groups, setGroups] = useState<Profile[]>([]);
   const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -201,12 +205,14 @@ function ActivateModal({ path, onClose }: { path: Path; onClose: () => void }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [stud, act] = await Promise.all([
+      const [stud, grp, act] = await Promise.all([
         profileRepo.listApprovedStudents(),
+        groupRepo.list(),
         studentPathRepo.listActivationsByPath(path.id),
       ]);
       if (cancelled) return;
       setStudents(stud.data ?? []);
+      setGroups(grp.data ?? []);
       setActiveIds(new Set(act.data ?? []));
       setLoading(false);
     })();
@@ -215,9 +221,9 @@ function ActivateModal({ path, onClose }: { path: Path; onClose: () => void }) {
     };
   }, [path.id]);
 
-  const filtered = students.filter((s) =>
-    s.full_name.toLowerCase().includes(search.toLowerCase())
-  );
+  const q = search.toLowerCase();
+  const filtered = students.filter((s) => s.full_name.toLowerCase().includes(q));
+  const filteredGroups = groups.filter((g) => g.full_name.toLowerCase().includes(q));
 
   const toggle = async (student: Profile) => {
     setError(null);
@@ -244,14 +250,44 @@ function ActivateModal({ path, onClose }: { path: Path; onClose: () => void }) {
   return (
     <Modal open onClose={onClose} title={`Attiva: ${path.title}`}>
       <div className="flex flex-col gap-3">
-        <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo..." />
+        <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo o gruppo..." />
         <div className="max-h-[50vh] overflow-y-auto flex flex-col gap-1.5">
           {loading ? (
             <div className="flex justify-center py-8"><Spinner /></div>
-          ) : filtered.length === 0 ? (
-            <p className="text-[13px] text-gray-400 text-center py-6">Nessun allievo trovato.</p>
+          ) : filtered.length === 0 && filteredGroups.length === 0 ? (
+            <p className="text-[13px] text-gray-400 text-center py-6">Nessun risultato.</p>
           ) : (
-            filtered.map((s) => {
+            <>
+            {filteredGroups.length > 0 && (
+              <>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 px-1 pt-1">Gruppi</p>
+                {filteredGroups.map((g) => {
+                  const isActive = activeIds.has(g.id);
+                  return (
+                    <div key={g.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-gray-100">
+                      <span className="text-[13px] font-semibold text-gray-800 flex items-center gap-2 min-w-0">
+                        <span className="truncate">{g.full_name}</span>
+                        {isActive && (
+                          <span className="shrink-0 text-[10px] font-bold text-[var(--success)] uppercase tracking-wider">Attivo</span>
+                        )}
+                      </span>
+                      <Button
+                        variant={isActive ? 'ghost' : 'secondary'}
+                        size="sm"
+                        onClick={() => toggle(g)}
+                        loading={busyId === g.id}
+                      >
+                        {isActive ? 'Disattiva' : 'Attiva'}
+                      </Button>
+                    </div>
+                  );
+                })}
+                {filtered.length > 0 && (
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 px-1 pt-2">Allievi</p>
+                )}
+              </>
+            )}
+            {filtered.map((s) => {
               const isActive = activeIds.has(s.id);
               return (
                 <div key={s.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-gray-100">
@@ -271,11 +307,12 @@ function ActivateModal({ path, onClose }: { path: Path; onClose: () => void }) {
                   </Button>
                 </div>
               );
-            })
+            })}
+            </>
           )}
         </div>
         <p className="text-[11px] text-gray-400 leading-relaxed">
-          <b>Attiva</b>: le tappe del percorso diventano obiettivi dell&apos;allievo (quelle sbloccate compaiono anche nel suo Kanban). <b>Disattiva</b>: rimuove il percorso e <b>elimina</b> tutti gli obiettivi creati dalle sue tappe; gli obiettivi liberi non vengono toccati.
+          <b>Attiva</b>: le tappe del percorso diventano obiettivi dell&apos;allievo o del gruppo (quelle sbloccate compaiono anche nel Kanban). <b>Disattiva</b>: rimuove il percorso e <b>elimina</b> tutti gli obiettivi creati dalle sue tappe; gli obiettivi liberi non vengono toccati.
         </p>
         {error && <p className="text-[12px] font-medium text-red-600">{error}</p>}
       </div>

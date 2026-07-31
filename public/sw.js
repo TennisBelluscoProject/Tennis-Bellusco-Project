@@ -1,4 +1,12 @@
-const CACHE_NAME = 'tc-bellusco-v1';
+const CACHE_NAME = 'tc-bellusco-v2';
+
+// In sviluppo (localhost) il service worker NON deve servire nulla dalla
+// cache: i chunk di Next in dev hanno nomi stabili (non hashati), quindi la
+// strategia cache-first congelerebbe il bundle e le modifiche al codice non
+// si vedrebbero mai nel browser.
+function isDevHost(hostname) {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
 
 // Install: activate immediately
 self.addEventListener('install', (event) => {
@@ -20,6 +28,9 @@ self.addEventListener('activate', (event) => {
 // Fetch: network-first for pages, cache-first for static assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+
+  // Sviluppo: sempre rete, mai cache.
+  if (isDevHost(url.hostname)) return;
 
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;

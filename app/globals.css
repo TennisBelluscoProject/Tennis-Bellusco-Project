@@ -468,3 +468,49 @@ input:focus, textarea:focus, select:focus {
   flex: 1;
   background: linear-gradient(90deg, transparent, #DDE2EC 30%, #DDE2EC 70%, transparent);
 }
+
+/* ─── Percorso avventura (stile Duolingo) ─── */
+
+/* Pulsante tappa: schiacciamento "3D" al tocco */
+.adv-node {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-out-expo), box-shadow 0.15s var(--ease-out-expo);
+}
+.adv-node:active {
+  transform: translateY(3px);
+}
+
+/* Anello pulsante sulla tappa corrente */
+@keyframes advPulse {
+  0%   { transform: scale(0.92); opacity: 0.85; }
+  70%  { transform: scale(1.14); opacity: 0; }
+  100% { transform: scale(1.14); opacity: 0; }
+}
+.adv-pulse-ring {
+  animation: advPulse 1.7s ease-out infinite;
+}
+
+/* Mascotte che "galleggia" (testata del percorso) */
+@keyframes advBob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+.adv-bob {
+  animation: advBob 3.2s ease-in-out infinite;
+}
+
+/* Alone colorato che respira dietro alla testata del percorso */
+@keyframes advGlow {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.9; }
+}
+.adv-glow {
+  animation: advGlow 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adv-pulse-ring, .adv-bob, .adv-glow { animation: none; }
+  .adv-node { transition: none; }
+}

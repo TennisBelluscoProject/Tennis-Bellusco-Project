@@ -16,7 +16,7 @@
  *      (`computePathState`) lo rileva, le tappe coinvolte vengono evidenziate
  *      e il salvataggio resta bloccato finche' non si rimuove un prerequisito.
  *
- * L'anteprima usa lo stesso layering topologico di PathTreeView (auto-layout).
+ * L'anteprima usa la vista avventura (PathAdventureView), la stessa dell'allievo.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -27,7 +27,7 @@ import { computePathState } from '@/lib/paths/topo';
 import { Button, Input, Textarea, Select, Spinner, Badge } from './UI';
 import { CategoryIcon } from './CategoryIcon';
 import { GoalTemplatePicker } from './GoalTemplatePicker';
-import { PathTreeView, type PathTreeData } from './PathTreeView';
+import { PathAdventureView, type PathTreeData } from './PathAdventureView';
 
 interface NodeDraft {
   id: string;
@@ -443,7 +443,7 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
             {/* Nessuna altezza fissa: l'anteprima cresce con il contenuto e
                 scorre insieme al resto del form (niente scrollbar annidata). */}
             <div className="rounded-xl border border-gray-100 bg-[var(--background)] p-3">
-              <PathTreeView data={previewData} isPreview />
+              <PathAdventureView data={previewData} isPreview />
             </div>
           </section>
         )}

@@ -36,6 +36,43 @@ export type Profile = {
   approved_at: string | null;
   approved_by: string | null;
   is_fictitious: boolean;
+  /**
+   * true = questa riga NON e' una persona ma un GRUPPO di lezione (es.
+   * "U12 Lun/Mer 17:00"). I gruppi hanno sempre anche `is_fictitious = true`
+   * e `role = 'allievo'`, cosi' ereditano le policy RLS dei profili gestiti
+   * dal maestro e possono avere obiettivi e percorsi come un allievo.
+   *
+   * ATTENZIONE: ogni query che elenca gli allievi deve filtrare
+   * `is_group = false`, altrimenti i gruppi compaiono tra le persone.
+   * Vedi scripts/sql/2026_gruppi.sql (ADR-5-1).
+   */
+  is_group: boolean;
+  /**
+   * Percorso Kids (i 12 passi del Diario) attivo per questo allievo.
+   * NULL = nessun percorso attivo: e' il default, il percorso NON parte da
+   * solo. Lo decide il maestro, e non si deduce da `level` — quello resta la
+   * sua classificazione (Principiante / Intermedio / Avanzato), che e' un
+   * vocabolario diverso dai tre percorsi.
+   */
+  kids_path_level: PlayerLevel | null;
+  kids_path_set_at: string | null;
+  kids_path_set_by: string | null;
+  created_at: string;
+}
+
+/**
+ * Un partecipante di un gruppo di lezione.
+ *
+ * Due forme, mutuamente non esclusive ma con almeno una valorizzata:
+ *  - `student_id` != null  → allievo gia' a sistema; il nome si legge dal suo
+ *                            profilo, cosi' resta allineato se cambia.
+ *  - `display_name` != null → nome libero, per chi non ha (ancora) un profilo.
+ */
+export type GroupMember = {
+  id: string;
+  group_id: string;
+  student_id: string | null;
+  display_name: string | null;
   created_at: string;
 }
 
@@ -68,6 +105,10 @@ export type Goal = {
   // FK opzionale al nodo di percorso che ha materializzato questo obiettivo.
   // NULL = obiettivo "libero" del Kanban; NOT NULL = obiettivo di un Percorso.
   path_node_id: string | null;
+  // Chiave dell'obiettivo dei 12 passi Kids che ha materializzato questa card
+  // (lib/kids/curriculum.ts). Non e' una FK: il contenuto dei percorsi Kids
+  // sta nel codice, non in tabella. NULL = obiettivo non Kids.
+  kids_objective_key: string | null;
 }
 
 export type MatchResultRow = {
@@ -149,6 +190,39 @@ export type StudentPath = {
   activated_by: string | null;
 }
 
+// ─── Percorsi Kids (i 12 passi del Diario del Tennis) ──────────────────────
+//
+// Il contenuto dei tre percorsi sta in lib/kids/curriculum.ts (dati statici).
+// Sul database viaggia solo lo stato dell'allievo.
+
+/** Una riga = un obiettivo dei 12 passi SPUNTATO da quell'allievo. */
+export type KidsPathProgress = {
+  id: string;
+  student_id: string;
+  level: PlayerLevel;
+  /** Chiave stabile generata da lib/kids/curriculum.ts. */
+  objective_key: string;
+  completed_at: string;
+  /** Chi ha messo la spunta (maestro o allievo stesso). */
+  checked_by: string | null;
+}
+
+/** Percorso da 12 passi concluso, con l'eventuale promozione di livello. */
+export type KidsLevelCompletion = {
+  id: string;
+  student_id: string;
+  level: PlayerLevel;
+  completed_at: string;
+  promoted_to: PlayerLevel | null;
+}
+
+/** Quanti obiettivi servono per concludere un livello (validazione server). */
+export type KidsLevelTotal = {
+  level: PlayerLevel;
+  total_objectives: number;
+  updated_at: string;
+}
+
 // ─── Database<T> shape expected by @supabase/supabase-js ───────────────────
 //
 // The Supabase TS generic expects this exact nested shape:
@@ -181,7 +255,16 @@ type ProfileInsert = Optionalize<
   | 'approved_at'
   | 'approved_by'
   | 'is_fictitious'
+  | 'is_group'
+  | 'kids_path_level'
+  | 'kids_path_set_at'
+  | 'kids_path_set_by'
   | 'created_at'
+>;
+
+type GroupMemberInsert = Optionalize<
+  GroupMember,
+  'id' | 'student_id' | 'display_name' | 'created_at'
 >;
 
 type InviteLinkInsert = Optionalize<
@@ -202,6 +285,7 @@ type GoalInsert = Optionalize<
   | 'updated_at'
   | 'completed_at'
   | 'path_node_id'
+  | 'kids_objective_key'
 >;
 
 type MatchResultInsert = Optionalize<
@@ -249,6 +333,16 @@ type StudentPathInsert = Optionalize<
   'id' | 'activated_at' | 'activated_by'
 >;
 
+type KidsPathProgressInsert = Optionalize<
+  KidsPathProgress,
+  'id' | 'completed_at' | 'checked_by'
+>;
+
+type KidsLevelCompletionInsert = Optionalize<
+  KidsLevelCompletion,
+  'id' | 'completed_at' | 'promoted_to'
+>;
+
 export type Database = {
   public: {
     Tables: {
@@ -256,6 +350,12 @@ export type Database = {
         Row: Profile;
         Insert: ProfileInsert;
         Update: Partial<Profile>;
+        Relationships: [];
+      };
+      group_members: {
+        Row: GroupMember;
+        Insert: GroupMemberInsert;
+        Update: Partial<GroupMember>;
         Relationships: [];
       };
       invite_links: {
@@ -306,6 +406,24 @@ export type Database = {
         Update: Partial<StudentPath>;
         Relationships: [];
       };
+      kids_path_progress: {
+        Row: KidsPathProgress;
+        Insert: KidsPathProgressInsert;
+        Update: Partial<KidsPathProgress>;
+        Relationships: [];
+      };
+      kids_level_completions: {
+        Row: KidsLevelCompletion;
+        Insert: KidsLevelCompletionInsert;
+        Update: Partial<KidsLevelCompletion>;
+        Relationships: [];
+      };
+      kids_level_totals: {
+        Row: KidsLevelTotal;
+        Insert: KidsLevelTotal;
+        Update: Partial<KidsLevelTotal>;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -323,6 +441,24 @@ export type Database = {
       };
       deactivate_path: {
         Args: { p_path_id: string; p_student_id: string };
+        Returns: undefined;
+      };
+      /**
+       * Percorsi Kids: valida lato server che tutti gli obiettivi del
+       * livello siano spuntati, registra il completamento e promuove
+       * l'allievo al livello successivo. Ritorna il nuovo livello.
+       */
+      kids_complete_level: {
+        Args: { p_student_id: string; p_level: PlayerLevel };
+        Returns: PlayerLevel;
+      };
+      /**
+       * Percorsi Kids: azzera un allievo. Cancella spunte, storico dei
+       * livelli conclusi e card dei 12 passi, e spegne kids_path_level.
+       * Serve alla disattivazione: riattivare riparte da zero. Solo maestro.
+       */
+      kids_reset_student: {
+        Args: { p_student_id: string };
         Returns: undefined;
       };
     };

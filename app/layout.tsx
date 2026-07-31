@@ -72,10 +72,26 @@ function ServiceWorkerRegister() {
       dangerouslySetInnerHTML={{
         __html: `
           if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
-                .catch(function() {});
-            });
+            var h = location.hostname;
+            var isDev = h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+            if (isDev) {
+              // In sviluppo il SW va disinstallato: la sua cache-first sui file
+              // .js congelerebbe il bundle e le modifiche al codice non si
+              // vedrebbero nel browser.
+              navigator.serviceWorker.getRegistrations()
+                .then(function (rs) { rs.forEach(function (r) { r.unregister(); }); })
+                .catch(function () {});
+              if (window.caches && caches.keys) {
+                caches.keys()
+                  .then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); })
+                  .catch(function () {});
+              }
+            } else {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
+                  .catch(function() {});
+              });
+            }
           }
         `,
       }}

@@ -37,6 +37,11 @@ export const LEVELS = ['DELFINO', 'CERBIATTO', 'COCCODRILLO'] as const;
 // finche' l'Iterazione B (attivazione + materializzazione) non e' completa.
 export const PATHS_PREVIEW = true;
 
+// Feature flag — mostra la sezione "Percorsi Kids" (i 12 passi del Diario del
+// Tennis) nel catalogo del maestro e nella scheda dell'allievo.
+// Richiede la migrazione scripts/sql/2026_kids_paths.sql.
+export const KIDS_PATHS = true;
+
 export const ROUNDS = [
   'Primo turno', 'Secondo turno', 'Terzo turno',
   'Ottavi di finale', 'Quarti di finale', 'Semifinale', 'Finale',

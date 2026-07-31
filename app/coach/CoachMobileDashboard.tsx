@@ -13,6 +13,8 @@ import { CatalogoTab } from './tabs/CatalogoTab';
 import { RisultatiTab } from './tabs/RisultatiTab';
 import { RichiesteTab } from './tabs/RichiesteTab';
 import { CreateStudentForm } from './components/CreateStudentForm';
+import { CreateGroupForm } from './components/CreateGroupForm';
+import { groupRepo } from '@/lib/repositories';
 import { PlayerView } from '../student/PlayerView';
 
 const DISMISSED_KEY = 'tcb-dismissed-notifs-v1';
@@ -22,6 +24,9 @@ export function CoachMobileDashboard() {
   const [tab, setTab] = useState<CoachTabId>('home');
 
   const [students, setStudents] = useState<Profile[]>([]);
+  const [groups, setGroups] = useState<Profile[]>([]);
+  const [groupMembers, setGroupMembers] = useState<Record<string, number>>({});
+  const [groupGoals, setGroupGoals] = useState<Record<string, number>>({});
   const [pendingProfiles, setPendingProfiles] = useState<Profile[]>([]);
   const [studentActivity, setStudentActivity] = useState<Record<string, Date | null>>({});
   const [studentStats, setStudentStats] = useState<Record<string, { matches: number; wins: number; goals: number }>>({});
@@ -47,6 +52,7 @@ export function CoachMobileDashboard() {
   const [confirmReject, setConfirmReject] = useState<Profile | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
 
   const persistDismissed = (s: Set<string>) => {
     setDismissed(s);
@@ -61,13 +67,35 @@ export function CoachMobileDashboard() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [studentsRes, pendingRes, matchesRes, goalsRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('role', 'allievo').eq('approval_status', 'approved').eq('active', true).order('full_name'),
-        supabase.from('profiles').select('*').eq('role', 'allievo').eq('approval_status', 'pending').order('created_at', { ascending: false }),
+      // `is_group` esclude i gruppi di lezione, che dal 2026_gruppi.sql sono
+      // anch'essi righe di `profiles` con role 'allievo' (ADR-5-1).
+      const [studentsRes, pendingRes, matchesRes, goalsRes, groupsRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('role', 'allievo').eq('is_group', false).eq('approval_status', 'approved').eq('active', true).order('full_name'),
+        supabase.from('profiles').select('*').eq('role', 'allievo').eq('is_group', false).eq('approval_status', 'pending').order('created_at', { ascending: false }),
         supabase.from('match_results').select('*, profiles!match_results_student_id_fkey(full_name)').order('match_date', { ascending: false }).limit(150),
         supabase.from('goals').select('*, profiles!goals_student_id_fkey(full_name)').order('updated_at', { ascending: false }).limit(150),
+        groupRepo.list(),
       ]);
       if (cancelled) return;
+
+      const groupList = groupsRes.data ?? [];
+      const groupIds = groupList.map((g) => g.id);
+
+      // Conteggi dei gruppi: partono dopo, perche' servono gli id. Sono due
+      // query leggere su poche decine di righe, non vale la pena complicare.
+      const [membersRes, groupGoalsRes] = await Promise.all([
+        groupRepo.countMembers(groupIds),
+        groupIds.length > 0
+          ? supabase.from('goals').select('student_id, status').in('student_id', groupIds)
+          : Promise.resolve({ data: [] as { student_id: string; status: string }[] }),
+      ]);
+      if (cancelled) return;
+
+      const gGoals: Record<string, number> = {};
+      for (const id of groupIds) gGoals[id] = 0;
+      for (const row of (groupGoalsRes.data ?? []) as { student_id: string; status: string }[]) {
+        if (row.status !== 'completed') gGoals[row.student_id] = (gGoals[row.student_id] ?? 0) + 1;
+      }
 
       const sList = (studentsRes.data as Profile[]) || [];
       const matches = (matchesRes.data as MatchResultRow[]) || [];
@@ -96,6 +124,9 @@ export function CoachMobileDashboard() {
       }
 
       setStudents(sList);
+      setGroups(groupList);
+      setGroupMembers(membersRes.data ?? {});
+      setGroupGoals(gGoals);
       setPendingProfiles((pendingRes.data as Profile[]) || []);
       setAllMatches(matches);
       setRecentGoals(goals);
@@ -189,14 +220,20 @@ export function CoachMobileDashboard() {
             students={students}
             studentActivity={studentActivity}
             studentStats={studentStats}
+            groups={groups}
+            groupMembers={groupMembers}
+            groupGoals={groupGoals}
             search={search}
             onSearchChange={setSearch}
             onSelect={setSelectedStudent}
             onAdd={() => setCreateOpen(true)}
+            onAddGroup={() => setCreateGroupOpen(true)}
           />
         )}
 
-        {tab === 'catalogo' && <CatalogoTab coachId={user?.id ?? ''} />}
+        {tab === 'catalogo' && (
+          <CatalogoTab coachId={user?.id ?? ''} onOpenStudent={setSelectedStudent} />
+        )}
 
         {tab === 'risultati' && (
           <RisultatiTab
@@ -236,6 +273,13 @@ export function CoachMobileDashboard() {
       <CreateStudentForm
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+        onCreated={() => fetchAll()}
+      />
+
+      <CreateGroupForm
+        open={createGroupOpen}
+        coachId={user?.id ?? null}
+        onClose={() => setCreateGroupOpen(false)}
         onCreated={() => fetchAll()}
       />
     </div>

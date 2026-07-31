@@ -1,26 +1,38 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Target, Trophy, Trash2 } from 'lucide-react';
-import { goalRepo, matchRepo, studentPathRepo, pathRepo } from '@/lib/repositories';
+import { Target, Trophy, Trash2, Users } from 'lucide-react';
+import { goalRepo, matchRepo, studentPathRepo, pathRepo, kidsPathRepo } from '@/lib/repositories';
 import type { ActiveStudentPath } from '@/lib/repositories';
 import { Button, Tabs, Spinner, EmptyState, ConfirmDialog } from '@/components/UI';
 import { AvatarDisplay } from '@/components/AvatarDisplay';
 import type { Profile, Goal, MatchResultRow, GoalStatus, PlayerLevel } from '@/lib/database.types';
-import { getDisplayRanking, getAgeCategory, isClassified, LEVELS, PATHS_PREVIEW } from '@/lib/constants';
+import { getDisplayRanking, getAgeCategory, isClassified, LEVELS, PATHS_PREVIEW, KIDS_PATHS } from '@/lib/constants';
 import { KanbanBoard } from '@/components/KanbanBoard';
+import { KidsPathSection } from '@/components/kids/KidsPathSection';
 import { PathTreeView, type PathTreeData } from '@/components/PathTreeView';
 import { computePathState } from '@/lib/paths/topo';
+import { isEmptyPlan } from '@/lib/kids/goals';
 import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
 import { MatchForm } from '@/components/MatchForm';
 import { CoachNotesForm } from '@/components/CoachNotesForm';
 import { DeleteFictitiousStudentDialog } from '@/app/coach/components/DeleteFictitiousStudentDialog';
+import { GroupMembersPanel } from '@/app/coach/components/GroupMembersPanel';
 import { useIsMobile } from '@/lib/hooks';
 
 export type PlayerViewMode = 'self' | 'coach';
 
+/** Le schede della vista allievo. */
+type PlayerTab = 'obiettivi' | 'percorso' | 'kids' | 'match';
+
 interface PlayerViewProps {
+  /**
+   * Il soggetto della scheda. Di norma un allievo, ma puo' essere anche un
+   * GRUPPO di lezione (`is_group = true`): dal punto di vista di obiettivi e
+   * percorsi le due cose si comportano allo stesso modo, ed e' esattamente il
+   * motivo per cui i gruppi sono righe di `profiles` (ADR-5-1).
+   */
   player: Profile;
   mode: PlayerViewMode;
   writerId: string;
@@ -38,7 +50,7 @@ export function PlayerView({
   onDataChanged,
 }: PlayerViewProps) {
   const isMobile = useIsMobile();
-  const [tab, setTab] = useState<'obiettivi' | 'match' | 'percorso'>('obiettivi');
+  const [tab, setTab] = useState<PlayerTab>('obiettivi');
   const [goals, setGoals] = useState<Goal[]>([]);
   const [matches, setMatches] = useState<MatchResultRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,20 +73,41 @@ export function PlayerView({
   const [deactivatePathOpen, setDeactivatePathOpen] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
 
+  // Percorso Kids attivo per questo allievo: NULL = nessuno. Non si deduce
+  // piu' dal livello, lo decide il maestro.
+  const kidsLevel = player.kids_path_level;
+
   // Carica tutto in un colpo: obiettivi liberi, match e percorsi attivi (con
   // grafo + goal materializzati). Calcola la frontiera sbloccata (Kahn) e
   // costruisce sia la lista del Kanban (liberi + nodi SBLOCCATI) sia il
   // view-model dell'albero per ogni percorso (tutti i nodi).
+  //
+  // In parallelo allinea le card dei 12 passi Kids: quelle dei passi appena
+  // sbloccati vanno materializzate anche se l'allievo non apre mai la scheda
+  // "12 passi", altrimenti la sezione Obiettivi resterebbe indietro.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [freeRes, matchRes, activeRes] = await Promise.all([
+      const [freeRes, matchRes, activeRes, kidsSyncRes] = await Promise.all([
         goalRepo.listByStudent(player.id),
         matchRepo.listByStudent(player.id),
         studentPathRepo.listActiveByStudent(player.id),
+        KIDS_PATHS && kidsLevel
+          ? kidsPathRepo.syncGoals({
+              studentId: player.id,
+              level: kidsLevel,
+              actorId: writerId,
+            })
+          : Promise.resolve(null),
       ]);
-      const free = freeRes.data ?? [];
+      let free = freeRes.data ?? [];
+      // Nel caso normale la sincronizzazione non ha nulla da fare e la lista
+      // appena letta e' buona. Si rilegge solo se ha creato o rimosso card.
+      if (kidsSyncRes?.data && !isEmptyPlan(kidsSyncRes.data)) {
+        const rilettura = await goalRepo.listByStudent(player.id);
+        if (rilettura.data) free = rilettura.data;
+      }
       const actives = activeRes.data ?? [];
 
       const loaded = await Promise.all(
@@ -147,11 +180,16 @@ export function PlayerView({
     return () => {
       cancelled = true;
     };
-  }, [player.id, reloadTick]);
+  }, [player.id, reloadTick, writerId, kidsLevel]);
 
   const isCoach = mode === 'coach';
+  // Un gruppo non ha eta', classifica FIT ne' match: e' un soggetto
+  // collettivo. Cambia la testata e sparisce la scheda Match; obiettivi,
+  // percorsi e 12 passi restano identici.
+  const isGroup = player.is_group;
 
   const activeGoals = goals.filter((g) => g.status !== 'completed').length;
+  const doneGoals = goals.filter((g) => g.status === 'completed').length;
   const wins = matches.filter((m) => m.result === 'win').length;
   const totalMatches = matches.length;
   const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
@@ -256,7 +294,7 @@ export function PlayerView({
   };
 
   const handleFab = () => {
-    if (tab === 'obiettivi') {
+    if (tab === 'obiettivi' || isGroup) {
       setEditingGoal(null);
       setGoalFormOpen(true);
     } else {
@@ -281,11 +319,18 @@ export function PlayerView({
       >
         <polyline points="15 18 9 12 15 6" />
       </svg>
-      Torna agli allievi
+      {isGroup ? 'Torna ai gruppi' : 'Torna agli allievi'}
     </button>
   );
 
+  // La composizione del gruppo vive sotto la testata: e' anagrafica, non
+  // lavoro, quindi non merita una scheda tutta sua accanto a Obiettivi.
+  const membersPanel = isGroup ? (
+    <GroupMembersPanel group={player} editable={isCoach} />
+  ) : null;
+
   const heroCard = (
+    <>
     <div
       className="rounded-2xl shadow-sm overflow-hidden mb-6 animate-slide-up relative shrink-0"
       style={{
@@ -296,12 +341,18 @@ export function PlayerView({
       <div className="p-5 sm:p-6">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shrink-0 ring-1 ring-white/15">
-            <AvatarDisplay
-              photoUrl={player.photo_url}
-              fullName={player.full_name}
-              size={64}
-              className="ring-0 shadow-none w-full h-full"
-            />
+            {isGroup ? (
+              <div className="w-full h-full flex items-center justify-center bg-white/10">
+                <Users size={28} strokeWidth={2.2} className="text-white/90" />
+              </div>
+            ) : (
+              <AvatarDisplay
+                photoUrl={player.photo_url}
+                fullName={player.full_name}
+                size={64}
+                className="ring-0 shadow-none w-full h-full"
+              />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h2
@@ -311,6 +362,10 @@ export function PlayerView({
               {player.full_name}
             </h2>
             <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              {isGroup ? (
+                <DarkBadge accent="#FCA5A5">Gruppo di lezione</DarkBadge>
+              ) : (
+                <>
               {ageCategory && <DarkBadge accent="#60A5FA">{ageCategory}</DarkBadge>}
               {classified ? (
                 <DarkBadge accent="#FCA5A5">FIT: {displayRanking}</DarkBadge>
@@ -318,6 +373,8 @@ export function PlayerView({
                 <>
                   <DarkBadge accent="#FCD34D">{displayLevel}</DarkBadge>
                   <DarkBadge accent="rgba(255,255,255,0.55)">Non classificato</DarkBadge>
+                </>
+              )}
                 </>
               )}
             </div>
@@ -334,7 +391,7 @@ export function PlayerView({
             <button
               onClick={() => setDeleteDialogOpen(true)}
               className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-red-200 hover:text-white px-3 py-1.5 rounded-lg border border-red-300/30 hover:border-red-300/60 hover:bg-red-500/15 transition-colors shrink-0"
-              title="Elimina allievo gestito"
+              title={isGroup ? 'Elimina gruppo' : 'Elimina allievo gestito'}
             >
               <Trash2 size={14} strokeWidth={2.2} />
               Elimina
@@ -342,14 +399,23 @@ export function PlayerView({
           )}
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mt-5 pt-5 border-t border-white/10">
-          <StatCol value={activeGoals} label="Obiettivi" tone="blue" />
-          <StatCol value={wins} label="Vittorie" tone="green" />
-          <StatCol value={totalMatches} label="Match" tone="white" />
-          <StatCol value={`${winRate}%`} label="Win Rate" tone="amber" />
-        </div>
+        {isGroup ? (
+          <div className="grid grid-cols-2 gap-2 mt-5 pt-5 border-t border-white/10">
+            <StatCol value={activeGoals} label="Obiettivi aperti" tone="blue" />
+            <StatCol value={doneGoals} label="Conclusi" tone="green" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2 mt-5 pt-5 border-t border-white/10">
+            <StatCol value={activeGoals} label="Obiettivi" tone="blue" />
+            <StatCol value={wins} label="Vittorie" tone="green" />
+            <StatCol value={totalMatches} label="Match" tone="white" />
+            <StatCol value={`${winRate}%`} label="Win Rate" tone="amber" />
+          </div>
+        )}
       </div>
     </div>
+    {membersPanel}
+    </>
   );
 
   const tabsBar = (
@@ -357,10 +423,32 @@ export function PlayerView({
       tabs={[
         { id: 'obiettivi', label: 'Obiettivi' },
         ...(PATHS_PREVIEW ? [{ id: 'percorso', label: 'Il mio percorso' }] : []),
-        { id: 'match', label: 'Match' },
+        // I 12 passi si vedono solo se il maestro ha attivato un percorso per
+        // questo allievo. Il maestro la scheda ce l'ha sempre: e' da li' che
+        // attiva, cambia o disattiva.
+        ...(KIDS_PATHS && (kidsLevel !== null || isCoach)
+          ? [{ id: 'kids', label: '12 passi' }]
+          : []),
+        // I match sono individuali: un gruppo non scende in campo.
+        ...(isGroup ? [] : [{ id: 'match', label: 'Match' }]),
       ]}
       active={tab}
-      onChange={(v) => setTab(v as 'obiettivi' | 'match' | 'percorso')}
+      onChange={(v) => setTab(v as PlayerTab)}
+    />
+  );
+
+  // Percorsi Kids: i 12 passi del Diario del Tennis. Il percorso attivo lo
+  // decide il maestro (profiles.kids_path_level, NULL = nessuno). Il
+  // componente gestisce da solo caricamento, spunte, attivazione e passaggio
+  // di livello; qui ci limitiamo a propagare il refresh.
+  const kidsContent = (
+    <KidsPathSection
+      student={player}
+      actorId={writerId}
+      isCoach={isCoach}
+      onLevelChanged={() => {
+        onDataChanged?.();
+      }}
     />
   );
 
@@ -546,6 +634,17 @@ export function PlayerView({
           // Lo scroll sta sul contenitore: l'albero del percorso non ha piu'
           // una scrollbar interna e scorre insieme a tutto il contenuto.
           <div className="flex-1 min-h-0 overflow-y-auto pb-6">{percorsoContent}</div>
+        ) : tab === 'kids' ? (
+          // Il contenitore che scorre si riprende il padding di `main`
+          // (`-mx-4`) e se lo ri-applica come padding proprio (`px-4`): il
+          // contenuto normale resta allineato al resto della pagina, ma la
+          // mappa dei 12 passi puo' andare a filo schermo restando DENTRO
+          // questo box. Serve perche' con `overflow-y-auto` l'asse X non e'
+          // piu' `visible`: senza questo accorgimento la mappa a tutta
+          // larghezza farebbe comparire una barra di scorrimento orizzontale.
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-6 -mx-4 px-4">
+            {kidsContent}
+          </div>
         ) : (
           <>{matchesContent}</>
         )}
@@ -577,6 +676,13 @@ export function PlayerView({
       {/* Nessuna altezza fissa: l'albero cresce e scorre con la pagina. */}
       <div className="mt-5">{percorsoContent}</div>
     </>
+  ) : tab === 'kids' ? (
+    <>
+      {backLink}
+      {heroCard}
+      {tabsBar}
+      <div className="mt-5">{kidsContent}</div>
+    </>
   ) : (
     <>
       {backLink}
@@ -599,7 +705,7 @@ export function PlayerView({
     <>
       {layoutContents}
 
-      {tab !== 'percorso' && (
+      {tab !== 'percorso' && tab !== 'kids' && (
         <button
           onClick={handleFab}
           className="sm:hidden fab"
