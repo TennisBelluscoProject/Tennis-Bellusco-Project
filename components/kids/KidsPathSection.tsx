@@ -397,7 +397,6 @@ export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: P
         <KidsPathMap
           state={state}
           onOpenStep={setOpenStep}
-          studentName={isCoach ? student.full_name : undefined}
           detail={schedaPasso}
         />
       )}

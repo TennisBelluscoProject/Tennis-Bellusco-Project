@@ -28,7 +28,7 @@ export function StudentDashboard() {
   return (
     <div className="h-[100dvh] sm:h-auto sm:min-h-screen flex sm:block flex-col overflow-hidden sm:overflow-visible bg-[var(--background)]">
       <header className="shrink-0 sm:sticky sm:top-0 sm:z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto page-gutter-x">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
               <Image
@@ -45,7 +45,7 @@ export function StudentDashboard() {
       </header>
       <div className="club-stripe shrink-0" />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 w-full flex-1 min-h-0 flex flex-col overflow-hidden sm:block sm:overflow-visible sm:pb-6">
+      <main className="max-w-7xl mx-auto page-gutter-x pt-5 w-full flex-1 min-h-0 flex flex-col overflow-hidden sm:block sm:overflow-visible sm:pb-6">
         <PlayerView
           player={profile}
           mode="self"

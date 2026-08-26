@@ -213,7 +213,7 @@ function CoachDesktopDashboard() {
     return (
       <div className="min-h-screen bg-[var(--background)]">
         <Header />
-        <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+        <main className="w-full max-w-7xl mx-auto page-gutter-x pb-6">
           <PlayerView
             player={selectedStudent}
             mode="coach"

@@ -619,7 +619,12 @@ export function PlayerView({
   );
 
   const layoutContents = isMobile ? (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    // `overflow-hidden` qui ritaglia al PROPRIO padding box. Se questa radice
+    // resta rientrata del gutter di pagina, ritaglia tutto quello che prova a
+    // uscirne — mappa dei 12 passi compresa, per quanto in basso stia. Quindi
+    // la radice va da bordo a bordo e si rimette il respiro come padding:
+    // adesso ritaglia sul viewport, cioe' non ritaglia niente.
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden full-bleed page-gutter-x">
       {backLink}
       {heroCard}
       <div className="shrink-0">{tabsBar}</div>
@@ -635,14 +640,18 @@ export function PlayerView({
           // una scrollbar interna e scorre insieme a tutto il contenuto.
           <div className="flex-1 min-h-0 overflow-y-auto pb-6">{percorsoContent}</div>
         ) : tab === 'kids' ? (
-          // Il contenitore che scorre si riprende il padding di `main`
-          // (`-mx-4`) e se lo ri-applica come padding proprio (`px-4`): il
-          // contenuto normale resta allineato al resto della pagina, ma la
-          // mappa dei 12 passi puo' andare a filo schermo restando DENTRO
-          // questo box. Serve perche' con `overflow-y-auto` l'asse X non e'
-          // piu' `visible`: senza questo accorgimento la mappa a tutta
-          // larghezza farebbe comparire una barra di scorrimento orizzontale.
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-6 -mx-4 px-4">
+          // Il contenitore di scorrimento va da bordo a bordo e si rimette il
+          // respiro laterale come PADDING, non come margine della pagina.
+          //
+          // Serve perche' `overflow-y: auto` fa calcolare anche `overflow-x`
+          // ad `auto`: questo div diventa un contenitore di scorrimento e
+          // RITAGLIA sul proprio padding box. Finche' quel padding box era
+          // rientrato dei 16px del gutter, la mappa dei 12 passi non poteva in
+          // alcun modo raggiungere i bordi dello schermo e restavano due
+          // strisce bianche ai lati. Cosi' invece il padding box coincide con
+          // il viewport e `.full-bleed` (dentro KidsPathMap) ci arriva esatto,
+          // senza overflow.
+          <div className="flex-1 min-h-0 overflow-y-auto pb-6 full-bleed page-gutter-x">
             {kidsContent}
           </div>
         ) : (

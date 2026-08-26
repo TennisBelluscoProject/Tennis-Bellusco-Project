@@ -26,7 +26,8 @@ import {
 } from '@/lib/kids/curriculum';
 import { computeKidsState } from '@/lib/kids/progress';
 import { Spinner, EmptyState, SearchBar } from '@/components/UI';
-import { KidsPathMap } from './KidsPathMap';
+import { useIsMobile } from '@/lib/hooks';
+import { KidsPathMap, FULL_BLEED_AT } from './KidsPathMap';
 import { KidsStepSheet } from './KidsStepSheet';
 
 interface Props {
@@ -128,6 +129,14 @@ function KidsProgramDetail({
   const [view, setView] = useState<'passi' | 'allievi'>('passi');
   const [openStep, setOpenStep] = useState<number | null>(null);
 
+  // Sul telefono l'anteprima della mappa esce dai margini come nella scheda
+  // dell'allievo. Il contenitore di scorrimento deve quindi arrivare ai bordi
+  // e rimettere il respiro come PADDING: `overflow-y: auto` fa calcolare anche
+  // `overflow-x` ad `auto`, e un contenitore di scorrimento ritaglia tutto
+  // quello che sporge dal suo padding box. Solo sul telefono: piu' in su la
+  // mappa non e' full-bleed e queste classi non servirebbero a niente.
+  const isPhone = useIsMobile(FULL_BLEED_AT);
+
   // Anteprima: nessun obiettivo spuntato, quindi solo i primi due passi
   // risultano sbloccati. Il maestro puo' comunque aprire e leggere tutto.
   const preview = useMemo(() => computeKidsState(program, new Set<string>()), [program]);
@@ -185,7 +194,11 @@ function KidsProgramDetail({
         ))}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto pb-6">
+      <div
+        className={`flex-1 min-h-0 overflow-y-auto pb-6 ${
+          isPhone ? 'full-bleed page-gutter-x' : ''
+        }`}
+      >
         {view === 'passi' ? (
           <>
             <div

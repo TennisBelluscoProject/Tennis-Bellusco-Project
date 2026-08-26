@@ -17,26 +17,43 @@
  *  - L'avanzamento e' raccontato in PUNTI ESPERIENZA e LIVELLI (vedi xp.ts),
  *    non in "passi completati": ogni obiettivo vale piu' XP man mano che si
  *    avanza, e ogni livello costa piu' del precedente.
- *  - Ogni 2 PASSI c'e' un CANCELLO, ma si vede SOLO FINCHE' E' CHIUSO: una
- *    linea sottile che taglia la mappa con al centro una pastiglia che dice
- *    quale livello serve per proseguire e quanto manca. Appena si apre
- *    sparisce, riga compresa: a quel punto non aggiunge nulla, perche' il
- *    sentiero colorato e le impronte raccontano gia' che di li' si e' passati.
+ *  - Ogni 2 PASSI il sentiero e' tagliato da un DIVISORE DI SEZIONE: una riga
+ *    netta da bordo a bordo con al centro il nome della tappa. E' anche il
+ *    lucchetto: finche' la tappa e' chiusa mostra a che livello si apre. Il
+ *    titolo appartiene alla TAPPA, non al singolo passo — sul nodo bastano il
+ *    numero e lo stato.
  *  - L'AVATAR sta in due posti: nella TESTATA, come "faccia" del percorso
  *    accanto al livello e alla barra dell'esperienza, e SUL SENTIERO, accanto
  *    al passo corrente. Quando il passo corrente cambia non salta: PERCORRE
  *    la curva fino alla nuova posizione, cosi' si vede la strada fatta. Si
  *    evolve a livelli prestabiliti (`state.tierLevels`).
  *
+ * ─────────────────────────────────────────────────────────────────────────
+ * LA GEOMETRIA STA ALTROVE
+ *
+ * Formati, impilamento verticale e curva del sentiero vivono in
+ * `lib/kids/map-layout.ts`: sono funzioni pure, quindi le regole di non
+ * sovrapposizione si verificano con un test invece che con uno screenshot.
+ * Qui dentro resta solo il disegno.
+ *
+ * In breve: le y NON sono `indice * altezza_banda`. Ogni riga (passo, divisore
+ * di sezione, traguardo) dichiara la propria altezza e `buildLayout` le impila,
+ * quindi niente puo' sovrapporsi per costruzione. E il ritmo e' IRREGOLARE di
+ * proposito: sette ampiezze orizzontali e cinque altezze, lunghezze prime fra
+ * loro, cosi' il sentiero ondeggia invece di rimbalzare fra due sponde alla
+ * stessa identica distanza.
+ *
  * DUE FORMATI
- *  Su telefono la mappa esce dai margini e occupa tutta la larghezza dello
- *  schermo, senza riepilogo sotto: con dodici fasce da 150px il riepilogo
- *  finirebbe dopo quasi duemila pixel di scorrimento, dove non arriva
- *  nessuno. Da 900px in su la mappa si allarga e viene affiancata da una
- *  COLONNA DESTRA appiccicata che mostra il riepilogo — oppure la scheda del
- *  passo aperto, passata dal chiamante con la prop `detail`. La geometria e'
- *  raccolta in `GEO_MOBILE` / `GEO_DESKTOP`: niente numeri magici sparsi nel
- *  componente.
+ *  TELEFONO — la mappa esce dai margini e occupa tutta la larghezza dello
+ *  schermo (classe `.full-bleed`, vedi globals.css). Niente riepilogo in fondo:
+ *  con dodici righe finirebbe dopo quasi duemila pixel di scorrimento, dove non
+ *  arriva nessuno.
+ *  DESKTOP (da 900px) — sentiero piu' ampio e COLONNA DESTRA appiccicata col
+ *  riepilogo, oppure la scheda del passo aperto, passata dal chiamante con la
+ *  prop `detail`.
+ *
+ * La geometria dei due formati e' raccolta in `GEO_MOBILE` / `GEO_DESKTOP`:
+ * niente numeri magici sparsi nel componente.
  *
  * Componente PRESENTAZIONALE: riceve lo stato gia' calcolato
  * (lib/kids/progress.ts) e notifica solo l'apertura di un passo.
@@ -44,9 +61,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
-import { areasSummary } from '@/lib/kids/curriculum';
 import type { KidsProgramState, KidsStepState } from '@/lib/kids/progress';
 import { useIsMobile } from '@/lib/hooks';
+import {
+  GEO_DESKTOP,
+  GEO_MOBILE,
+  buildLayout,
+  buildTrail,
+  xFor,
+  type Geo,
+  type Trail,
+} from '@/lib/kids/map-layout';
 import {
   WORLDS,
   lerpColor,
@@ -56,157 +81,26 @@ import {
   type WorldConfig,
 } from '@/lib/paths/worlds';
 
-// ─── Geometria: due formati ─────────────────────────────────────────────────
-
-interface Geo {
-  /** Larghezza logica del viewBox dello scenario. */
-  vbW: number;
-  /** Altezza in px della fascia dedicata a ogni passo. */
-  band: number;
-  /** Altezza della fascia finale con il traguardo. */
-  finish: number;
-  node: number;
-  nodeCurrent: number;
-  /** Mascotte nella testata. */
-  headerMascot: number;
-  /** Larghezza massima dell'etichetta sotto un nodo. */
-  labelW: number;
-  /** Dimensione della mascotte che cammina sul sentiero. */
-  mascot: number;
-  /** Distanza orizzontale (unita' del viewBox) fra mascotte e nodo. */
-  mascotOffset: number;
-  /** Spazio fra il nodo e la sua etichetta. */
-  labelGap: number;
-  /** Corpo del titolo nell'etichetta. */
-  labelFont: number;
-  /** Larghezza massima della mappa (serve solo sul telefono). */
-  maxW?: number;
-}
-
-const GEO_MOBILE: Geo = {
-  vbW: 390,
-  band: 150,
-  finish: 168,
-  node: 66,
-  nodeCurrent: 76,
-  headerMascot: 84,
-  labelW: 152,
-  mascot: 70,
-  mascotOffset: 78,
-  labelGap: 8,
-  labelFont: 11,
-  maxW: 440,
-};
-
-const GEO_DESKTOP: Geo = {
-  vbW: 780,
-  band: 194,
-  finish: 210,
-  node: 88,
-  nodeCurrent: 100,
-  headerMascot: 116,
-  labelW: 200,
-  mascot: 112,
-  mascotOffset: 130,
-  labelGap: 10,
-  labelFont: 12.5,
-};
-
-/** Serpentina: frazioni orizzontali ripetute. */
-const X_PATTERN = [0.5, 0.7, 0.5, 0.3];
-
-const xFor = (i: number, g: Geo) => X_PATTERN[i % X_PATTERN.length] * g.vbW;
-const yFor = (i: number, g: Geo) => i * g.band + g.band / 2;
-
 const TIER_LABELS = ['Cucciolo', 'Ragazzo', 'Adulto'] as const;
-
-// ─── Il sentiero come curva percorribile ────────────────────────────────────
-//
-// La stessa curva serve a DUE cose: disegnare il tracciato nello scenario e
-// far CAMMINARE la mascotte sopra. Quindi la geometria si calcola una volta
-// sola qui e viene passata a entrambi.
-//
-// I nodi sono i punti di passaggio; i punti di controllo vengono da
-// Catmull-Rom, cosi' le giunzioni fra un tratto e il successivo non hanno
-// spigoli. `pointAt` prende una posizione GLOBALE lungo il sentiero: 0 e' il
-// primo passo, 1 il secondo, ... N il traguardo. La parte intera dice su
-// quale tratto siamo, la parte decimale dove.
-
-type Point = [number, number];
-
-interface TrailSegment {
-  p1: Point;
-  p2: Point;
-  c1: Point;
-  c2: Point;
-  /** Punto del tratto a t ∈ [0,1]. */
-  at: (t: number) => Point;
-}
-
-interface Trail {
-  segments: TrailSegment[];
-  /** Punto a una posizione globale ∈ [0, segments.length]. */
-  pointAt: (position: number) => Point;
-}
-
-/** Tensione della Catmull-Rom: piu' alta = curve piu' ampie. */
-const TRAIL_TENSION = 0.34;
-
-function buildTrail(stepCount: number, g: Geo): Trail {
-  const pts: Point[] = Array.from({ length: stepCount }, (_, i) => [xFor(i, g), yFor(i, g)]);
-  pts.push([g.vbW / 2, stepCount * g.band + g.finish / 2]); // traguardo
-
-  const segments: TrailSegment[] = pts.slice(0, -1).map((_, i) => {
-    const p0 = pts[Math.max(0, i - 1)];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[Math.min(pts.length - 1, i + 2)];
-    const c1: Point = [
-      p1[0] + (p2[0] - p0[0]) * TRAIL_TENSION * 0.5,
-      p1[1] + (p2[1] - p0[1]) * TRAIL_TENSION,
-    ];
-    const c2: Point = [
-      p2[0] - (p3[0] - p1[0]) * TRAIL_TENSION * 0.5,
-      p2[1] - (p3[1] - p1[1]) * TRAIL_TENSION,
-    ];
-    const at = (t: number): Point => {
-      const u = 1 - t;
-      return [
-        u * u * u * p1[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * p2[0],
-        u * u * u * p1[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * p2[1],
-      ];
-    };
-    return { p1, p2, c1, c2, at };
-  });
-
-  const pointAt = (position: number): Point => {
-    if (segments.length === 0) return [g.vbW / 2, g.band / 2];
-    const clamped = Math.max(0, Math.min(segments.length, position));
-    if (clamped >= segments.length) return segments[segments.length - 1].p2;
-    const i = Math.floor(clamped);
-    return segments[i].at(clamped - i);
-  };
-
-  return { segments, pointAt };
-}
 
 /** Da 900px in su la mappa sta accanto alla colonna del riepilogo. */
 const TWO_COLUMNS_AT = 900;
 
 /**
  * Sotto questa larghezza la mappa esce dai margini della pagina e occupa
- * tutto lo schermo. Non coincide con `TWO_COLUMNS_AT`: fra 640 e 900px siamo
- * su tablet o su una finestra stretta, dove il contenuto e' gia' comodo e
- * stirare la mappa da bordo a bordo la renderebbe solo sproporzionata.
+ * tutto lo schermo.
+ *
+ * Coincide di proposito con `TWO_COLUMNS_AT`: la soglia e' UNA SOLA, cioe'
+ * "la mappa e' da sola in colonna". Tenerne due separate voleva dire avere
+ * una fascia (640-900px) in cui la mappa era gia' nel formato stretto ma
+ * restava incorniciata dal gutter, con due strisce bianche ai lati.
  */
-const FULL_BLEED_AT = 640;
+export const FULL_BLEED_AT = TWO_COLUMNS_AT;
 
 interface Props {
   state: KidsProgramState;
   /** Riceve l'indice del passo (0..11). */
   onOpenStep: (stepIndex: number) => void;
-  /** Mostrato in testata quando il maestro guarda la scheda di un allievo. */
-  studentName?: string;
   /**
    * Scheda del passo aperto. Su desktop PRENDE IL POSTO del riepilogo nella
    * colonna destra; sul telefono e' un foglio che sale dal basso, quindi puo'
@@ -215,7 +109,7 @@ interface Props {
   detail?: ReactNode;
 }
 
-export function KidsPathMap({ state, onOpenStep, studentName, detail }: Props) {
+export function KidsPathMap({ state, onOpenStep, detail }: Props) {
   const isMobile = useIsMobile(TWO_COLUMNS_AT);
   const isPhone = useIsMobile(FULL_BLEED_AT);
   const g = isMobile ? GEO_MOBILE : GEO_DESKTOP;
@@ -223,11 +117,14 @@ export function KidsPathMap({ state, onOpenStep, studentName, detail }: Props) {
   const world = WORLDS[state.program.level];
   const accent = state.program.colors.accent;
   const steps = state.steps;
-  const totalH = steps.length * g.band + g.finish;
 
-  // Geometria del sentiero: la calcoliamo una volta e la condividiamo fra lo
-  // scenario (che la disegna) e la mascotte (che la percorre).
-  const trail = useMemo(() => buildTrail(steps.length, g), [steps.length, g]);
+  // Verticale e sentiero: si calcolano una volta e li leggono tutti.
+  const layout = useMemo(
+    () => buildLayout(steps.map((s) => ({ startsSection: s.half === 0 })), g),
+    [steps, g]
+  );
+  const trail = useMemo(() => buildTrail(layout, g), [layout, g]);
+  const totalH = layout.totalH;
 
   // Animazione di sblocco: evidenzia i passi appena diventati accessibili.
   const prevUnlocked = useRef<boolean[] | null>(null);
@@ -256,11 +153,12 @@ export function KidsPathMap({ state, onOpenStep, studentName, detail }: Props) {
       style={{
         height: totalH,
         // Sul telefono la mappa arriva ai bordi dello schermo: niente tetto
-        // di larghezza e niente angoli tondi, che a filo di schermo
-        // lascerebbero due tacche bianche.
+        // di larghezza, niente angoli tondi (a filo di schermo lascerebbero
+        // due tacche bianche) e niente ombra, che sul bordo del viewport si
+        // vedrebbe solo come una riga grigia.
         maxWidth: isPhone ? undefined : g.maxW,
         borderRadius: isPhone ? 0 : 26,
-        boxShadow: '0 10px 30px rgba(16,24,40,0.16)',
+        boxShadow: isPhone ? 'none' : '0 10px 30px rgba(16,24,40,0.16)',
       }}
     >
       <SceneBackground
@@ -272,7 +170,8 @@ export function KidsPathMap({ state, onOpenStep, studentName, detail }: Props) {
         g={g}
       />
 
-      {/* Sole: alone diffuso + disco, in alto a destra */}
+      {/* Sole: alone diffuso + disco, in alto a destra. Sul telefono cade nel
+          cielo libero di `topPad`, sopra il primo passo. */}
       <span
         aria-hidden
         className="absolute rounded-full pointer-events-none z-[1]"
@@ -288,56 +187,53 @@ export function KidsPathMap({ state, onOpenStep, studentName, detail }: Props) {
         aria-hidden
         className="absolute rounded-full pointer-events-none z-[1]"
         style={{
-          right: isMobile ? 40 : 66,
-          top: isMobile ? 34 : 44,
-          width: isMobile ? 54 : 68,
-          height: isMobile ? 54 : 68,
+          right: isMobile ? 34 : 66,
+          top: isMobile ? 14 : 44,
+          width: isMobile ? 50 : 68,
+          height: isMobile ? 50 : 68,
           background: `radial-gradient(circle at 35% 32%, #FFF6D8, ${world.sunStart} 72%)`,
           boxShadow: `0 0 40px ${world.sunStart}99`,
         }}
       />
 
-      {/* Cancelli: uno ogni 2 passi, solo quelli ancora chiusi */}
-      {steps.map((s, i) =>
-        s.gateAfter && !s.gateOpen ? (
-          <Gate
-            key={`gate-${i}`}
-            index={i}
-            requiredLevel={s.gateLevel ?? 0}
-            currentLevel={state.levelInfo.level}
-            hasEvolution={i + 1 < steps.length && steps[i + 1].tier !== s.tier}
-            g={g}
+      {/* Divisori: uno ogni 2 passi, aprono la tappa e ne dicono il nome */}
+      {steps.map((s, i) => {
+        const y = layout.sectionY[i];
+        if (y === null) return null;
+        const stage = state.stages[s.stageIndex];
+        const precedente = state.stages[s.stageIndex - 1];
+        return (
+          <SectionDivider
+            key={`sez-${i}`}
+            y={y}
+            numero={s.stageIndex + 1}
+            titolo={stage.stage.court}
+            sottotitolo={stage.stage.label}
+            locked={!s.unlocked}
+            requiredLevel={precedente?.gateLevel ?? null}
+            accent={accent}
           />
-        ) : null
-      )}
+        );
+      })}
 
       {/* I dodici passi */}
       {steps.map((s, i) => (
-        <div
+        <StepMarker
           key={`${s.stage.id}-${s.number}`}
-          className={`absolute z-10 flex flex-col items-center ${
-            justUnlocked.has(i) ? 'animate-unlock' : ''
-          }`}
-          style={{
-            left: `${(xFor(i, g) / g.vbW) * 100}%`,
-            top: yFor(i, g),
-            transform: 'translate(-50%, -50%)',
-            gap: g.labelGap,
-          }}
-        >
-          <StepNode
-            step={s}
-            accent={accent}
-            accentDark={state.program.colors.accentDark}
-            g={g}
-            onTap={() => onOpenStep(i)}
-          />
-        </div>
+          step={s}
+          x={xFor(i, g)}
+          y={layout.stepY[i]}
+          accent={accent}
+          accentDark={state.program.colors.accentDark}
+          g={g}
+          justUnlocked={justUnlocked.has(i)}
+          onTap={() => onOpenStep(i)}
+        />
       ))}
 
       <MascotOnPath state={state} world={world} accent={accent} trail={trail} g={g} />
 
-      <Finish state={state} stepCount={steps.length} g={g} />
+      <Finish state={state} y={layout.finishY} stepCount={steps.length} />
     </div>
   );
 
@@ -345,23 +241,33 @@ export function KidsPathMap({ state, onOpenStep, studentName, detail }: Props) {
 
   // ─── Una colonna: testata e mappa (il foglio del passo galleggia) ───
   //
-  // Qui NON si mostra il riepilogo laterale: con 12 fasce da 150px finirebbe
-  // dopo quasi duemila pixel di mappa, cioe' in un punto dove non arriva
-  // nessuno. Le stesse informazioni sono gia' in testata (livello, XP, quanto
-  // manca) e sulla mappa stessa (i cancelli dicono che livello serve).
+  // Qui NON si mostra il riepilogo laterale: con dodici righe finirebbe dopo
+  // quasi duemila pixel di mappa, cioe' in un punto dove non arriva nessuno.
+  // Le stesse informazioni sono gia' in testata (livello, XP, quanto manca) e
+  // sulla mappa stessa (i cancelli dicono che livello serve).
   if (isMobile) {
+    // Sul telefono testata e mappa sono UN BLOCCO SOLO: stessa larghezza
+    // (quella dello schermo), attaccate, senza cornice fra le due. La scheda
+    // dell'allievo ha gia' il suo riquadro blu tondo piu' in alto; ripeterne
+    // un secondo qui sotto spezzava la pagina in due card sovrapposte invece
+    // di far leggere la testata come l'intestazione della mappa.
+    const blocco = (
+      <>
+        <HeroHeader state={state} world={world} g={g} mobile seamless={isPhone} />
+        {mappa}
+      </>
+    );
+
     return (
       <div className="flex flex-col">
-        <HeroHeader state={state} world={world} studentName={studentName} g={g} mobile />
         {isPhone ? (
-          // Full-bleed: la mappa esce dal padding della pagina e occupa la
-          // larghezza dello schermo. `calc(50% - 50vw)` funziona perche' il
-          // contenitore e' centrato nel viewport, e a differenza di una
-          // `transform` non crea un contenitore per gli elementi `fixed`
-          // (il foglio del passo e' figlio di questo stesso albero).
-          <div style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}>{mappa}</div>
+          // `.full-bleed` (globals.css) annulla il gutter di pagina con un
+          // margine negativo. Volutamente NON usa `transform`: il foglio del
+          // passo e' `position: fixed` ed e' figlio di questo stesso albero,
+          // quindi un antenato trasformato lo incollerebbe alla mappa.
+          <div className="full-bleed">{blocco}</div>
         ) : (
-          mappa
+          blocco
         )}
         {detail}
       </div>
@@ -371,7 +277,7 @@ export function KidsPathMap({ state, onOpenStep, studentName, detail }: Props) {
   // ─── Desktop: mappa a sinistra, colonna destra appiccicata ───
   return (
     <div className="flex flex-col">
-      <HeroHeader state={state} world={world} studentName={studentName} g={g} />
+      <HeroHeader state={state} world={world} g={g} />
       <div className="flex gap-5 items-start pb-6">
         <div className="flex-1 min-w-0">{mappa}</div>
         <aside className="w-[292px] shrink-0 sticky top-20">{detail ?? riepilogo}</aside>
@@ -394,6 +300,7 @@ function Mascot({
   accent,
   bob,
   ground,
+  glow = true,
 }: {
   world: WorldConfig;
   tier: 0 | 1 | 2;
@@ -402,9 +309,23 @@ function Mascot({
   bob?: boolean;
   /** Ombra ellittica a terra: serve quando la mascotte poggia sul sentiero. */
   ground?: boolean;
+  /**
+   * Alone colorato dietro l'avatar. Serve a staccarlo dai fondali scuri della
+   * mappa; in testata invece il fondo e' gia' uniforme e l'alone si legge solo
+   * come una macchia di nebbia intorno alla sagoma.
+   */
+  glow?: boolean;
 }) {
   const t = world.tiers[tier];
   const aura = accent ?? t.aura;
+
+  // Il riquadro resta di `size` — e' lui a dettare posizione, ombra a terra ed
+  // etichetta — mentre l'immagine puo' essere piu' grande e sbordare. Vedi il
+  // commento su `fit` in lib/paths/worlds.ts: serve a pareggiare a occhio
+  // animali di forma molto diversa dentro lo stesso riquadro quadrato.
+  const fit = t.fit ?? 1;
+  const imgSize = Math.round(size * fit);
+  const sbordo = (imgSize - size) / 2;
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
@@ -422,24 +343,35 @@ function Mascot({
           aria-hidden
         />
       )}
-      <span
-        className="absolute rounded-full pointer-events-none"
-        style={{
-          inset: -size * 0.12,
-          background: `radial-gradient(circle, ${aura}4d 0%, transparent 70%)`,
-          filter: 'blur(8px)',
-        }}
-        aria-hidden
-      />
+      {glow && (
+        <span
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            inset: -size * 0.12,
+            background: `radial-gradient(circle, ${aura}4d 0%, transparent 70%)`,
+            filter: 'blur(8px)',
+          }}
+          aria-hidden
+        />
+      )}
       {t.image ? (
         <Image
           src={t.image}
           alt={`${world.name} ${t.label}`}
-          width={size}
-          height={size}
-          sizes={`${size}px`}
-          className={`relative object-contain ${bob ? 'adv-bob' : ''}`}
-          style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.45))' }}
+          width={imgSize}
+          height={imgSize}
+          sizes={`${imgSize}px`}
+          className={`absolute max-w-none object-contain ${bob ? 'adv-bob' : ''}`}
+          style={{
+            width: imgSize,
+            height: imgSize,
+            // Centrata sul riquadro: sborda in modo simmetrico.
+            left: -sbordo,
+            top: -sbordo,
+            filter: glow
+              ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.45))'
+              : 'drop-shadow(0 4px 8px rgba(0,0,0,0.32))',
+          }}
         />
       ) : (
         <span
@@ -454,49 +386,52 @@ function Mascot({
   );
 }
 
-// ─── Testata: avatar, livello ed esperienza ─────────────────────────────────
+// ─── Testata: avatar ed esperienza ──────────────────────────────────────────
 
+/**
+ * Dice DUE cose sole: chi sei diventato (l'avatar, col suo stadio) e a che
+ * livello sei. Tutto il resto e' contorno.
+ *
+ * Il nome dell'allievo NON compare: nella scheda sta gia' nel riquadro blu
+ * poco sopra, e ripeterlo qui rubava il posto centrale al numero del livello,
+ * che e' l'unica cosa che cambia mentre si spuntano gli obiettivi.
+ */
 function HeroHeader({
   state,
   world,
-  studentName,
   g,
   mobile,
+  seamless,
 }: {
   state: KidsProgramState;
   world: WorldConfig;
-  studentName?: string;
   g: Geo;
   mobile?: boolean;
+  /**
+   * Testata SALDATA alla mappa: niente angoli tondi, niente stacco sotto,
+   * niente riga tricolore. Le due parti si leggono come un unico pannello a
+   * tutta larghezza invece che come due card impilate.
+   */
+  seamless?: boolean;
 }) {
   const c = state.program.colors;
   const li = state.levelInfo;
+  const pieno = state.finished ? 100 : li.percent;
 
   return (
     <div
-      className="relative overflow-hidden mb-4 text-white"
+      className={`relative overflow-hidden text-white ${seamless ? '' : 'mb-4'}`}
       style={{
-        borderRadius: 24,
+        borderRadius: seamless ? 0 : 24,
         background: `linear-gradient(112deg, ${world.hero[0]} 0%, ${world.hero[1]} 52%, ${world.hero[2]} 100%)`,
-        boxShadow: '0 8px 26px rgba(16,24,40,0.14)',
+        boxShadow: seamless ? 'none' : '0 8px 26px rgba(16,24,40,0.14)',
       }}
     >
-      <span
-        aria-hidden
-        className="absolute rounded-full pointer-events-none adv-glow"
-        style={{
-          right: -60,
-          top: -110,
-          width: 340,
-          height: 340,
-          background: `radial-gradient(circle, ${c.accent}55, transparent 65%)`,
-        }}
-      />
-
-      <div className="relative flex items-center gap-5 px-5 py-5 sm:px-6">
-        <Mascot world={world} tier={state.tier} size={g.headerMascot} accent={c.accent} bob />
+      <div className="flex items-center gap-4 px-5 py-4 sm:px-6 sm:py-5">
+        <Mascot world={world} tier={state.tier} size={g.headerMascot} bob glow={false} />
 
         <div className="flex-1 min-w-0">
+          {/* Percorso e stadio raggiunto dall'avatar */}
           <div className="flex items-center gap-2 flex-wrap">
             <span
               className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-[0.08em] text-white"
@@ -504,63 +439,52 @@ function HeroHeader({
             >
               {state.program.name}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/50">
               {TIER_LABELS[state.tier]}
             </span>
           </div>
 
-          <h3
-            className="text-[20px] sm:text-[26px] font-bold tracking-[-0.02em] mt-2 truncate"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            {studentName ?? world.tagline}
-          </h3>
-
-          <div className="flex items-center gap-3.5 mt-3 flex-wrap">
-            <div
-              className="shrink-0 flex items-baseline gap-1.5 px-3 py-1.5 rounded-2xl"
-              style={{ background: 'rgba(255,255,255,0.13)' }}
+          {/* Il livello: il numero grande e' il soggetto della testata */}
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">
+              Liv
+            </span>
+            <span
+              className="font-extrabold leading-none tabular-nums"
+              style={{ fontSize: mobile ? 42 : 52, fontFamily: 'var(--font-display)' }}
             >
-              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/50">
-                Liv
-              </span>
-              <span
-                className="text-[22px] sm:text-[26px] font-extrabold leading-none tabular-nums"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {li.level}
-              </span>
-            </div>
+              {li.level}
+            </span>
+            <span className="ml-auto text-[10.5px] font-semibold text-white/40 tabular-nums whitespace-nowrap">
+              max {state.maxLevel}
+            </span>
+          </div>
 
-            <div className="flex-1" style={{ minWidth: mobile ? 140 : 180 }}>
+          {/* Esperienza */}
+          <div className="mt-2.5">
+            <div
+              className="h-2 rounded-full overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.16)' }}
+            >
               <div
-                className="h-2.5 rounded-full overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.14)' }}
-              >
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${state.finished ? 100 : li.percent}%`,
-                    background: `linear-gradient(90deg, ${c.accent}, #F5B921)`,
-                  }}
-                />
-              </div>
-              <div className="flex justify-between gap-3 mt-1.5">
-                <span className="text-[11.5px] text-white/60 tabular-nums">
-                  {state.finished
-                    ? 'Percorso concluso'
-                    : `${li.xpIntoLevel} / ${li.xpForNextLevel} XP al livello ${li.level + 1}`}
-                </span>
-                <span className="text-[11.5px] text-white/60 tabular-nums whitespace-nowrap">
-                  {state.xp} XP totali · max {state.maxLevel}
-                </span>
-              </div>
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${pieno}%`,
+                  background: `linear-gradient(90deg, ${c.accent}, #F5B921)`,
+                }}
+              />
             </div>
+            <p className="text-[11px] text-white/55 tabular-nums mt-1.5 truncate">
+              {state.finished
+                ? 'Percorso concluso'
+                : `${li.xpIntoLevel} / ${li.xpForNextLevel} XP al livello ${li.level + 1}`}
+              <span className="text-white/30"> · {state.xp} XP totali</span>
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="club-stripe" />
+      {!seamless && <div className="club-stripe" />}
     </div>
   );
 }
@@ -687,8 +611,6 @@ function SceneBackground({
   totalH: number;
   g: Geo;
 }) {
-  const N = steps.length;
-  const bands = N + 1; // + fascia del traguardo
   const uid = `kids-${world.id}`;
 
   // Fondale: una sola rampa continua campionata fitta, senza fasce.
@@ -750,7 +672,7 @@ function SceneBackground({
         );
       })}
 
-      <EdgeDecor world={world} bands={bands} lastBand={N} g={g} />
+      <EdgeDecor world={world} totalH={totalH} g={g} />
 
       {/* Sentiero + impronte sui tratti gia' percorsi */}
       {trail.segments.map((sg, i) => {
@@ -796,24 +718,20 @@ function SceneBackground({
  * Vegetazione del bioma: SOLO SUI BORDI (primo e ultimo quinto della
  * larghezza), cosi' il centro resta libero per sentiero ed etichette. La
  * densita' cresce con la profondita', come il buio del fondale.
+ *
+ * Le fasce qui sono puramente DECORATIVE: piastrellano l'altezza totale e non
+ * hanno piu' niente a che vedere con le righe dei passi, che ora hanno
+ * altezze diverse fra loro (vedi buildLayout).
  */
-function EdgeDecor({
-  world,
-  bands,
-  lastBand,
-  g,
-}: {
-  world: WorldConfig;
-  bands: number;
-  lastBand: number;
-  g: Geo;
-}) {
+function EdgeDecor({ world, totalH, g }: { world: WorldConfig; totalH: number; g: Geo }) {
   const out: ReactNode[] = [];
+  const bands = Math.max(1, Math.ceil(totalH / g.band));
 
   for (let b = 0; b < bands; b++) {
     const t = easeDepth(bands <= 1 ? 0 : b / (bands - 1));
     const y0 = b * g.band;
-    const h = b === lastBand ? g.finish : g.band;
+    const h = Math.min(g.band, totalH - y0);
+    if (h <= 0) break;
     const edge = lerpColor(world.gradient[3], world.gradient[6], Math.min(1, t + 0.15));
     const count = 2 + Math.round(t * 3);
 
@@ -822,7 +740,7 @@ function EdgeDecor({
       const cx = rightSide
         ? seeded(b * 7 + k, 21) * g.vbW * 0.2
         : g.vbW - seeded(b * 7 + k, 33) * g.vbW * 0.2;
-      const cy = y0 + 16 + seeded(b * 7 + k, 41) * (h - 32);
+      const cy = y0 + 16 + seeded(b * 7 + k, 41) * Math.max(1, h - 32);
       const key = `veg-${b}-${k}`;
 
       if (world.id === 'cerbiatto') {
@@ -942,8 +860,14 @@ function MascotOnPath({
     (index: number): MascotAnchor => {
       const atFinish = index >= stepCount;
       const x = atFinish ? g.vbW / 2 : xFor(index, g);
-      // Si ferma sul lato dove c'e' piu' spazio, per non coprire il nodo.
-      return { position: Math.min(index, lastSegment), side: x <= g.vbW / 2 ? 1 : -1 };
+      // `interno` punta verso il centro della mappa. Con l'etichetta sotto al
+      // nodo (desktop) il centro e' lo spazio libero; con l'etichetta di
+      // fianco (telefono) il centro e' occupato e la mascotte va all'esterno.
+      const interno = x <= g.vbW / 2 ? 1 : -1;
+      return {
+        position: Math.min(index, lastSegment),
+        side: g.mascotOuter ? -interno : interno,
+      };
     },
     [g, stepCount, lastSegment]
   );
@@ -999,14 +923,21 @@ function MascotOnPath({
   const [x, y] = trail.pointAt(anchor.position);
   const tierLabel = world.tiers[state.tier].label;
 
+  // Ultimo tratto: la mascotte rientra al centro e SALE sopra il traguardo,
+  // invece di finirgli addosso. `salita` va da 0 a 1 lungo l'ultimo tratto,
+  // quindi il movimento resta continuo: nessuno scatto all'arrivo.
+  const salita =
+    lastSegment > 0 ? Math.max(0, Math.min(1, anchor.position - (lastSegment - 1))) : 0;
+  const scostamento = anchor.side * g.mascotOffset * (1 - salita);
+
   return (
     <div
       className="absolute z-20 pointer-events-none flex flex-col items-center"
       style={{
-        left: `${((x + anchor.side * g.mascotOffset) / g.vbW) * 100}%`,
+        left: `${((x + scostamento) / g.vbW) * 100}%`,
         // Alzata rispetto al centro del nodo: cosi' la mascotte gli sta
-        // accanto senza finire sopra l'etichetta, che sta sotto.
-        top: y - g.node * 0.28,
+        // accanto senza coprirlo.
+        top: y - g.node * 0.28 - salita * g.finish * 0.44,
         transform: 'translate(-50%, -50%)',
       }}
     >
@@ -1021,22 +952,79 @@ function MascotOnPath({
   );
 }
 
+// ─── Un passo sulla mappa ─────────────────────────────────────────────────
+
+/**
+ * Solo il nodo, centrato sul punto del sentiero.
+ *
+ * Non c'e' piu' un'etichetta col titolo del passo: il titolo appartiene alla
+ * TAPPA e sta sul divisore che la apre (vedi SectionDivider). Sul nodo bastano
+ * il numero e lo stato — fatto, in corso, chiuso — e il dettaglio si apre al
+ * tocco. Toglierla ha liberato meta' della larghezza, ed e' quello che permette
+ * al sentiero di ondeggiare invece di rimbalzare fra due sponde.
+ */
+function StepMarker({
+  step,
+  x,
+  y,
+  accent,
+  accentDark,
+  g,
+  justUnlocked,
+  onTap,
+}: {
+  step: KidsStepState;
+  x: number;
+  y: number;
+  accent: string;
+  accentDark: string;
+  g: Geo;
+  justUnlocked: boolean;
+  onTap: () => void;
+}) {
+  const size = step.current ? g.nodeCurrent : g.node;
+
+  return (
+    <div
+      className="absolute z-10"
+      style={{
+        left: `${(x / g.vbW) * 100}%`,
+        top: y,
+        // L'animazione di sblocco anima `transform`, e il centraggio sul punto
+        // del sentiero USA `transform`: sullo stesso elemento si
+        // escluderebbero a vicenda. Percio' il posizionamento sta fuori e
+        // l'animazione dentro.
+        transform: 'translate(-50%, -50%)',
+      }}
+    >
+      <div className={justUnlocked ? 'animate-unlock' : ''}>
+        <StepNode
+          step={step}
+          accent={accent}
+          accentDark={accentDark}
+          size={size}
+          onTap={onTap}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ─── Nodo di un passo ───────────────────────────────────────────────────────
 
 function StepNode({
   step,
   accent,
   accentDark,
-  g,
+  size,
   onTap,
 }: {
   step: KidsStepState;
   accent: string;
   accentDark: string;
-  g: Geo;
+  size: number;
   onTap: () => void;
 }) {
-  const size = step.current ? g.nodeCurrent : g.node;
   const locked = !step.unlocked;
 
   const face = step.completed ? accent : locked ? '#E7E9EE' : '#FFFFFF';
@@ -1046,147 +1034,158 @@ function StepNode({
       ? '#B6BDC9'
       : accentDark;
 
-  const titolo = capitalize(areasSummary(step.areas));
+  // Il nodo corrente e' anche piu' alto sulla pagina (un gradino d'ombra in
+  // piu') e cerchiato nel colore del percorso: si distingue anche a colpo
+  // d'occhio, senza aspettare il respiro dell'alone.
+  const rilievo = locked
+    ? 'inset 0 -4px 0 rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.2)'
+    : `0 6px 0 ${edge}, 0 12px 22px rgba(0,0,0,0.3)`;
+  const cerchio = step.current ? `, 0 0 0 3px ${accent}` : '';
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={onTap}
-        className="adv-node relative rounded-full flex items-center justify-center"
-        style={{
-          width: size,
-          height: size,
-          background: face,
-          boxShadow: locked
-            ? 'inset 0 -4px 0 rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.2)'
-            : `0 6px 0 ${edge}, 0 12px 22px rgba(0,0,0,0.3)`,
-        }}
-        aria-label={`Passo ${step.number}: ${step.done} obiettivi su ${step.total}`}
-      >
-        {step.current && (
-          <span
-            className="adv-pulse-ring absolute rounded-full border-[3px] pointer-events-none"
-            style={{ inset: -10, borderColor: '#F5B921' }}
-            aria-hidden
-          />
-        )}
-
-        {step.completed ? (
-          <CheckIcon size={size * 0.36} color="#FFFFFF" strokeWidth={3.4} />
-        ) : locked ? (
-          <LockIcon size={size * 0.3} color="#98A2B3" />
-        ) : (
-          <span className="flex flex-col items-center leading-none">
-            <span
-              className="font-extrabold uppercase tracking-[0.12em]"
-              style={{ fontSize: size * 0.135, color: '#9AA3B5' }}
-            >
-              passo
-            </span>
-            <span
-              className="font-extrabold tabular-nums"
-              style={{ fontSize: size * 0.36, color: accent, fontFamily: 'var(--font-display)' }}
-            >
-              {step.number}
-            </span>
-          </span>
-        )}
-      </button>
-
-      <button
-        type="button"
-        onClick={onTap}
-        className="text-center flex flex-col gap-px"
-        style={{
-          maxWidth: g.labelW,
-          padding: '7px 12px',
-          borderRadius: 12,
-          background: 'rgba(255,255,255,0.96)',
-          boxShadow: '0 3px 12px rgba(0,0,0,0.22)',
-          opacity: locked ? 0.8 : 1,
-        }}
-      >
+    <button
+      type="button"
+      onClick={onTap}
+      className="adv-node relative rounded-full flex items-center justify-center"
+      style={{
+        width: size,
+        height: size,
+        background: face,
+        boxShadow: rilievo + cerchio,
+      }}
+      aria-label={`Passo ${step.number}: ${step.done} obiettivi su ${step.total}`}
+    >
+      {step.current && (
+        // Passo corrente: un alone largo e tenue nel colore del percorso, che
+        // respira. Non piu' un anello arancione a contrasto pieno — quello
+        // urlava, e per di piu' con un colore estraneo al mondo.
         <span
-          className="font-bold leading-tight line-clamp-2"
+          className="adv-current-halo absolute rounded-full pointer-events-none"
           style={{
-            fontSize: g.labelFont,
-            fontFamily: 'var(--font-display)',
-            color: locked ? '#98A2B3' : '#18223A',
+            inset: -size * 0.34,
+            background: `radial-gradient(circle, ${accent}00 38%, ${accent}aa 62%, ${accent}00 74%)`,
           }}
-        >
-          {titolo}
+          aria-hidden
+        />
+      )}
+
+      {step.completed ? (
+        <CheckIcon size={size * 0.36} color="#FFFFFF" strokeWidth={3.4} />
+      ) : locked ? (
+        <LockIcon size={size * 0.3} color="#98A2B3" />
+      ) : (
+        <span className="flex flex-col items-center leading-none">
+          <span
+            className="font-extrabold uppercase tracking-[0.12em]"
+            style={{ fontSize: size * 0.135, color: '#9AA3B5' }}
+          >
+            passo
+          </span>
+          <span
+            className="font-extrabold tabular-nums"
+            style={{ fontSize: size * 0.36, color: accent, fontFamily: 'var(--font-display)' }}
+          >
+            {step.number}
+          </span>
         </span>
-        <span
-          className="text-[9.5px] font-bold uppercase tracking-[0.09em] tabular-nums leading-tight"
-          style={{ color: locked ? '#B6BDC9' : step.completed ? accentDark : '#9AA3B5' }}
-        >
-          {locked ? 'Bloccato' : `${step.done}/${step.total} · +${step.xpPerObjective} XP`}
-        </span>
-      </button>
-    </>
+      )}
+    </button>
   );
 }
 
-// ─── Cancello chiuso: una linea che taglia la mappa ───────────────────────
+// ─── Divisore di sezione ────────────────────────────────────────────────────────
 
 /**
- * Si vede SOLO finche' il cancello e' chiuso: dice quale livello serve e
- * quanto manca. Il chiamante non lo monta nemmeno quando il cancello e'
- * aperto, quindi qui non esiste un ramo "aperto".
+ * Apre una TAPPA (due passi) e fa due mestieri in un elemento solo: le da' un
+ * nome e dice se e' ancora chiusa a chiave.
+ *
+ * LA RIGA E' LA SOGLIA, E SPARISCE QUANDO LA SI SUPERA. Finche' la tappa e'
+ * chiusa il taglio attraversa la mappa da bordo a bordo: e' una barriera, si
+ * legge come tale. Appena si apre resta solo la targhetta col nome, che fa da
+ * segnalibro del capitolo. Tenere la riga anche dopo voleva dire disseminare
+ * il sentiero di sbarramenti gia' superati, che non dicono piu' niente.
+ *
+ * Il taglio e' di due pixel — chiaro sopra, scuro sotto — perche' il fondale
+ * scende dal giallo pallido al verde cupo, e una riga di un colore solo
+ * sparirebbe in una delle due meta'. Cosi' invece resta incisa ovunque.
  */
-function Gate({
-  index,
+function SectionDivider({
+  y,
+  numero,
+  titolo,
+  sottotitolo,
+  locked,
   requiredLevel,
-  currentLevel,
-  hasEvolution,
-  g,
+  accent,
 }: {
-  index: number;
-  requiredLevel: number;
-  currentLevel: number;
-  /** Superato questo cancello l'avatar cambia stadio: si usa come richiamo. */
-  hasEvolution: boolean;
-  g: Geo;
+  /** Centro verticale della fascia, gia' calcolato da buildLayout. */
+  y: number;
+  /** 1..6 */
+  numero: number;
+  /** Il campo su cui si gioca in questa tappa. */
+  titolo: string;
+  /** "Passi 1 e 2". */
+  sottotitolo: string;
+  locked: boolean;
+  /** Livello che apre la tappa (null sulla prima, sempre accessibile). */
+  requiredLevel: number | null;
+  accent: string;
 }) {
-  const mancanti = Math.max(0, requiredLevel - currentLevel);
-  const hair = (
-    <span
-      className="flex-1 h-px"
-      style={{
-        background:
-          'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.6), rgba(255,255,255,0))',
-      }}
-      aria-hidden
-    />
-  );
-
   return (
     <div
       className="absolute left-0 right-0 z-[15] pointer-events-none"
-      style={{ top: index * g.band + g.band, transform: 'translateY(-50%)' }}
+      style={{ top: y, transform: 'translateY(-50%)' }}
     >
-      <div className="flex items-center gap-2.5 px-4">
-        {hair}
+      <div className="relative flex items-center justify-center px-3">
+        {locked && (
+          <span
+            aria-hidden
+            className="absolute left-0 right-0"
+            style={{
+              height: 2,
+              background:
+                'linear-gradient(to bottom, rgba(255,255,255,0.82), rgba(10,20,14,0.18))',
+            }}
+          />
+        )}
+
         <div
-          className="flex items-center gap-2 shrink-0 rounded-full whitespace-nowrap px-3 py-1.5 text-[11.5px] font-bold"
+          className="relative flex items-center gap-2 rounded-full max-w-full"
           style={{
-            background: 'rgba(255,255,255,0.94)',
-            color: '#475467',
-            boxShadow: '0 4px 14px rgba(9,16,24,0.28)',
+            background: locked ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.88)',
+            padding: '5px 12px 5px 5px',
+            boxShadow: locked
+              ? '0 4px 14px rgba(9,16,24,0.22)'
+              : '0 2px 8px rgba(9,16,24,0.14)',
           }}
         >
-          <LockIcon size={14} color="#475467" />
-          <span>Serve il livello {requiredLevel}</span>
           <span
-            className="text-[10px] font-bold text-gray-400 pl-2"
-            style={{ borderLeft: '1px solid #E4E7EE' }}
+            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-extrabold text-white tabular-nums"
+            style={{
+              background: locked ? '#C2C8D2' : accent,
+              fontFamily: 'var(--font-display)',
+            }}
           >
-            {mancanti === 1 ? 'ancora 1 livello' : `ancora ${mancanti} livelli`}
-            {hasEvolution ? ' · nuovo avatar' : ''}
+            {locked ? <LockIcon size={13} color="#FFFFFF" /> : numero}
+          </span>
+
+          <span className="min-w-0 flex flex-col leading-tight">
+            <span
+              className="text-[12px] font-bold truncate"
+              style={{
+                color: locked ? '#98A2B3' : '#18223A',
+                fontFamily: 'var(--font-display)',
+              }}
+            >
+              {titolo}
+            </span>
+            <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-gray-400 truncate">
+              {locked && requiredLevel !== null
+                ? `Si apre al livello ${requiredLevel}`
+                : sottotitolo}
+            </span>
           </span>
         </div>
-        {hair}
       </div>
     </div>
   );
@@ -1196,12 +1195,13 @@ function Gate({
 
 function Finish({
   state,
+  y,
   stepCount,
-  g,
 }: {
   state: KidsProgramState;
+  /** Centro verticale della fascia finale, da buildLayout. */
+  y: number;
   stepCount: number;
-  g: Geo;
 }) {
   const done = state.finished;
   const next = state.nextLevel;
@@ -1212,7 +1212,7 @@ function Finish({
       className="absolute z-10 flex flex-col items-center gap-2.5"
       style={{
         left: '50%',
-        top: stepCount * g.band + g.finish / 2,
+        top: y,
         transform: 'translate(-50%, -50%)',
       }}
     >

@@ -36,6 +36,18 @@
   /* ─── Transitions ─── */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── Margine laterale delle pagine ───
+     Unica fonte di verita' per il respiro ai lati del contenuto. Serve a
+     `.page-gutter-x` (chi lo mette) e a `.full-bleed` (chi vuole uscirne):
+     finche' il valore vive qui, i due restano allineati per costruzione. */
+  --page-gutter: 1rem;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --page-gutter: 1.5rem;
+  }
 }
 
 @theme inline {
@@ -135,6 +147,31 @@ input[type="date"]::-webkit-datetime-edit {
   background: #8A93A3;
   background-clip: padding-box;
   border: 2px solid transparent;
+}
+
+/* ─── Margine di pagina e full-bleed ───
+
+   `.page-gutter-x` mette il respiro laterale, `.full-bleed` lo toglie a un
+   singolo figlio per fargli toccare i bordi dello schermo.
+
+   Perche' margini negativi e non `width: 100vw`:
+     - `100vw` include la scrollbar, quindi su desktop crea uno scroll
+       orizzontale di pochi pixel;
+     - `calc(50% - 50vw)` funziona solo se il contenitore e' centrato nel
+       viewport, cosa che qui non e' garantita;
+     - un margine negativo pari al padding del contenitore arriva ESATTAMENTE
+       sul suo padding box, quindi non produce overflow e non viene ritagliato
+       nemmeno dentro un contenitore di scorrimento.
+
+   ATTENZIONE: entrambe evitano di proposito `transform`. Il foglio del passo
+   (KidsStepSheet su telefono) e' `position: fixed`, e un antenato trasformato
+   ne diventerebbe il containing block, incollandolo alla mappa. */
+.page-gutter-x {
+  padding-inline: var(--page-gutter);
+}
+
+.full-bleed {
+  margin-inline: calc(var(--page-gutter) * -1);
 }
 
 /* ─── Club stripe (used under header) ─── */
@@ -492,6 +529,18 @@ input:focus, textarea:focus, select:focus {
   animation: advPulse 1.7s ease-out infinite;
 }
 
+/* Passo corrente: alone morbido che respira nel colore del percorso.
+   Sostituisce l'anello arancione a contrasto pieno: quello urlava e per di
+   piu' con un colore che non c'entrava col mondo. Qui il richiamo e' un
+   respiro largo e tenue, che si nota col movimento e non con la saturazione. */
+@keyframes advHalo {
+  0%, 100% { transform: scale(0.92); opacity: 0.7; }
+  50%      { transform: scale(1.18); opacity: 0.18; }
+}
+.adv-current-halo {
+  animation: advHalo 2.9s ease-in-out infinite;
+}
+
 /* Mascotte che "galleggia" (testata del percorso) */
 @keyframes advBob {
   0%, 100% { transform: translateY(0); }
@@ -512,5 +561,6 @@ input:focus, textarea:focus, select:focus {
 
 @media (prefers-reduced-motion: reduce) {
   .adv-pulse-ring, .adv-bob, .adv-glow { animation: none; }
+  .adv-current-halo { animation: none; opacity: 0.45; }
   .adv-node { transition: none; }
 }

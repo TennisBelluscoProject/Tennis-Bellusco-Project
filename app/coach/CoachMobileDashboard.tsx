@@ -173,7 +173,7 @@ export function CoachMobileDashboard() {
     return (
       <div className="h-[100dvh] flex flex-col bg-[var(--background)]">
         <MobileHeader onLogout={signOut} />
-        <main className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 pt-5">
+        <main className="flex-1 min-h-0 overflow-hidden flex flex-col page-gutter-x pt-5">
           <PlayerView
             player={selectedStudent}
             mode="coach"
