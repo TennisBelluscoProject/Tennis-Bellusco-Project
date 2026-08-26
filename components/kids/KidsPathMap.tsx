@@ -410,11 +410,9 @@ function HeroHeader({
   g: Geo;
   mobile?: boolean;
   /**
-   * Testata SALDATA alla mappa: nessuno stacco sotto, niente riga tricolore, e
-   * angoli arrotondati SOLO IN ALTO. Il blocco va da bordo a bordo e prosegue
-   * fino in fondo allo scorrimento: arrotondare anche sotto lo farebbe sembrare
-   * una card mozzata a meta'. Sopra invece la curva serve, perche' li' il
-   * blocco comincia davvero.
+   * Testata SALDATA alla mappa: niente angoli tondi, niente stacco sotto,
+   * niente riga tricolore. Le due parti si leggono come un unico pannello a
+   * tutta larghezza invece che come due card impilate.
    */
   seamless?: boolean;
 }) {
@@ -426,7 +424,7 @@ function HeroHeader({
     <div
       className={`relative overflow-hidden text-white ${seamless ? '' : 'mb-4'}`}
       style={{
-        borderRadius: seamless ? '20px 20px 0 0' : 24,
+        borderRadius: seamless ? 0 : 24,
         background: `linear-gradient(112deg, ${world.hero[0]} 0%, ${world.hero[1]} 52%, ${world.hero[2]} 100%)`,
         boxShadow: seamless ? 'none' : '0 8px 26px rgba(16,24,40,0.14)',
       }}

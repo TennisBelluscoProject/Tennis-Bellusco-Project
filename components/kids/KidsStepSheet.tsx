@@ -281,19 +281,7 @@ export function KidsStepSheet({
 
       {/* ─── Azioni ─── */}
       {editable && (
-        <div
-          className="shrink-0 border-t border-gray-100 px-4 pt-3 pb-3 flex items-center gap-2 bg-white"
-          style={{
-            // Sul telefono il foglio arriva al bordo inferiore dello schermo.
-            // `env(safe-area-inset-bottom)` copre la barra gesti dell'iPhone,
-            // ma da solo non basta: sugli schermi con gli angoli arrotondati il
-            // tasto resta comunque a filo e la curvatura se lo mangia agli
-            // estremi. Il mezzo rem in piu' e' quel respiro.
-            paddingBottom: isSheet
-              ? 'calc(1.25rem + env(safe-area-inset-bottom, 0px))'
-              : undefined,
-          }}
-        >
+        <div className="shrink-0 border-t border-gray-100 px-4 py-3 flex items-center gap-2 bg-white">
           <button
             type="button"
             disabled={busy || step.completed}
