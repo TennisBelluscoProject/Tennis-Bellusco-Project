@@ -24,10 +24,10 @@
  *    a 12, la combinazione non si ripete mai lungo il percorso.
  *
  * 3. LE SEZIONI SONO L'UNITA' DI LETTURA.
- *    I 12 passi sono 6 TAPPE da 2. Il titolo sta sulla tappa, non sul singolo
- *    passo (il nodo dice gia' tutto: numero, quanti obiettivi, se e' fatto), e
- *    il divisore che apre la tappa e' anche quello che dice se e' chiusa a
- *    chiave. Un elemento solo per due mestieri.
+ *    I 12 passi sono 6 TAPPE da 2. Il divisore che apre una tappa esiste SOLO
+ *    finche' la tappa e' chiusa: e' una soglia, e una soglia superata non ha
+ *    piu' niente da dire. Quando si apre non lascia nemmeno lo spazio, quindi
+ *    la mappa si accorcia man mano che si avanza.
  */
 
 // ─── Il formato ─────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ export const GEO_MOBILE: Geo = {
   band: 112,
   bandPattern: RITMO,
   sectionBand: 68,
-  topPad: 14,
+  topPad: 44,
   finish: 150,
   node: 62,
   nodeCurrent: 72,
@@ -90,7 +90,7 @@ export const GEO_DESKTOP: Geo = {
   band: 168,
   bandPattern: RITMO,
   sectionBand: 78,
-  topPad: 10,
+  topPad: 40,
   finish: 200,
   node: 84,
   nodeCurrent: 96,
@@ -113,18 +113,24 @@ export const bandFor = (i: number, g: Geo): number =>
 
 /** Il minimo che serve sapere di un passo per collocarlo. */
 export interface LayoutStep {
-  /** true sul PRIMO passo di ogni tappa: sopra di lui va il divisore. */
-  startsSection: boolean;
+  /**
+   * true se SOPRA questo passo va un divisore di sezione.
+   *
+   * Decide il chiamante, non questo modulo: il divisore si mostra solo sul
+   * primo passo di una tappa ANCORA CHIUSA. Cosi' lo spazio che occupa sparisce
+   * insieme a lui e la mappa si accorcia a ogni soglia superata.
+   */
+  divider: boolean;
 }
 
 export interface MapLayout {
   /** Centro verticale di ogni passo. */
   stepY: number[];
   /**
-   * Centro del divisore che APRE la sezione, indicizzato per passo: valorizzato
-   * solo sul primo passo di ogni tappa, null sugli altri.
+   * Centro del divisore che precede il passo, oppure null se sopra quel passo
+   * non c'e' nessun divisore da mostrare.
    */
-  sectionY: (number | null)[];
+  dividerY: (number | null)[];
   finishY: number;
   totalH: number;
 }
@@ -135,15 +141,15 @@ export interface MapLayout {
  */
 export function buildLayout(steps: readonly LayoutStep[], g: Geo): MapLayout {
   const stepY: number[] = [];
-  const sectionY: (number | null)[] = [];
+  const dividerY: (number | null)[] = [];
   let y = g.topPad;
 
   steps.forEach((s, i) => {
-    if (s.startsSection) {
-      sectionY.push(y + g.sectionBand / 2);
+    if (s.divider) {
+      dividerY.push(y + g.sectionBand / 2);
       y += g.sectionBand;
     } else {
-      sectionY.push(null);
+      dividerY.push(null);
     }
 
     const h = bandFor(i, g);
@@ -151,7 +157,7 @@ export function buildLayout(steps: readonly LayoutStep[], g: Geo): MapLayout {
     y += h;
   });
 
-  return { stepY, sectionY, finishY: y + g.finish / 2, totalH: y + g.finish };
+  return { stepY, dividerY, finishY: y + g.finish / 2, totalH: y + g.finish };
 }
 
 // ─── Il sentiero come curva percorribile ────────────────────────────────────

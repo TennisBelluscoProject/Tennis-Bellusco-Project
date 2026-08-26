@@ -529,19 +529,8 @@ input:focus, textarea:focus, select:focus {
   animation: advPulse 1.7s ease-out infinite;
 }
 
-/* Passo corrente: alone morbido che respira nel colore del percorso.
-   Sostituisce l'anello arancione a contrasto pieno: quello urlava e per di
-   piu' con un colore che non c'entrava col mondo. Qui il richiamo e' un
-   respiro largo e tenue, che si nota col movimento e non con la saturazione. */
-@keyframes advHalo {
-  0%, 100% { transform: scale(0.92); opacity: 0.7; }
-  50%      { transform: scale(1.18); opacity: 0.18; }
-}
-.adv-current-halo {
-  animation: advHalo 2.9s ease-in-out infinite;
-}
-
-/* Mascotte che "galleggia" (testata del percorso) */
+/* Mascotte che "galleggia" (testata del percorso) e punta che indica il passo
+   corrente sulla mappa: stesso salterello, stesso ritmo. */
 @keyframes advBob {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-5px); }
@@ -561,6 +550,5 @@ input:focus, textarea:focus, select:focus {
 
 @media (prefers-reduced-motion: reduce) {
   .adv-pulse-ring, .adv-bob, .adv-glow { animation: none; }
-  .adv-current-halo { animation: none; opacity: 0.45; }
   .adv-node { transition: none; }
 }

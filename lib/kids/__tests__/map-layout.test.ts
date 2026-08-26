@@ -6,12 +6,14 @@
  * fatto che la mappa si legga.
  *
  *   1. le righe sono INTERVALLI DISGIUNTI sull'asse verticale — un passo non
- *      puo' invadere lo spazio del passo successivo ne' quello di un divisore
- *      di sezione, per costruzione e non per taratura dei numeri;
- *   2. il ritmo e' IRREGOLARE — il sentiero non deve rimbalzare fra due sole
+ *      puo' invadere lo spazio del passo successivo ne' quello di una soglia,
+ *      per costruzione e non per taratura dei numeri;
+ *   2. una SOGLIA SUPERATA non lascia spazio dietro di se': la mappa si
+ *      ricompatta man mano che si avanza;
+ *   3. il ritmo e' IRREGOLARE — il sentiero non deve rimbalzare fra due sole
  *      sponde alla stessa distanza, altrimenti non sembra un sentiero ma una
  *      tabella;
- *   3. la curva passa dai nodi e scende sempre, senza tornare indietro.
+ *   4. la curva passa dai nodi e scende sempre, senza tornare indietro.
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -31,12 +33,19 @@ const FORMATI: ReadonlyArray<readonly [string, Geo]> = [
 ];
 
 /**
- * Dodici passi come li produce `computeKidsState`: sei tappe da due, e la
- * sezione si apre sul primo passo di ogni coppia (indici pari).
+ * Dodici passi come li produce `computeKidsState`: sei tappe da due. La soglia
+ * sta sul primo passo di ogni tappa (indici pari) e si mostra solo finche' la
+ * tappa e' chiusa — la prima non lo e' mai.
  */
-function dodiciPassi(): LayoutStep[] {
-  return Array.from({ length: 12 }, (_, i) => ({ startsSection: i % 2 === 0 }));
+function dodiciPassi(tappeChiuseDa = 1): LayoutStep[] {
+  return Array.from({ length: 12 }, (_, i) => ({
+    divider: i % 2 === 0 && i / 2 >= tappeChiuseDa,
+  }));
 }
+
+/** Tutte le soglie superate: nessun divisore da nessuna parte. */
+const tutteAperte = (): LayoutStep[] =>
+  Array.from({ length: 12 }, () => ({ divider: false }));
 
 /** [alto, basso] della riga di un passo. */
 const rigaPasso = (y: number, i: number, g: Geo): [number, number] => [
@@ -71,13 +80,13 @@ describe('buildLayout — le righe non si sovrappongono', () => {
       }
     });
 
-    it(`${nome}: la fascia del divisore non invade le righe dei passi vicini`, () => {
-      const { stepY, sectionY } = buildLayout(dodiciPassi(), g);
-      let sezioni = 0;
+    it(`${nome}: la fascia della soglia non invade le righe dei passi vicini`, () => {
+      const { stepY, dividerY } = buildLayout(dodiciPassi(), g);
+      let soglie = 0;
 
-      sectionY.forEach((y, i) => {
+      dividerY.forEach((y, i) => {
         if (y === null) return;
-        sezioni += 1;
+        soglie += 1;
         const fascia = rigaSezione(y, g);
         expect(sovrapposti(fascia, rigaPasso(stepY[i], i, g))).toBe(false);
         if (i > 0) {
@@ -85,8 +94,8 @@ describe('buildLayout — le righe non si sovrappongono', () => {
         }
       });
 
-      // Sei tappe da due passi.
-      expect(sezioni).toBe(6);
+      // Sei tappe, la prima sempre aperta.
+      expect(soglie).toBe(5);
     });
 
     it(`${nome}: l'altezza totale e' la somma delle righe`, () => {
@@ -95,14 +104,22 @@ describe('buildLayout — le righe non si sovrappongono', () => {
         (a, b) => a + b,
         0
       );
-      expect(totalH).toBeCloseTo(g.topPad + passi + 6 * g.sectionBand + g.finish, 6);
+      expect(totalH).toBeCloseTo(g.topPad + passi + 5 * g.sectionBand + g.finish, 6);
+    });
+
+    it(`${nome}: una soglia superata non lascia spazio dietro di se'`, () => {
+      const chiuse = buildLayout(dodiciPassi(), g);
+      const aperte = buildLayout(tutteAperte(), g);
+
+      expect(aperte.totalH).toBeCloseTo(chiuse.totalH - 5 * g.sectionBand, 6);
+      expect(aperte.dividerY.every((y) => y === null)).toBe(true);
     });
   }
 
-  it('il divisore precede sempre il passo che apre', () => {
+  it('la soglia precede sempre il passo che sbarra', () => {
     const g = GEO_MOBILE;
-    const { stepY, sectionY } = buildLayout(dodiciPassi(), g);
-    sectionY.forEach((y, i) => {
+    const { stepY, dividerY } = buildLayout(dodiciPassi(), g);
+    dividerY.forEach((y, i) => {
       if (y === null) return;
       expect(y).toBeLessThan(stepY[i]);
     });

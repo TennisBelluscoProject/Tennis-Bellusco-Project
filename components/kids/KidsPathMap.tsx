@@ -17,11 +17,10 @@
  *  - L'avanzamento e' raccontato in PUNTI ESPERIENZA e LIVELLI (vedi xp.ts),
  *    non in "passi completati": ogni obiettivo vale piu' XP man mano che si
  *    avanza, e ogni livello costa piu' del precedente.
- *  - Ogni 2 PASSI il sentiero e' tagliato da un DIVISORE DI SEZIONE: una riga
- *    netta da bordo a bordo con al centro il nome della tappa. E' anche il
- *    lucchetto: finche' la tappa e' chiusa mostra a che livello si apre. Il
- *    titolo appartiene alla TAPPA, non al singolo passo — sul nodo bastano il
- *    numero e lo stato.
+ *  - Ogni 2 PASSI il sentiero e' tagliato da una SOGLIA: una riga netta da
+ *    bordo a bordo col nome della tappa e il livello che la apre. Si vede SOLO
+ *    finche' la tappa e' chiusa — una soglia superata non ha piu' niente da
+ *    dire, quindi sparisce e non lascia nemmeno lo spazio che occupava.
  *  - L'AVATAR sta in due posti: nella TESTATA, come "faccia" del percorso
  *    accanto al livello e alla barra dell'esperienza, e SUL SENTIERO, accanto
  *    al passo corrente. Quando il passo corrente cambia non salta: PERCORRE
@@ -118,9 +117,15 @@ export function KidsPathMap({ state, onOpenStep, detail }: Props) {
   const accent = state.program.colors.accent;
   const steps = state.steps;
 
-  // Verticale e sentiero: si calcolano una volta e li leggono tutti.
+  // Verticale e sentiero: si calcolano una volta e li leggono tutti. Il layout
+  // dipende anche da QUALI tappe sono ancora chiuse: una soglia superata non
+  // occupa piu' spazio, quindi la mappa si accorcia man mano che si avanza.
   const layout = useMemo(
-    () => buildLayout(steps.map((s) => ({ startsSection: s.half === 0 })), g),
+    () =>
+      buildLayout(
+        steps.map((s) => ({ divider: s.half === 0 && !s.unlocked })),
+        g
+      ),
     [steps, g]
   );
   const trail = useMemo(() => buildTrail(layout, g), [layout, g]);
@@ -196,9 +201,9 @@ export function KidsPathMap({ state, onOpenStep, detail }: Props) {
         }}
       />
 
-      {/* Divisori: uno ogni 2 passi, aprono la tappa e ne dicono il nome */}
+      {/* Soglie: solo le tappe ancora chiuse. Superata, la soglia sparisce */}
       {steps.map((s, i) => {
-        const y = layout.sectionY[i];
+        const y = layout.dividerY[i];
         if (y === null) return null;
         const stage = state.stages[s.stageIndex];
         const precedente = state.stages[s.stageIndex - 1];
@@ -206,12 +211,9 @@ export function KidsPathMap({ state, onOpenStep, detail }: Props) {
           <SectionDivider
             key={`sez-${i}`}
             y={y}
-            numero={s.stageIndex + 1}
             titolo={stage.stage.court}
             sottotitolo={stage.stage.label}
-            locked={!s.unlocked}
             requiredLevel={precedente?.gateLevel ?? null}
-            accent={accent}
           />
         );
       })}
@@ -408,9 +410,11 @@ function HeroHeader({
   g: Geo;
   mobile?: boolean;
   /**
-   * Testata SALDATA alla mappa: niente angoli tondi, niente stacco sotto,
-   * niente riga tricolore. Le due parti si leggono come un unico pannello a
-   * tutta larghezza invece che come due card impilate.
+   * Testata SALDATA alla mappa: nessuno stacco sotto, niente riga tricolore, e
+   * angoli arrotondati SOLO IN ALTO. Il blocco va da bordo a bordo e prosegue
+   * fino in fondo allo scorrimento: arrotondare anche sotto lo farebbe sembrare
+   * una card mozzata a meta'. Sopra invece la curva serve, perche' li' il
+   * blocco comincia davvero.
    */
   seamless?: boolean;
 }) {
@@ -422,7 +426,7 @@ function HeroHeader({
     <div
       className={`relative overflow-hidden text-white ${seamless ? '' : 'mb-4'}`}
       style={{
-        borderRadius: seamless ? 0 : 24,
+        borderRadius: seamless ? '20px 20px 0 0' : 24,
         background: `linear-gradient(112deg, ${world.hero[0]} 0%, ${world.hero[1]} 52%, ${world.hero[2]} 100%)`,
         boxShadow: seamless ? 'none' : '0 8px 26px rgba(16,24,40,0.14)',
       }}
@@ -998,13 +1002,51 @@ function StepMarker({
       }}
     >
       <div className={justUnlocked ? 'animate-unlock' : ''}>
-        <StepNode
-          step={step}
-          accent={accent}
-          accentDark={accentDark}
-          size={size}
-          onTap={onTap}
-        />
+        <div className="relative">
+          {step.current && (
+            // "Sei qui": una punta che indica il nodo dall'alto, non un cerchio
+            // intorno. Un anello compete col bordo del nodo, che gia' porta
+            // rilievo e colore; una freccia sta in uno spazio vuoto e si legge
+            // subito anche in mezzo al verde del fondale.
+            <span
+              aria-hidden
+              className="absolute left-1/2 pointer-events-none"
+              style={{ bottom: size + 7, transform: 'translateX(-50%)' }}
+            >
+              {/* Il salterello anima `transform`, e il centraggio pure: se
+                  stessero sullo stesso elemento si annullerebbero. */}
+              <span className="adv-bob block">
+                <svg width="24" height="16" viewBox="0 0 24 16">
+                  <path
+                    d="M3.5 3 L12 11.5 L20.5 3"
+                    fill="none"
+                    stroke="#FFFFFF"
+                    strokeWidth="7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity="0.7"
+                  />
+                  <path
+                    d="M3.5 3 L12 11.5 L20.5 3"
+                    fill="none"
+                    stroke={accent}
+                    strokeWidth="4.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </span>
+          )}
+
+          <StepNode
+            step={step}
+            accent={accent}
+            accentDark={accentDark}
+            size={size}
+            onTap={onTap}
+          />
+        </div>
       </div>
     </div>
   );
@@ -1034,13 +1076,11 @@ function StepNode({
       ? '#B6BDC9'
       : accentDark;
 
-  // Il nodo corrente e' anche piu' alto sulla pagina (un gradino d'ombra in
-  // piu') e cerchiato nel colore del percorso: si distingue anche a colpo
-  // d'occhio, senza aspettare il respiro dell'alone.
+  // Il nodo corrente e' gia' piu' grande degli altri (`nodeCurrent`): il resto
+  // lo fa la punta che lo indica dall'alto, in StepMarker.
   const rilievo = locked
     ? 'inset 0 -4px 0 rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.2)'
     : `0 6px 0 ${edge}, 0 12px 22px rgba(0,0,0,0.3)`;
-  const cerchio = step.current ? `, 0 0 0 3px ${accent}` : '';
 
   return (
     <button
@@ -1051,24 +1091,10 @@ function StepNode({
         width: size,
         height: size,
         background: face,
-        boxShadow: rilievo + cerchio,
+        boxShadow: rilievo,
       }}
       aria-label={`Passo ${step.number}: ${step.done} obiettivi su ${step.total}`}
     >
-      {step.current && (
-        // Passo corrente: un alone largo e tenue nel colore del percorso, che
-        // respira. Non piu' un anello arancione a contrasto pieno — quello
-        // urlava, e per di piu' con un colore estraneo al mondo.
-        <span
-          className="adv-current-halo absolute rounded-full pointer-events-none"
-          style={{
-            inset: -size * 0.34,
-            background: `radial-gradient(circle, ${accent}00 38%, ${accent}aa 62%, ${accent}00 74%)`,
-          }}
-          aria-hidden
-        />
-      )}
-
       {step.completed ? (
         <CheckIcon size={size * 0.36} color="#FFFFFF" strokeWidth={3.4} />
       ) : locked ? (
@@ -1093,17 +1119,16 @@ function StepNode({
   );
 }
 
-// ─── Divisore di sezione ────────────────────────────────────────────────────────
+// ─── Soglia di una tappa chiusa ───────────────────────────────────────────
 
 /**
- * Apre una TAPPA (due passi) e fa due mestieri in un elemento solo: le da' un
- * nome e dice se e' ancora chiusa a chiave.
+ * Sbarra il sentiero davanti a una tappa ancora chiusa e dice a che livello si
+ * apre.
  *
- * LA RIGA E' LA SOGLIA, E SPARISCE QUANDO LA SI SUPERA. Finche' la tappa e'
- * chiusa il taglio attraversa la mappa da bordo a bordo: e' una barriera, si
- * legge come tale. Appena si apre resta solo la targhetta col nome, che fa da
- * segnalibro del capitolo. Tenere la riga anche dopo voleva dire disseminare
- * il sentiero di sbarramenti gia' superati, che non dicono piu' niente.
+ * Esiste SOLO da chiusa. Il chiamante non la monta nemmeno una volta superata,
+ * e `buildLayout` non le riserva piu' spazio: la mappa si ricompatta. Tenerla
+ * anche dopo voleva dire disseminare il sentiero di sbarramenti gia' passati e
+ * di targhette che ripetono quello che il nodo sotto dice gia'.
  *
  * Il taglio e' di due pixel — chiaro sopra, scuro sotto — perche' il fondale
  * scende dal giallo pallido al verde cupo, e una riga di un colore solo
@@ -1111,25 +1136,18 @@ function StepNode({
  */
 function SectionDivider({
   y,
-  numero,
   titolo,
   sottotitolo,
-  locked,
   requiredLevel,
-  accent,
 }: {
   /** Centro verticale della fascia, gia' calcolato da buildLayout. */
   y: number;
-  /** 1..6 */
-  numero: number;
   /** Il campo su cui si gioca in questa tappa. */
   titolo: string;
-  /** "Passi 1 e 2". */
+  /** "Passi 3 e 4". */
   sottotitolo: string;
-  locked: boolean;
-  /** Livello che apre la tappa (null sulla prima, sempre accessibile). */
+  /** Livello che apre la tappa (null se non c'e' un requisito). */
   requiredLevel: number | null;
-  accent: string;
 }) {
   return (
     <div
@@ -1137,52 +1155,40 @@ function SectionDivider({
       style={{ top: y, transform: 'translateY(-50%)' }}
     >
       <div className="relative flex items-center justify-center px-3">
-        {locked && (
-          <span
-            aria-hidden
-            className="absolute left-0 right-0"
-            style={{
-              height: 2,
-              background:
-                'linear-gradient(to bottom, rgba(255,255,255,0.82), rgba(10,20,14,0.18))',
-            }}
-          />
-        )}
+        <span
+          aria-hidden
+          className="absolute left-0 right-0"
+          style={{
+            height: 2,
+            background:
+              'linear-gradient(to bottom, rgba(255,255,255,0.82), rgba(10,20,14,0.18))',
+          }}
+        />
 
         <div
           className="relative flex items-center gap-2 rounded-full max-w-full"
           style={{
-            background: locked ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.88)',
+            background: 'rgba(255,255,255,0.97)',
             padding: '5px 12px 5px 5px',
-            boxShadow: locked
-              ? '0 4px 14px rgba(9,16,24,0.22)'
-              : '0 2px 8px rgba(9,16,24,0.14)',
+            boxShadow: '0 4px 14px rgba(9,16,24,0.22)',
           }}
         >
           <span
-            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-extrabold text-white tabular-nums"
-            style={{
-              background: locked ? '#C2C8D2' : accent,
-              fontFamily: 'var(--font-display)',
-            }}
+            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+            style={{ background: '#C2C8D2' }}
           >
-            {locked ? <LockIcon size={13} color="#FFFFFF" /> : numero}
+            <LockIcon size={13} color="#FFFFFF" />
           </span>
 
           <span className="min-w-0 flex flex-col leading-tight">
             <span
               className="text-[12px] font-bold truncate"
-              style={{
-                color: locked ? '#98A2B3' : '#18223A',
-                fontFamily: 'var(--font-display)',
-              }}
+              style={{ color: '#5A6478', fontFamily: 'var(--font-display)' }}
             >
               {titolo}
             </span>
             <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-gray-400 truncate">
-              {locked && requiredLevel !== null
-                ? `Si apre al livello ${requiredLevel}`
-                : sottotitolo}
+              {requiredLevel !== null ? `Si apre al livello ${requiredLevel}` : sottotitolo}
             </span>
           </span>
         </div>
