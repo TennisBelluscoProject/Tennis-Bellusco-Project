@@ -58,8 +58,17 @@
  * (lib/kids/progress.ts) e notifica solo l'apertura di un passo.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import Image from 'next/image';
+import { Zap } from 'lucide-react';
 import type { KidsProgramState, KidsStepState } from '@/lib/kids/progress';
 import { useIsMobile } from '@/lib/hooks';
 import {
@@ -79,6 +88,7 @@ import {
   seeded,
   type WorldConfig,
 } from '@/lib/paths/worlds';
+import { EdgeDecor } from './BiomeScenery';
 
 const TIER_LABELS = ['Cucciolo', 'Ragazzo', 'Adulto'] as const;
 
@@ -96,8 +106,38 @@ const TWO_COLUMNS_AT = 900;
  */
 export const FULL_BLEED_AT = TWO_COLUMNS_AT;
 
+/**
+ * Insieme vuoto condiviso: evita che il valore predefinito della prop crei un
+ * `Set` nuovo a ogni render, cosa che romperebbe le memoizzazioni a valle.
+ */
+const EMPTY_KEYS: ReadonlySet<string> = new Set<string>();
+
+/**
+ * Quanti obiettivi di questo passo sono "In corso" nel Kanban.
+ *
+ * Si contano solo quelli NON ancora spuntati: un obiettivo concluso non e'
+ * piu' in lavorazione, e sul database la sua card e' gia' passata a
+ * "Conclusi". Contarlo lascerebbe il pallino acceso su un passo finito.
+ */
+function contaInCorso(step: KidsStepState, inProgressKeys: ReadonlySet<string>): number {
+  if (inProgressKeys.size === 0) return 0;
+  let n = 0;
+  for (const o of step.objectives) {
+    if (inProgressKeys.has(o.key)) n += 1;
+  }
+  return n;
+}
+
 interface Props {
   state: KidsProgramState;
+  /**
+   * Obiettivi che l'allievo ha messo "In corso" nel Kanban.
+   *
+   * La mappa non li scrive mai: e' un dato che arriva dall'altra schermata e
+   * qui viene solo MOSTRATO, perche' il nodo dica non solo "quanto manca" ma
+   * anche "a cosa stai lavorando adesso".
+   */
+  inProgressKeys?: ReadonlySet<string>;
   /** Riceve l'indice del passo (0..11). */
   onOpenStep: (stepIndex: number) => void;
   /**
@@ -108,7 +148,12 @@ interface Props {
   detail?: ReactNode;
 }
 
-export function KidsPathMap({ state, onOpenStep, detail }: Props) {
+export function KidsPathMap({
+  state,
+  inProgressKeys = EMPTY_KEYS,
+  onOpenStep,
+  detail,
+}: Props) {
   const isMobile = useIsMobile(TWO_COLUMNS_AT);
   const isPhone = useIsMobile(FULL_BLEED_AT);
   const g = isMobile ? GEO_MOBILE : GEO_DESKTOP;
@@ -223,6 +268,7 @@ export function KidsPathMap({ state, onOpenStep, detail }: Props) {
         <StepMarker
           key={`${s.stage.id}-${s.number}`}
           step={s}
+          inCorso={contaInCorso(s, inProgressKeys)}
           x={xFor(i, g)}
           y={layout.stepY[i]}
           accent={accent}
@@ -235,7 +281,7 @@ export function KidsPathMap({ state, onOpenStep, detail }: Props) {
 
       <MascotOnPath state={state} world={world} accent={accent} trail={trail} g={g} />
 
-      <Finish state={state} y={layout.finishY} stepCount={steps.length} />
+      <Finish state={state} y={layout.finishY} stepCount={steps.length} g={g} />
     </div>
   );
 
@@ -717,82 +763,11 @@ function SceneBackground({
 }
 
 /**
- * Vegetazione del bioma: SOLO SUI BORDI (primo e ultimo quinto della
- * larghezza), cosi' il centro resta libero per sentiero ed etichette. La
- * densita' cresce con la profondita', come il buio del fondale.
- *
- * Le fasce qui sono puramente DECORATIVE: piastrellano l'altezza totale e non
- * hanno piu' niente a che vedere con le righe dei passi, che ora hanno
- * altezze diverse fra loro (vedi buildLayout).
+ * Vegetazione del bioma: SOLO SUI BORDI, cosi' il centro resta libero per
+ * sentiero, nodi ed etichette. Il disegno vero sta in `BiomeScenery.tsx`:
+ * e' una libreria di sagome (alghe, abeti, canneti, fauna) e occupava piu'
+ * spazio di tutto il resto di questo file.
  */
-function EdgeDecor({ world, totalH, g }: { world: WorldConfig; totalH: number; g: Geo }) {
-  const out: ReactNode[] = [];
-  const bands = Math.max(1, Math.ceil(totalH / g.band));
-
-  for (let b = 0; b < bands; b++) {
-    const t = easeDepth(bands <= 1 ? 0 : b / (bands - 1));
-    const y0 = b * g.band;
-    const h = Math.min(g.band, totalH - y0);
-    if (h <= 0) break;
-    const edge = lerpColor(world.gradient[3], world.gradient[6], Math.min(1, t + 0.15));
-    const count = 2 + Math.round(t * 3);
-
-    for (let k = 0; k < count; k++) {
-      const rightSide = k % 2 === 0;
-      const cx = rightSide
-        ? seeded(b * 7 + k, 21) * g.vbW * 0.2
-        : g.vbW - seeded(b * 7 + k, 33) * g.vbW * 0.2;
-      const cy = y0 + 16 + seeded(b * 7 + k, 41) * Math.max(1, h - 32);
-      const key = `veg-${b}-${k}`;
-
-      if (world.id === 'cerbiatto') {
-        // Chioma a goccia: alberi visti in controluce.
-        const hh = 34 + seeded(b + k, 55) * 34 + t * 20;
-        const ww = 24 + seeded(b + k, 61) * 14;
-        out.push(
-          <path
-            key={key}
-            d={`M ${cx - ww / 2} ${cy} Q ${cx} ${cy - hh * 0.55} ${cx} ${cy - hh} Q ${cx} ${
-              cy - hh * 0.55
-            } ${cx + ww / 2} ${cy} Z`}
-            fill={edge}
-            opacity={0.55}
-          />
-        );
-      } else if (world.id === 'delfino') {
-        // Bolle che risalgono.
-        out.push(
-          <circle
-            key={key}
-            cx={cx}
-            cy={cy}
-            r={4 + seeded(b + k, 55) * 10}
-            fill="#FFFFFF"
-            opacity={0.13}
-          />
-        );
-      } else {
-        // Ninfee: ellisse schiacciata + riflesso.
-        const r = 16 + seeded(b + k, 55) * 18;
-        out.push(
-          <g key={key}>
-            <ellipse cx={cx} cy={cy} rx={r} ry={r * 0.4} fill={edge} opacity={0.6} />
-            <ellipse
-              cx={cx}
-              cy={cy - r * 0.12}
-              rx={r * 0.72}
-              ry={r * 0.26}
-              fill="#FFFFFF"
-              opacity={0.09}
-            />
-          </g>
-        );
-      }
-    }
-  }
-
-  return <>{out}</>;
-}
 
 /** L'impronta lasciata dalla mascotte del mondo. */
 function Pawprint({ worldId, color }: { worldId: string; color: string }) {
@@ -931,6 +906,10 @@ function MascotOnPath({
   const salita =
     lastSegment > 0 ? Math.max(0, Math.min(1, anchor.position - (lastSegment - 1))) : 0;
   const scostamento = anchor.side * g.mascotOffset * (1 - salita);
+  // Quanto deve alzarsi per POSARSI SOPRA il disco del traguardo invece di
+  // finirgli addosso: mezzo disco piu' mezza mascotte. E' geometria, non una
+  // frazione tarata a occhio, quindi resta giusta se cambiano le due misure.
+  const salitaFinale = g.finishNode / 2 + g.mascot / 2;
 
   return (
     <div
@@ -939,7 +918,7 @@ function MascotOnPath({
         left: `${((x + scostamento) / g.vbW) * 100}%`,
         // Alzata rispetto al centro del nodo: cosi' la mascotte gli sta
         // accanto senza coprirlo.
-        top: y - g.node * 0.28 - salita * g.finish * 0.44,
+        top: y - g.node * 0.28 - salita * salitaFinale,
         transform: 'translate(-50%, -50%)',
       }}
     >
@@ -967,6 +946,7 @@ function MascotOnPath({
  */
 function StepMarker({
   step,
+  inCorso,
   x,
   y,
   accent,
@@ -976,6 +956,8 @@ function StepMarker({
   onTap,
 }: {
   step: KidsStepState;
+  /** Quanti obiettivi del passo sono "In corso" nel Kanban. */
+  inCorso: number;
   x: number;
   y: number;
   accent: string;
@@ -985,6 +967,10 @@ function StepMarker({
   onTap: () => void;
 }) {
   const size = step.current ? g.nodeCurrent : g.node;
+
+  // Il segno non ha senso su un passo chiuso (non ci sono card) ne' su uno
+  // gia' concluso (le card sono tutte in "Conclusi").
+  const mostraInCorso = inCorso > 0 && step.unlocked && !step.completed;
 
   return (
     <div
@@ -1044,6 +1030,46 @@ function StepMarker({
             size={size}
             onTap={onTap}
           />
+
+          {/* "Ci stai lavorando": pastiglia ambra col fulmine, in alto a
+              destra del nodo.
+
+              Ambra e fulmine NON sono scelte estetiche: sono esattamente il
+              colore (`--warning`) e l'icona che la colonna "In corso" usa nel
+              Kanban. Due schermate diverse che parlano della stessa cosa
+              devono usare lo stesso segno, altrimenti l'allievo deve impararlo
+              due volte.
+
+              Sta FUORI dal bottone del nodo perche' non e' un comando: e'
+              un'etichetta. Cliccandoci sopra si apre comunque il passo, visto
+              che non intercetta il puntatore. */}
+          {mostraInCorso && (
+            <span
+              aria-hidden
+              className="absolute pointer-events-none flex items-center justify-center rounded-full"
+              style={{
+                top: -2,
+                right: -3,
+                minWidth: size * 0.36,
+                height: size * 0.36,
+                padding: inCorso > 1 ? `0 ${size * 0.08}px` : 0,
+                background: 'var(--warning)',
+                border: '2.5px solid #FFFFFF',
+                boxShadow: '0 2px 6px rgba(9,16,24,0.32)',
+              }}
+            >
+              {inCorso > 1 ? (
+                <span
+                  className="font-extrabold tabular-nums leading-none text-white"
+                  style={{ fontSize: size * 0.19 }}
+                >
+                  {inCorso}
+                </span>
+              ) : (
+                <Zap size={size * 0.2} strokeWidth={3} color="#FFFFFF" fill="#FFFFFF" />
+              )}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -1201,59 +1227,118 @@ function Finish({
   state,
   y,
   stepCount,
+  g,
 }: {
   state: KidsProgramState;
-  /** Centro verticale della fascia finale, da buildLayout. */
+  /** Centro del disco, cioe' dove arriva il sentiero (da buildLayout). */
   y: number;
   stepCount: number;
+  g: Geo;
 }) {
   const done = state.finished;
   const next = state.nextLevel;
   const passiMancanti = stepCount - state.completedSteps;
+  const c = state.program.colors;
+  const size = g.finishNode;
+
+  // Due stati, due palette: oro a percorso concluso, colori del percorso
+  // finche' il traguardo e' ancora da conquistare.
+  const skin = done
+    ? {
+        disco: 'radial-gradient(circle at 34% 28%, #FFF6D6, #F5B921 74%)',
+        bordo: '#E0A611',
+        rilievo: '0 7px 0 #C8920F, 0 16px 30px rgba(245,185,33,0.5)',
+        inchiostro: '#7A4E05',
+        stoffa: '#FFFDF2',
+        alone: 'rgba(245,185,33,0.5)',
+        titolo: '#8A5B08',
+        chipBg: '#FDF3D2',
+        chipInk: '#8A5B08',
+      }
+    : {
+        disco: `radial-gradient(circle at 34% 28%, #FFFFFF, ${c.soft} 76%)`,
+        bordo: c.accent,
+        rilievo: `0 6px 0 ${c.accentDark}, 0 14px 26px rgba(9,16,24,0.34)`,
+        inchiostro: c.accentDark,
+        stoffa: '#FFFFFF',
+        alone: `${c.accent}59`,
+        titolo: '#475467',
+        chipBg: c.soft,
+        chipInk: c.accentDark,
+      };
 
   return (
     <div
-      className="absolute z-10 flex flex-col items-center gap-2.5"
+      className="absolute z-10"
       style={{
         left: '50%',
         top: y,
         transform: 'translate(-50%, -50%)',
       }}
     >
-      <div
-        className={`rounded-full flex items-center justify-center ${done ? 'adv-bob' : ''}`}
-        style={{
-          width: 68,
-          height: 68,
-          background: done ? 'radial-gradient(circle, #FDE68A, #F5B921)' : 'rgba(255,255,255,0.16)',
-          border: done ? 'none' : '2px dashed rgba(255,255,255,0.55)',
-          color: done ? '#7A4E05' : 'rgba(255,255,255,0.8)',
-          boxShadow: done ? '0 6px 0 #C8920F, 0 14px 28px rgba(245,185,33,0.45)' : 'none',
-        }}
-      >
-        <FlagIcon />
-      </div>
-      <div
-        className="px-3.5 py-2 rounded-xl text-center max-w-[240px] flex flex-col gap-0.5"
-        style={{ background: 'rgba(255,255,255,0.96)', boxShadow: '0 3px 12px rgba(0,0,0,0.22)' }}
-      >
+      {/* Solo il disco conta per il centraggio: e' il punto esatto in cui
+          arriva il sentiero. Alone, anello e targhetta stanno fuori dal flusso
+          (absolute), cosi' non spostano il punto d'arrivo. */}
+      <div className="relative" style={{ width: size, height: size }}>
         <span
-          className="text-[12.5px] font-bold leading-tight"
+          aria-hidden
+          className="absolute rounded-full pointer-events-none adv-glow"
           style={{
-            color: done ? state.program.colors.accentDark : '#475467',
-            fontFamily: 'var(--font-display)',
+            inset: -size * 0.46,
+            background: `radial-gradient(circle, ${skin.alone} 0%, transparent 68%)`,
+          }}
+        />
+        {/* Anello che pulsa finche' c'e' ancora strada: e' un invito. A
+            percorso concluso sparisce e resta il salterello dell'oro. */}
+        {!done && (
+          <span
+            aria-hidden
+            className="adv-pulse-ring absolute rounded-full pointer-events-none"
+            style={{ inset: -9, border: `2.5px solid ${c.accent}`, opacity: 0.75 }}
+          />
+        )}
+        <div
+          className={`relative w-full h-full rounded-full flex items-center justify-center ${
+            done ? 'adv-bob' : ''
+          }`}
+          style={{
+            background: skin.disco,
+            border: `2.5px solid ${skin.bordo}`,
+            boxShadow: skin.rilievo,
           }}
         >
-          {done ? `Livello ${state.maxLevel} raggiunto!` : `Traguardo · livello ${state.maxLevel}`}
+          <CheckerFlag size={Math.round(size * 0.54)} ink={skin.inchiostro} cloth={skin.stoffa} />
+        </div>
+      </div>
+
+      {/* Targhetta: due righe corte e mai a capo, cosi' l'altezza e' nota e la
+          fascia finale (Geo.finish) le sta sempre attorno senza tagliarla. */}
+      <div
+        className="absolute left-1/2 top-full mt-3 -translate-x-1/2 px-3.5 py-2 rounded-2xl flex flex-col items-center gap-1"
+        style={{ background: 'rgba(255,255,255,0.97)', boxShadow: '0 6px 18px rgba(9,16,24,0.26)' }}
+      >
+        <span
+          className="text-[12.5px] font-bold leading-none whitespace-nowrap"
+          style={{ color: skin.titolo, fontFamily: 'var(--font-display)' }}
+        >
+          {done ? 'Traguardo raggiunto!' : 'Traguardo'}
         </span>
-        <span className="text-[10.5px] text-gray-400 leading-snug">
-          {done
-            ? next
-              ? `Si passa al percorso ${capitalize(next.toLowerCase())}`
-              : 'Ultimo percorso del Diario concluso'
-            : passiMancanti === 1
-              ? 'ancora 1 passo'
-              : `ancora ${passiMancanti} passi`}
+        <span className="flex items-center gap-1.5">
+          <span
+            className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-[0.06em] whitespace-nowrap"
+            style={{ background: skin.chipBg, color: skin.chipInk }}
+          >
+            Livello {state.maxLevel}
+          </span>
+          <span className="text-[10.5px] leading-none text-gray-400 whitespace-nowrap">
+            {done
+              ? next
+                ? `poi ${capitalize(next.toLowerCase())}`
+                : 'ultimo percorso'
+              : passiMancanti === 1
+                ? 'ancora 1 passo'
+                : `ancora ${passiMancanti} passi`}
+          </span>
         </span>
       </div>
     </div>
@@ -1314,21 +1399,75 @@ function CheckIcon({
   );
 }
 
-function FlagIcon() {
+/**
+ * Bandiera a scacchi: dice "arrivo" senza bisogno di parole, cosa che un
+ * vessillo generico non faceva (si leggeva come una bandierina qualsiasi).
+ *
+ * La stoffa e' una sola curva ondulata usata due volte: come `clipPath` per
+ * ritagliare la scacchiera e come profilo disegnato sopra. Cosi' i quadretti
+ * seguono l'onda invece di stare su un rettangolo piatto.
+ *
+ * `pole` sta a sinistra e la stoffa si sviluppa a destra: l'ingombro e'
+ * centrato a occhio nel riquadro 32x32, cosi' dentro al disco tondo non
+ * sembra spostata.
+ */
+function CheckerFlag({ size, ink, cloth }: { size: number; ink: string; cloth: string }) {
+  // `useId` evita che due mappe sulla stessa pagina si rubino il ritaglio: gli
+  // id SVG sono globali al documento. I due punti vanno tolti, non sono validi
+  // dentro `url(#...)`.
+  const clip = `kids-flag-${useId().replace(/:/g, '')}`;
+
+  const x0 = 6;
+  const y0 = 3.4;
+  const w = 21;
+  const h = 13.6;
+  const cols = 4;
+  const rows = 3;
+  const cw = w / cols;
+  const ch = h / rows;
+
+  const quadretti: ReactNode[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let k = 0; k < cols; k++) {
+      if ((r + k) % 2 === 1) continue;
+      quadretti.push(
+        <rect
+          key={`${r}-${k}`}
+          x={x0 + k * cw}
+          y={y0 + r * ch}
+          width={cw}
+          height={ch}
+          fill={ink}
+        />
+      );
+    }
+  }
+
+  const stoffa =
+    'M6 5 C 10 3.1, 14 7.1, 18 5.5 C 22 3.9, 24.5 5.9, 27 4.5 ' +
+    'L 27 15.1 C 24.5 16.5, 22 14.5, 18 16.1 C 14 17.7, 10 13.7, 6 15.7 Z';
+
   return (
-    <svg
-      width="30"
-      height="30"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M6 21V4" />
-      <path d="M6 4h11l-1.5 4L17 12H6" />
+    <svg width={size} height={size} viewBox="0 0 32 32" className="shrink-0" aria-hidden>
+      <defs>
+        <clipPath id={clip}>
+          <path d={stoffa} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clip})`}>
+        <rect x={x0} y={y0} width={w} height={h} fill={cloth} />
+        {quadretti}
+      </g>
+      <path
+        d={stoffa}
+        fill="none"
+        stroke={ink}
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+        strokeOpacity="0.5"
+      />
+      <path d="M5.6 3.6 V 27.4" stroke={ink} strokeWidth="2.6" strokeLinecap="round" />
+      <circle cx="5.6" cy="2.9" r="1.8" fill={ink} />
     </svg>
   );
 }

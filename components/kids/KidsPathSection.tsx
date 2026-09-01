@@ -19,17 +19,15 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Trophy, Power, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Trophy } from 'lucide-react';
 import { kidsPathRepo, profileRepo } from '@/lib/repositories';
 import type { Profile, PlayerLevel } from '@/lib/database.types';
-import {
-  KIDS_PROGRAMS,
-  KIDS_LEVEL_ORDER,
-  type KidsProgram,
-} from '@/lib/kids/curriculum';
+import { KIDS_PROGRAMS, type KidsProgram } from '@/lib/kids/curriculum';
 import { computeKidsState, type KidsProgramState } from '@/lib/kids/progress';
+import { isEmptyPlan } from '@/lib/kids/goals';
 import { Spinner, ConfirmDialog } from '@/components/UI';
 import { KidsPathMap } from './KidsPathMap';
+import { KidsPathPicker } from './KidsPathPicker';
 import { KidsStepSheet } from './KidsStepSheet';
 
 interface Props {
@@ -39,6 +37,31 @@ interface Props {
   isCoach: boolean;
   /** Notifica al chiamante che il percorso attivo e' cambiato (null = spento). */
   onLevelChanged?: (newLevel: PlayerLevel | null) => void;
+  /**
+   * Notifica che delle spunte sono cambiate sulla mappa.
+   *
+   * Serve perche' ogni obiettivo dei 12 passi ha anche una CARD nel Kanban, e
+   * ad allineare le due facce sono i trigger sul database — non questo
+   * componente. Il database e' quindi subito giusto, ma la lista di card che
+   * il chiamante ha caricato al montaggio non lo sa: senza questa notifica la
+   * card resta visibilmente "In programma" fino al ricaricamento della
+   * pagina, che e' esattamente il difetto che si vedeva.
+   */
+  onObjectivesChanged?: (change: KidsObjectivesChange) => void;
+}
+
+/** Cosa e' cambiato con una spunta, visto dalla sezione Obiettivi. */
+export interface KidsObjectivesChange {
+  /** Chiavi degli obiettivi toccati. */
+  keys: string[];
+  /** true = spuntati (card in "Conclusi"), false = de-spuntati. */
+  done: boolean;
+  /**
+   * true = sono state create o rimosse card, perche' una pagina del libretto
+   * si e' aperta o richiusa. In quel caso ritoccare gli stati non basta: la
+   * lista va RILETTA dal database.
+   */
+  listaCambiata: boolean;
 }
 
 /**
@@ -53,7 +76,13 @@ function improntaSbloccati(state: KidsProgramState): string {
   return state.steps.map((s) => (s.unlocked ? '1' : '0')).join('');
 }
 
-export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: Props) {
+export function KidsPathSection({
+  student,
+  actorId,
+  isCoach,
+  onLevelChanged,
+  onObjectivesChanged,
+}: Props) {
   // Percorso attivo: lo decide il maestro, NULL = nessuno. Ne teniamo una
   // copia locale per rispondere subito al clic, senza aspettare che il
   // chiamante ricarichi il profilo.
@@ -67,7 +96,25 @@ export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: P
   const [selectedLevel, setSelectedLevel] = useState<PlayerLevel>(
     student.kids_path_level ?? 'DELFINO'
   );
+
+  /**
+   * Quale delle due pagine si sta guardando.
+   *
+   * Si parte SEMPRE dall'elenco, anche per l'allievo che ha un solo percorso
+   * aperto. Costa un tocco in piu', ma e' l'unico punto in cui vede il
+   * disegno d'insieme — tre mondi, dove sta adesso, cosa lo aspetta — e
+   * quella e' meta' del senso di avere un percorso a livelli.
+   */
+  const [vista, setVista] = useState<'elenco' | 'percorso'>('elenco');
   const [doneKeys, setDoneKeys] = useState<Set<string>>(new Set());
+  /**
+   * Obiettivi che l'allievo ha messo "In corso" nel Kanban.
+   *
+   * Vivono in `goals.status`, non nelle spunte, quindi vanno letti a parte.
+   * Si aggiornano solo dal Kanban: la mappa li puo' solo CHIUDERE, spuntando
+   * l'obiettivo.
+   */
+  const [inProgressKeys, setInProgressKeys] = useState<Set<string>>(new Set());
   const [completedLevels, setCompletedLevels] = useState<Set<PlayerLevel>>(new Set());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -78,8 +125,15 @@ export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: P
 
   // Il percorso attivo puo' cambiare (promozione, o scelta del maestro):
   // riallinea la vista su quello.
+  //
+  // Torna anche all'ELENCO, perche' chi ha appena cambiato percorso deve
+  // vedere l'effetto della sua scelta — il bollino che si sposta — invece di
+  // ritrovarsi dentro una mappa diversa da quella che stava guardando.
   useEffect(() => {
-    if (activeLevel) setSelectedLevel(activeLevel);
+    if (activeLevel) {
+      setSelectedLevel(activeLevel);
+      setVista('elenco');
+    }
   }, [activeLevel]);
 
   const program: KidsProgram = KIDS_PROGRAMS[selectedLevel];
@@ -91,13 +145,15 @@ export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: P
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [progressRes, completionsRes] = await Promise.all([
+      const [progressRes, completionsRes, inProgressRes] = await Promise.all([
         kidsPathRepo.listProgress(student.id, selectedLevel),
         kidsPathRepo.listCompletions(student.id),
+        kidsPathRepo.listInProgress(student.id, selectedLevel),
       ]);
       if (cancelled) return;
       setDoneKeys(new Set(progressRes.data ?? []));
       setCompletedLevels(new Set((completionsRes.data ?? []).map((c) => c.level)));
+      setInProgressKeys(new Set(inProgressRes.data ?? []));
       setError(progressRes.error?.message ?? null);
       setLoading(false);
     })();
@@ -124,6 +180,17 @@ export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: P
       const dopoSbloccati = improntaSbloccati(computeKidsState(program, next));
 
       setDoneKeys(next);
+      // Spuntare CHIUDE l'"in corso": la card passa a Conclusi (lo fa il
+      // trigger), quindi il pallino sul nodo deve sparire subito insieme al
+      // resto, non al prossimo caricamento.
+      if (done) {
+        setInProgressKeys((prev) => {
+          if (!keys.some((k) => prev.has(k))) return prev;
+          const rimasti = new Set(prev);
+          for (const k of keys) rimasti.delete(k);
+          return rimasti;
+        });
+      }
       setBusy(true);
       setError(null);
 
@@ -145,6 +212,7 @@ export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: P
       // Lo STATO delle card lo allineano i trigger sul database (vedi
       // scripts/sql/2026_kids_goals.sql): qui serve solo materializzare le
       // card dei passi che si sono appena aperti.
+      let listaCambiata = false;
       if (primaSbloccati !== dopoSbloccati) {
         const sync = await kidsPathRepo.syncGoals({
           studentId: student.id,
@@ -155,12 +223,28 @@ export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: P
           setError(
             `Obiettivi salvati, ma la sezione Obiettivi non si e' aggiornata: ${sync.error.message}`
           );
+        } else {
+          listaCambiata = !isEmptyPlan(sync.data);
         }
       }
 
+      // Il database e' allineato, la lista di card del chiamante no: e' stata
+      // letta al montaggio. Glielo diciamo, cosi' la card si sposta subito in
+      // "Conclusi" invece di aspettare un ricaricamento.
+      onObjectivesChanged?.({ keys, done, listaCambiata });
+
       setBusy(false);
     },
-    [editable, doneKeys, student.id, selectedLevel, actorId, program, state]
+    [
+      editable,
+      doneKeys,
+      student.id,
+      selectedLevel,
+      actorId,
+      program,
+      state,
+      onObjectivesChanged,
+    ]
   );
 
   const handleToggle = useCallback(
@@ -265,6 +349,7 @@ export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: P
         step={step}
         stage={stepStage}
         doneKeys={doneKeys}
+        inProgressKeys={inProgressKeys}
         onToggle={handleToggle}
         onToggleAll={applyKeys}
         readOnly={!editable}
@@ -274,131 +359,69 @@ export function KidsPathSection({ student, actorId, isCoach, onLevelChanged }: P
 
   return (
     <div className="flex flex-col">
-      {/* Selettore dei tre percorsi */}
-      <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hidden">
-        {KIDS_LEVEL_ORDER.map((lvl) => {
-          const p = KIDS_PROGRAMS[lvl];
-          const isSel = selectedLevel === lvl;
-          const isCurrent = lvl === activeLevel;
-          const isDone = completedLevels.has(lvl);
-          return (
-            <button
-              key={lvl}
-              onClick={() => setSelectedLevel(lvl)}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors"
-              style={{
-                background: isSel ? p.colors.accent : '#FFFFFF',
-                borderColor: isSel ? p.colors.accent : '#E2E4E9',
-                color: isSel ? '#FFFFFF' : '#6B7280',
-              }}
-            >
-              <span>{p.emoji}</span>
-              {p.name}
-              {isCurrent && (
-                <span
-                  className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded"
-                  style={{
-                    background: isSel ? 'rgba(255,255,255,0.22)' : p.colors.soft,
-                    color: isSel ? '#fff' : p.colors.accent,
-                  }}
-                >
-                  attivo
-                </span>
-              )}
-              {isDone && !isCurrent && <span className="text-[11px]">✓</span>}
-            </button>
-          );
-        })}
-      </div>
+      {error && <p className="text-[12px] font-medium text-red-600 mb-3">{error}</p>}
 
-      {/* Comandi del maestro: attiva, cambia, disattiva */}
-      {isCoach && (
-        <div
-          className="rounded-xl px-3.5 py-3 mb-4 flex flex-wrap items-center gap-2.5"
-          style={{
-            background: attivo ? program.colors.soft : '#F4F5F7',
-            border: `1px solid ${attivo ? `${program.colors.accent}33` : '#E2E4E9'}`,
+      {vista === 'elenco' ? (
+        /* PAGINA 1 — la scelta. Tre schede grandi con la loro descrizione,
+           chiuse per l'allievo finche' non le raggiunge. */
+        <KidsPathPicker
+          active={activeLevel}
+          completed={completedLevels}
+          isCoach={isCoach}
+          studentName={student.full_name}
+          busy={busy}
+          onOpen={(lvl) => {
+            setSelectedLevel(lvl);
+            setVista('percorso');
           }}
-        >
-          <p
-            className="flex-1 min-w-[200px] text-[12.5px] leading-relaxed"
-            style={{ color: attivo ? program.colors.accentDark : '#4B5563' }}
-          >
-            {!attivo ? (
-              <>
-                <b>Nessun percorso attivo</b> per {student.full_name}. Scegli qui
-                sopra quale dei tre assegnargli e attivalo: l&#39;allievo vedra&#39; la
-                mappa e i primi due passi finiranno nei suoi obiettivi.
-              </>
-            ) : selectedLevel !== activeLevel ? (
-              <>
-                Stai guardando <b>{program.name}</b> in sola lettura. Il percorso
-                attivo e&#39; <b>{KIDS_PROGRAMS[activeLevel].name}</b>.
-              </>
-            ) : (
-              <>
-                Percorso <b>{program.name}</b> attivo per {student.full_name}.
-              </>
-            )}
-          </p>
-
-          {selectedLevel !== activeLevel ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => cambiaPercorso(selectedLevel)}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold text-white transition-opacity disabled:opacity-50"
-              style={{ background: program.colors.accent }}
-            >
-              <PlayCircle size={15} strokeWidth={2.4} />
-              {attivo ? `Passa a ${program.name}` : `Attiva ${program.name}`}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setDisattivaOpen(true)}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <Power size={15} strokeWidth={2.4} />
-              Disattiva e azzera
-            </button>
-          )}
-        </div>
-      )}
-
-      {attivo && !editable && (
-        <div
-          className="rounded-xl px-3.5 py-2.5 mb-4 text-[12px] leading-relaxed"
-          style={{ background: program.colors.soft, color: program.colors.accentDark }}
-        >
-          {completedLevels.has(selectedLevel)
-            ? `Percorso ${program.name} gia' concluso: lo stai consultando in sola lettura.`
-            : `Anteprima del percorso ${program.name}: non e' quello attivo, quindi non e' modificabile.`}
-        </div>
-      )}
-
-      {!attivo && !isCoach && (
-        <div className="rounded-xl px-3.5 py-2.5 mb-4 text-[12px] leading-relaxed bg-gray-50 text-gray-500">
-          Il tuo maestro non ti ha ancora assegnato un percorso a 12 passi.
-          Quello qui sotto e&#39; solo un&#39;anteprima.
-        </div>
-      )}
-
-      {error && (
-        <p className="text-[12px] font-medium text-red-600 mb-3">{error}</p>
-      )}
-
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <Spinner />
-        </div>
-      ) : (
-        <KidsPathMap
-          state={state}
-          onOpenStep={setOpenStep}
-          detail={schedaPasso}
+          onActivate={(lvl) => void cambiaPercorso(lvl)}
+          onDeactivate={() => setDisattivaOpen(true)}
         />
+      ) : (
+        /* PAGINA 2 — la mappa, che si prende tutto lo schermo. In cima solo
+           il ritorno all'elenco e, se serve, l'avviso di sola lettura: la
+           mappa e' alta duemila pixel e non deve dividere l'attenzione. */
+        <>
+          <div className="flex items-center gap-2.5 mb-3 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setVista('elenco')}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 -ml-1 rounded-lg text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft size={15} strokeWidth={2.6} />
+              Percorsi
+            </button>
+
+            <span
+              className="text-[13px] font-bold"
+              style={{ color: program.colors.ink, fontFamily: 'var(--font-display)' }}
+            >
+              {program.name}
+            </span>
+
+            {!editable && (
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-[0.06em]"
+                style={{ background: program.colors.soft, color: program.colors.accentDark }}
+              >
+                {completedLevels.has(selectedLevel) ? 'Concluso' : 'Sola lettura'}
+              </span>
+            )}
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Spinner />
+            </div>
+          ) : (
+            <KidsPathMap
+              state={state}
+              inProgressKeys={inProgressKeys}
+              onOpenStep={setOpenStep}
+              detail={schedaPasso}
+            />
+          )}
+        </>
       )}
 
       {promotedTo && (

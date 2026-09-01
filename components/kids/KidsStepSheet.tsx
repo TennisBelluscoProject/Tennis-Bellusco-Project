@@ -25,7 +25,7 @@
  */
 
 import { useEffect } from 'react';
-import { Check, Lock, X } from 'lucide-react';
+import { Check, Lock, X, Zap } from 'lucide-react';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { useIsMobile } from '@/lib/hooks';
 import { areasSummary, KIDS_AREA_CONFIG, type KidsProgram } from '@/lib/kids/curriculum';
@@ -33,6 +33,9 @@ import type { KidsStageState, KidsStepState } from '@/lib/kids/progress';
 
 /** Sotto questa soglia la scheda diventa un foglio dal basso. */
 const SHEET_BELOW = 900;
+
+/** Insieme vuoto condiviso: evita un `Set` nuovo a ogni render. */
+const EMPTY_KEYS: ReadonlySet<string> = new Set<string>();
 
 interface Props {
   open: boolean;
@@ -44,6 +47,15 @@ interface Props {
   stage: KidsStageState;
   /** Chiavi degli obiettivi gia' spuntati. */
   doneKeys: ReadonlySet<string>;
+  /**
+   * Chiavi degli obiettivi che l'allievo ha messo "In corso" nel Kanban.
+   *
+   * Il foglio non le scrive mai: qui si spunta o si de-spunta, il passaggio a
+   * "In corso" e' una scelta che si fa dall'altra schermata trascinando la
+   * card. Serve solo a dire QUALE obiettivo e' quello su cui sta lavorando —
+   * sul nodo della mappa si vede solo che ce n'e' uno.
+   */
+  inProgressKeys?: ReadonlySet<string>;
   onToggle: (objectiveKey: string, done: boolean) => void;
   onToggleAll: (objectiveKeys: string[], done: boolean) => void;
   /** Sola lettura (es. anteprima nel catalogo del maestro). */
@@ -59,6 +71,7 @@ export function KidsStepSheet({
   step,
   stage,
   doneKeys,
+  inProgressKeys = EMPTY_KEYS,
   onToggle,
   onToggleAll,
   readOnly,
@@ -87,7 +100,6 @@ export function KidsStepSheet({
   const locked = !step.unlocked;
   const editable = !readOnly && !locked;
   const allKeys = step.objectives.map((o) => o.key);
-  const remaining = step.total - step.done;
 
   const contenuto = (
     <>
@@ -146,50 +158,39 @@ export function KidsStepSheet({
               style={{ width: `${step.percent}%`, background: c.accent }}
             />
           </div>
-          <span className="text-[13px] font-bold tabular-nums" style={{ color: c.accent }}>
-            {step.done}/{step.total}
+          <span
+            className="shrink-0 px-2.5 py-1 rounded-full text-[13px] font-extrabold tabular-nums text-white"
+            style={{ background: c.accent }}
+          >
+            {step.xpDone}/{step.xpTotal} XP
           </span>
         </div>
 
-        <p
-          className="text-[11.5px] font-semibold tabular-nums mt-2"
-          style={{ color: c.accentDark }}
-        >
-          {step.xpDone} / {step.xpTotal} XP · ogni obiettivo di questo passo vale{' '}
-          {step.xpPerObjective} XP
-        </p>
-
-        <div
-          className="mt-2 rounded-lg px-2.5 py-2 text-[11.5px] leading-relaxed text-gray-600"
-          style={{ background: 'rgba(255,255,255,0.72)' }}
-        >
-          {locked ? (
-            <span className="inline-flex items-center gap-1.5 font-semibold text-gray-500">
-              <Lock size={13} strokeWidth={2.4} />
-              Passo bloccato: apri prima il cancello precedente.
-            </span>
-          ) : step.completed ? (
-            <>
-              <b style={{ color: c.accent }}>Passo {step.number} compiuto.</b>{' '}
-              {stage.completed ? (
-                <>Lucchetto aperto: hai raggiunto il livello {stage.gateLevel}.</>
-              ) : (
-                <>
-                  Il lucchetto dopo il passo {stage.stage.steps[1]} si apre al{' '}
-                  <b>livello {stage.gateLevel}</b>: manca l&#39;altro passo della pagina (
-                  {stage.done}/{stage.total} obiettivi).
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              Ne mancano <b>{remaining}</b> per compiere il passo {step.number}. Il lucchetto dopo
-              il passo {stage.stage.steps[1]} si apre al <b>livello {stage.gateLevel}</b>, che si
-              raggiunge completando <b>entrambi</b> i passi della pagina ({stage.done}/
-              {stage.total} obiettivi).
-            </>
-          )}
-        </div>
+        {(locked || step.completed) && (
+          <div
+            className="mt-2 rounded-lg px-2.5 py-2 text-[11.5px] leading-relaxed text-gray-600"
+            style={{ background: 'rgba(255,255,255,0.72)' }}
+          >
+            {locked ? (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-gray-500">
+                <Lock size={13} strokeWidth={2.4} />
+                Passo bloccato: apri prima il cancello precedente.
+              </span>
+            ) : (
+              <>
+                <b style={{ color: c.accent }}>Passo {step.number} compiuto.</b>{' '}
+                {stage.completed ? (
+                  <>Lucchetto aperto: hai raggiunto il livello {stage.gateLevel}.</>
+                ) : (
+                  <>
+                    Manca l&#39;altro passo della pagina per aprire il livello{' '}
+                    {stage.gateLevel} ({stage.done}/{stage.total}).
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ─── Elenco obiettivi ─── */}
@@ -220,6 +221,9 @@ export function KidsStepSheet({
               <ul className="flex flex-col gap-1.5">
                 {area.objectives.map((o) => {
                   const checked = doneKeys.has(o.key);
+                  // "In corso" e "spuntato" si escludono: appena si spunta, il
+                  // trigger sul database porta la card in "Conclusi".
+                  const inCorso = !checked && inProgressKeys.has(o.key);
                   return (
                     <li key={o.key}>
                       <button
@@ -230,7 +234,11 @@ export function KidsStepSheet({
                           editable ? 'hover:border-gray-300 active:scale-[0.995]' : 'cursor-default'
                         }`}
                         style={{
-                          borderColor: checked ? `${cfg.color}44` : '#EDEFF3',
+                          borderColor: checked
+                            ? `${cfg.color}44`
+                            : inCorso
+                              ? 'var(--warning)'
+                              : '#EDEFF3',
                           background: checked ? cfg.bg : '#FFFFFF',
                           opacity: locked ? 0.65 : 1,
                         }}
@@ -254,6 +262,18 @@ export function KidsStepSheet({
                           >
                             {o.title}
                           </span>
+                          {inCorso && (
+                            // Stesso fulmine e stesso ambra della colonna "In
+                            // corso" del Kanban e della pastiglia sul nodo: un
+                            // segno solo, imparato una volta.
+                            <span
+                              className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-[0.07em]"
+                              style={{ background: '#FEF3E2', color: '#B25E09' }}
+                            >
+                              <Zap size={9} strokeWidth={3} fill="currentColor" />
+                              Ci stai lavorando
+                            </span>
+                          )}
                           {o.hint && (
                             <span className="block text-[11px] italic text-gray-500 leading-snug mt-0.5">
                               {o.hint}

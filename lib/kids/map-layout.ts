@@ -48,6 +48,18 @@ export interface Geo {
   topPad: number;
   /** Altezza della fascia finale con il traguardo. */
   finish: number;
+  /**
+   * Quanto in basso, DENTRO la fascia finale, cade il centro del traguardo.
+   *
+   * NON e' `finish / 2`, e non e' una taratura estetica: sopra al disco passa
+   * solo il sentiero che arriva, sotto ci va la targhetta. Tenendo il centro
+   * piu' in alto la targhetta ha lo spazio per stare TUTTA dentro la mappa —
+   * che ha `overflow: hidden` e quindi tagliava la seconda riga — e sotto non
+   * avanza una fascia vuota di fondale.
+   */
+  finishTop: number;
+  /** Diametro del disco del traguardo. */
+  finishNode: number;
   node: number;
   nodeCurrent: number;
   /** Mascotte nella testata. */
@@ -72,7 +84,9 @@ export const GEO_MOBILE: Geo = {
   bandPattern: RITMO,
   sectionBand: 68,
   topPad: 44,
-  finish: 150,
+  finish: 190,
+  finishTop: 76,
+  finishNode: 68,
   node: 62,
   nodeCurrent: 72,
   headerMascot: 92,
@@ -91,7 +105,9 @@ export const GEO_DESKTOP: Geo = {
   bandPattern: RITMO,
   sectionBand: 78,
   topPad: 40,
-  finish: 200,
+  finish: 220,
+  finishTop: 92,
+  finishNode: 84,
   node: 84,
   nodeCurrent: 96,
   headerMascot: 116,
@@ -131,6 +147,10 @@ export interface MapLayout {
    * non c'e' nessun divisore da mostrare.
    */
   dividerY: (number | null)[];
+  /**
+   * Dove ARRIVA il sentiero: centro del disco del traguardo. Sta nel primo
+   * terzo della fascia finale, non a meta' (vedi `Geo.finishTop`).
+   */
   finishY: number;
   totalH: number;
 }
@@ -157,7 +177,7 @@ export function buildLayout(steps: readonly LayoutStep[], g: Geo): MapLayout {
     y += h;
   });
 
-  return { stepY, dividerY, finishY: y + g.finish / 2, totalH: y + g.finish };
+  return { stepY, dividerY, finishY: y + g.finishTop, totalH: y + g.finish };
 }
 
 // ─── Il sentiero come curva percorribile ────────────────────────────────────

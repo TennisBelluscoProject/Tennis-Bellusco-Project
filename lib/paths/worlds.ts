@@ -227,16 +227,22 @@ export const WORLDS: Record<PlayerLevel, WorldConfig> = {
     name: 'Coccodrillo',
     tagline: 'Dallo stagno alla palude oscura',
     mascotEmoji: '🐊',
-    hero: ['#1B324C', '#1A232E', '#183A2B'],
-    // Stagno al sole → canneto → palude → fondo melmoso.
+    hero: ['#1B324C', '#1A232E', '#12403C'],
+    // Canneto al sole → acqua bassa → stagno → fondo melmoso.
+    //
+    // La rampa vira al VERDE-ACQUA, non all'oliva: la versione precedente
+    // scendeva su verdi da prato e la palude si leggeva come un campo scuro
+    // invece che come uno specchio d'acqua ferma. Restano monotoni in
+    // luminosita' (ogni stop e' piu' scuro del precedente), altrimenti nel
+    // fondale ricompaiono le fasce.
     gradient: [
-      '#FBEEC4',
-      '#DDEA9E',
-      '#B2CE6E',
-      '#80A54A',
-      '#527732',
-      '#2C4D1E',
-      '#12240D',
+      '#F7F1CE',
+      '#DDE9A2',
+      '#A6CD86',
+      '#5FA079',
+      '#2E7061',
+      '#164648',
+      '#07201F',
     ],
     skyStart: '#FED7AA',
     skyEnd: '#1C1917',

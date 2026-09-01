@@ -326,6 +326,20 @@ export interface IKidsPathRepository {
   ): Promise<RepoResult<string[]>>;
 
   /**
+   * Chiavi degli obiettivi la cui card nel Kanban e' "In corso".
+   *
+   * Non e' ricavabile dalle spunte: sulla mappa un obiettivo e' solo fatto o
+   * non fatto, mentre "ci sto lavorando" e' una decisione che l'allievo
+   * prende nel Kanban e vive in `goals.status`. Serve a mostrare quella terza
+   * condizione anche sul percorso, che altrimenti non saprebbe distinguere
+   * fra un obiettivo iniziato e uno mai toccato.
+   */
+  listInProgress(
+    studentId: string,
+    level: PlayerLevel
+  ): Promise<RepoResult<string[]>>;
+
+  /**
    * Spunta / de-spunta un obiettivo. Idempotente in entrambe le direzioni.
    * `actorId` finisce in `checked_by` (maestro o allievo stesso).
    */

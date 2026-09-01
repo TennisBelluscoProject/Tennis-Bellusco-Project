@@ -55,6 +55,32 @@ export class SupabaseKidsPathRepository implements IKidsPathRepository {
     return ok((data ?? []).map((r) => (r as { objective_key: string }).objective_key));
   }
 
+  /**
+   * Le card "In corso" di QUESTO percorso.
+   *
+   * Il filtro sul percorso e' un `like` sul prefisso della chiave, non una
+   * colonna: le chiavi hanno forma '<slug>.<tappa>.<area>.<titolo>-<hash>',
+   * quindi 'delfino.%' seleziona esattamente gli obiettivi del Delfino. E'
+   * lo stesso ragionamento che fa `kids_level_from_key()` lato database.
+   */
+  async listInProgress(
+    studentId: string,
+    level: PlayerLevel
+  ): Promise<RepoResult<string[]>> {
+    const { data, error } = await this.client
+      .from('goals')
+      .select('kids_objective_key')
+      .eq('student_id', studentId)
+      .eq('status', 'in_progress')
+      .like('kids_objective_key', `${KIDS_PROGRAMS[level].slug}.%`);
+    if (error) return fail(error);
+    return ok(
+      (data ?? [])
+        .map((r) => (r as { kids_objective_key: string | null }).kids_objective_key)
+        .filter((k): k is string => k !== null)
+    );
+  }
+
   async setObjective({
     studentId,
     level,

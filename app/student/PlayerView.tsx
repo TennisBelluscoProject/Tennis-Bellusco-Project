@@ -449,6 +449,34 @@ export function PlayerView({
       onLevelChanged={() => {
         onDataChanged?.();
       }}
+      onObjectivesChanged={({ keys, done, listaCambiata }) => {
+        // Se si sono aperte o richiuse pagine del libretto sono nate o sparite
+        // delle card: la lista va riletta per intero, un ritocco non basta.
+        if (listaCambiata) {
+          setReloadTick((t) => t + 1);
+          return;
+        }
+
+        // Caso normale. Sul database la card e' GIA' nello stato giusto — ci
+        // hanno pensato i trigger — quindi qui non si scrive niente: si
+        // rispecchia soltanto quel valore nella copia in memoria, com'e' gia'
+        // fatto per il cambio di stato e di progresso dal Kanban. Costa zero
+        // richieste e la card si sposta immediatamente.
+        const toccati = new Set(keys);
+        const completedAt = done ? new Date().toISOString() : null;
+        setGoals((prev) =>
+          prev.map((g) =>
+            g.kids_objective_key && toccati.has(g.kids_objective_key)
+              ? {
+                  ...g,
+                  status: done ? 'completed' : 'planned',
+                  progress: done ? 100 : 0,
+                  completed_at: completedAt,
+                }
+              : g
+          )
+        );
+      }}
     />
   );
 
@@ -651,7 +679,15 @@ export function PlayerView({
           // strisce bianche ai lati. Cosi' invece il padding box coincide con
           // il viewport e `.full-bleed` (dentro KidsPathMap) ci arriva esatto,
           // senza overflow.
-          <div className="flex-1 min-h-0 overflow-y-auto pb-6 full-bleed page-gutter-x">
+          //
+          // E NIENTE `pb-*`: le altre tab lo mettono perche' finiscono con
+          // delle card, che sul fondo hanno bisogno di respiro. Qui l'ultima
+          // cosa e' la mappa a tutto schermo, che il respiro se lo porta gia'
+          // dentro (la fascia del traguardo, vedi Geo.finish). Aggiungerne
+          // altro fuori voleva dire una striscia di sfondo pagina sotto al
+          // fondale del percorso: sembrava un ritaglio sbagliato, non un
+          // margine.
+          <div className="flex-1 min-h-0 overflow-y-auto full-bleed page-gutter-x">
             {kidsContent}
           </div>
         ) : (
