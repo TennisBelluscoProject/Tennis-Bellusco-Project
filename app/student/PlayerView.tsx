@@ -12,7 +12,7 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import { KidsPathSection } from '@/components/kids/KidsPathSection';
 import { PathTreeView, type PathTreeData } from '@/components/PathTreeView';
 import { computePathState } from '@/lib/paths/topo';
-import { isEmptyPlan } from '@/lib/kids/goals';
+import { isEmptyPlan, visibleKidsGoals } from '@/lib/kids/goals';
 import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
 import { MatchForm } from '@/components/MatchForm';
@@ -73,9 +73,38 @@ export function PlayerView({
   const [deactivatePathOpen, setDeactivatePathOpen] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
 
-  // Percorso Kids attivo per questo allievo: NULL = nessuno. Non si deduce
-  // piu' dal livello, lo decide il maestro.
-  const kidsLevel = player.kids_path_level;
+  /**
+   * Percorso Kids attivo per questo allievo: NULL = nessuno. Non si deduce
+   * piu' dal livello, lo decide il maestro.
+   *
+   * E' STATO LOCALE, non il prop, e la differenza non e' cosmetica.
+   *
+   * L'allievo aperto sta nel `selectedStudent` del chiamante, che `fetchAll()`
+   * NON riaggiorna: ricarica l'elenco, ma l'oggetto gia' selezionato resta
+   * quello di prima. Quindi dopo una disattivazione `player.kids_path_level`
+   * continuava a valere il percorso appena spento, con due conseguenze:
+   *
+   *   1. l'effetto qui sotto non ripartiva (la sua dipendenza non cambiava) e
+   *      il Kanban restava pieno di card che nel database erano gia' state
+   *      cancellate;
+   *   2. soprattutto, quell'effetto chiama `syncGoals` su `kidsLevel`. Al
+   *      primo ricaricamento successivo la sincronizzazione girava ancora sul
+   *      percorso disattivato e RICREAVA le card dei primi due passi. La
+   *      cancellazione avveniva davvero, e poi veniva disfatta da sola.
+   *
+   * Tenendolo qui, `onLevelChanged` lo aggiorna al momento e tutto si
+   * riallinea senza dipendere da quando (e se) il chiamante rilegge il
+   * profilo.
+   */
+  const [kidsLevel, setKidsLevel] = useState<PlayerLevel | null>(
+    player.kids_path_level
+  );
+  // Se il chiamante RIESCE a passare un profilo aggiornato, quello vince.
+  // La dipendenza e' il VALORE, non l'oggetto: un profilo riletto ma identico
+  // non sovrascrive quanto appena deciso qui.
+  useEffect(() => {
+    setKidsLevel(player.kids_path_level);
+  }, [player.kids_path_level]);
 
   // Carica tutto in un colpo: obiettivi liberi, match e percorsi attivi (con
   // grafo + goal materializzati). Calcola la frontiera sbloccata (Kahn) e
@@ -101,12 +130,20 @@ export function PlayerView({
             })
           : Promise.resolve(null),
       ]);
-      let free = freeRes.data ?? [];
+      // Le card dei percorsi Kids PRECEDENTI restano in tabella quando il
+      // maestro cambia percorso all'allievo (il cambio non azzera, vedi
+      // setKidsPath). Qui si tengono solo quelle del percorso attivo, piu'
+      // tutte le card libere e lo storico gia' concluso: vedi
+      // visibleKidsGoals in lib/kids/goals.ts.
+      const soloPercorsoAttivo = (elenco: Goal[]) =>
+        KIDS_PATHS ? visibleKidsGoals(elenco, kidsLevel) : elenco;
+
+      let free = soloPercorsoAttivo(freeRes.data ?? []);
       // Nel caso normale la sincronizzazione non ha nulla da fare e la lista
       // appena letta e' buona. Si rilegge solo se ha creato o rimosso card.
       if (kidsSyncRes?.data && !isEmptyPlan(kidsSyncRes.data)) {
         const rilettura = await goalRepo.listByStudent(player.id);
-        if (rilettura.data) free = rilettura.data;
+        if (rilettura.data) free = soloPercorsoAttivo(rilettura.data);
       }
       const actives = activeRes.data ?? [];
 
@@ -446,7 +483,13 @@ export function PlayerView({
       student={player}
       actorId={writerId}
       isCoach={isCoach}
-      onLevelChanged={() => {
+      onLevelChanged={(nuovoLivello) => {
+        // PRIMA il livello locale: e' la dipendenza dell'effetto che ricarica
+        // obiettivi e match, quindi settarlo fa ripartire la lettura con il
+        // percorso giusto (o con nessun percorso, dopo una disattivazione).
+        // Senza, la lista resterebbe quella di prima e la sincronizzazione
+        // ricreerebbe le card appena cancellate.
+        setKidsLevel(nuovoLivello);
         onDataChanged?.();
       }}
       onObjectivesChanged={({ keys, done, listaCambiata }) => {

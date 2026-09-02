@@ -59,6 +59,7 @@
  */
 
 import {
+  memo,
   useCallback,
   useEffect,
   useId,
@@ -644,7 +645,7 @@ function PanelChip({
 
 // ─── Scenario del bioma ─────────────────────────────────────────────────────
 
-function SceneBackground({
+function SceneBackgroundBase({
   world,
   accent,
   steps,
@@ -670,6 +671,48 @@ function SceneBackground({
 
   const printsPerSegment = g.band < 170 ? 4 : 6;
 
+  /**
+   * FASCI DI LUCE — sfumati sui DUE assi, non solo in verticale.
+   *
+   * Prima erano `<polygon>` con un gradiente solo verticale: i FIANCHI
+   * tagliavano di netto, e quello che si vedeva a schermo non era un raggio ma
+   * un quadrilatero piu' chiaro col bordo dritto in mezzo all'acqua. Era il
+   * difetto piu' evidente di tutto lo sfondo.
+   *
+   * Adesso ogni raggio ha due sfumature che lavorano insieme:
+   *  - il RIEMPIMENTO sfuma di traverso (trasparente → luce → trasparente),
+   *    quindi i lati lunghi non hanno piu' un bordo;
+   *  - una MASCHERA sfuma dall'alto verso il basso, quindi il raggio si spegne
+   *    scendendo invece di finire con un taglio orizzontale.
+   * Non si poteva fare con un gradiente solo: un `fill` ne accetta uno, e ne
+   * servono due su assi diversi.
+   *
+   * Partono TUTTI dal bordo alto della mappa perche' e' da li' che arriva la
+   * luce: la superficie del mare sopra il Delfino, le chiome sopra il
+   * Cerbiatto. E prendono il colore del sole del mondo, schiarito, cosi' sono
+   * luce calda e non una velatura grigia.
+   */
+  const luceRaggio = lerpColor(world.sunStart, '#FFFFFF', 0.55);
+  const RAGGI = Array.from({ length: 5 }, (_, k) => {
+    const x = (0.08 + seeded(k, 5) * 0.84) * g.vbW;
+    const wd = 44 + seeded(k, 3) * 80;
+    const len = Math.min(totalH, (0.3 + seeded(k, 11) * 0.4) * totalH);
+    return {
+      k,
+      x,
+      wd,
+      len,
+      rot: -11 + seeded(k, 23) * 6,
+      forza: 0.42 + seeded(k, 17) * 0.34,
+      punti: [
+        `${x},-30`,
+        `${x + wd},-30`,
+        `${x + wd * 0.3},${len}`,
+        `${x - wd * 0.34},${len * 0.9}`,
+      ].join(' '),
+    };
+  });
+
   return (
     <svg
       className="absolute inset-0 w-full"
@@ -684,41 +727,70 @@ function SceneBackground({
             <stop key={k} offset={`${s.offset}%`} stopColor={s.color} />
           ))}
         </linearGradient>
-        <linearGradient id={`${uid}-shaft`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.16" />
-          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-        </linearGradient>
+        {/* Un raggio = una sfumatura DI TRAVERSO (i fianchi) + una maschera
+            IN VERTICALE (la coda). Vedi il commento su RAGGI qui sopra. */}
+        {RAGGI.map((r) => (
+          <g key={`def-raggio-${r.k}`}>
+            <linearGradient id={`${uid}-raggio-${r.k}`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor={luceRaggio} stopOpacity="0" />
+              <stop offset="44%" stopColor={luceRaggio} stopOpacity="0.4" />
+              <stop offset="62%" stopColor={luceRaggio} stopOpacity="0.3" />
+              <stop offset="100%" stopColor={luceRaggio} stopOpacity="0" />
+            </linearGradient>
+            <linearGradient
+              id={`${uid}-raggioY-${r.k}`}
+              gradientUnits="userSpaceOnUse"
+              x1="0"
+              y1={-30}
+              x2="0"
+              y2={r.len}
+            >
+              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+              <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+            </linearGradient>
+            <mask
+              id={`${uid}-raggioM-${r.k}`}
+              maskUnits="userSpaceOnUse"
+              x={r.x - r.wd * 1.5}
+              y={-30}
+              width={r.wd * 4}
+              height={r.len + 30}
+            >
+              <rect
+                x={r.x - r.wd * 1.5}
+                y={-30}
+                width={r.wd * 4}
+                height={r.len + 30}
+                fill={`url(#${uid}-raggioY-${r.k})`}
+              />
+            </mask>
+          </g>
+        ))}
         <linearGradient id={`${uid}-vignette`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#0B1A10" stopOpacity="0.1" />
-          <stop offset="22%" stopColor="#0B1A10" stopOpacity="0" />
-          <stop offset="78%" stopColor="#0B1A10" stopOpacity="0" />
-          <stop offset="100%" stopColor="#0B1A10" stopOpacity="0.1" />
+          <stop offset="0%" stopColor="#07130C" stopOpacity="0.16" />
+          <stop offset="26%" stopColor="#07130C" stopOpacity="0" />
+          <stop offset="74%" stopColor="#07130C" stopOpacity="0" />
+          <stop offset="100%" stopColor="#07130C" stopOpacity="0.16" />
         </linearGradient>
       </defs>
 
       <rect x="0" y="0" width={g.vbW} height={totalH} fill={`url(#${uid}-sky)`} />
 
-      {/* Fasci di luce diagonali */}
-      {Array.from({ length: 5 }).map((_, k) => {
-        const x = seeded(k, 5) * g.vbW;
-        const y = seeded(k, 9) * totalH * 0.85;
-        const wd = 70 + seeded(k, 3) * 130;
-        const points = [
-          `${x},${y}`,
-          `${x + wd},${y}`,
-          `${x + wd * 0.45},${y + 260 + seeded(k, 11) * 200}`,
-          `${x - wd * 0.2},${y + 220}`,
-        ].join(' ');
-        return (
+      {/* Fasci di luce: la rotazione sta sul GRUPPO e la maschera sull'interno,
+          cosi' le coordinate della maschera e quelle del poligono vivono nello
+          stesso sistema di riferimento e non c'e' da indovinare in quale
+          spazio i browser risolvono `mask` su un elemento gia' trasformato. */}
+      {RAGGI.map((r) => (
+        <g key={`raggio-${r.k}`} transform={`rotate(${r.rot} ${r.x} 0)`}>
           <polygon
-            key={`shaft-${k}`}
-            points={points}
-            fill={`url(#${uid}-shaft)`}
-            opacity={0.5}
-            transform={`rotate(-8 ${x} ${y})`}
+            points={r.punti}
+            fill={`url(#${uid}-raggio-${r.k})`}
+            mask={`url(#${uid}-raggioM-${r.k})`}
+            opacity={r.forza}
           />
-        );
-      })}
+        </g>
+      ))}
 
       <EdgeDecor world={world} totalH={totalH} g={g} />
 
@@ -761,6 +833,19 @@ function SceneBackground({
     </svg>
   );
 }
+
+/**
+ * Memoizzato, e non e' un dettaglio.
+ *
+ * Mentre la mascotte cammina, `MascotOnPath` aggiorna il proprio stato a ogni
+ * frame e fa ridisegnare tutto l'albero della mappa: senza questo, lo scenario
+ * — sponde, vegetazione, sentiero, impronte, cioe' la parte piu' pesante del
+ * disegno — verrebbe ricostruito sessanta volte al secondo per un'animazione
+ * che riguarda un solo elemento. Tutte le prop sono riferimenti stabili
+ * (`steps` viene dallo stato, `trail` e' gia' memoizzato), quindi il confronto
+ * superficiale di `memo` basta.
+ */
+const SceneBackground = memo(SceneBackgroundBase);
 
 /**
  * Vegetazione del bioma: SOLO SUI BORDI, cosi' il centro resta libero per

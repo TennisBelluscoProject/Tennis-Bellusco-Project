@@ -26,8 +26,8 @@
  * sta nel repository. Cosi' la regola e' testabile senza database.
  */
 
-import type { Goal, GoalCategory, GoalStatus } from '@/lib/database.types';
-import { KIDS_AREA_CONFIG, type KidsProgram } from './curriculum';
+import type { Goal, GoalCategory, GoalStatus, PlayerLevel } from '@/lib/database.types';
+import { KIDS_AREA_CONFIG, KIDS_PROGRAMS, type KidsProgram } from './curriculum';
 import type { KidsProgramState } from './progress';
 
 // ─── Cosa deve esistere ─────────────────────────────────────────────────────
@@ -125,6 +125,54 @@ export function kidsGoalDrafts(
   }
 
   return drafts;
+}
+
+// ─── Cosa si vede nel Kanban ────────────────────────────────────────────────
+//
+// Le card dei 12 passi NON vengono cancellate quando il maestro cambia
+// percorso all'allievo (vedi `setKidsPath`: il cambio non azzera niente, e'
+// la disattivazione che azzera). Restano quindi in tabella le card del
+// percorso precedente, e senza un filtro finirebbero in "In programma"
+// insieme a quelle del percorso nuovo: un allievo passato a Cerbiatto si
+// ritroverebbe ancora gli obiettivi del Coccodrillo.
+//
+// La scelta e' filtrare in LETTURA e non cancellare: le card del percorso
+// vecchio restano nel database, cosi' se il maestro torna indietro l'allievo
+// ritrova il suo lavoro dov'era. Le CONCLUSE restano visibili comunque —
+// sono la storia dell'allievo, e toglierle vorrebbe dire far sparire dai
+// "Conclusi" tutto cio' che ha fatto nei percorsi precedenti.
+
+/**
+ * Il percorso Kids di appartenenza di una card, dedotto dalla chiave
+ * (`<slug>.<tappa>.<area>.<titolo>-<hash>`). `null` = card libera, cioe'
+ * creata a mano o dal catalogo: non appartiene a nessun percorso.
+ */
+export function kidsSlugOfGoal(objectiveKey: string | null): string | null {
+  if (objectiveKey === null) return null;
+  const punto = objectiveKey.indexOf('.');
+  return punto === -1 ? null : objectiveKey.slice(0, punto);
+}
+
+/**
+ * Filtra le card del Kanban tenendo solo quelle sensate per il percorso Kids
+ * ATTIVO (`level`, `null` = nessun percorso attivo):
+ *
+ *   - card libere (custom o dal catalogo)  -> sempre visibili
+ *   - card del percorso attivo             -> sempre visibili
+ *   - card di un altro percorso            -> solo se gia' concluse
+ *
+ * Funzione pura: decide cosa mostrare, non tocca il database.
+ */
+export function visibleKidsGoals<
+  T extends Pick<Goal, 'kids_objective_key' | 'status'>,
+>(goals: readonly T[], level: PlayerLevel | null): T[] {
+  const attivo = level === null ? null : KIDS_PROGRAMS[level].slug;
+  return goals.filter((goal) => {
+    const slug = kidsSlugOfGoal(goal.kids_objective_key);
+    if (slug === null) return true;
+    if (slug === attivo) return true;
+    return goal.status === 'completed';
+  });
 }
 
 // ─── Il piano ───────────────────────────────────────────────────────────────

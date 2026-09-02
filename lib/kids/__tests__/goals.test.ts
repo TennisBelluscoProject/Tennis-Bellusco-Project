@@ -5,6 +5,7 @@ import {
   kidsGoalDrafts,
   planKidsGoals,
   isEmptyPlan,
+  visibleKidsGoals,
   type KidsGoalLink,
 } from '../goals';
 
@@ -211,5 +212,62 @@ describe('piano di allineamento col Kanban', () => {
     ]);
 
     expect(plan.remove).not.toContain('roba-di-cerbiatto');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('cosa si vede nel Kanban quando il percorso cambia', () => {
+  const coccodrillo = KIDS_PROGRAMS.COCCODRILLO.stages[0].objectives[0];
+  const cerbiatto = KIDS_PROGRAMS.CERBIATTO.stages[0].objectives[0];
+
+  const card = (
+    id: string,
+    kids_objective_key: string | null,
+    status: 'planned' | 'in_progress' | 'completed'
+  ) => ({ id, kids_objective_key, status });
+
+  it('nasconde gli obiettivi ancora aperti di un percorso non piu\' attivo', () => {
+    const visibili = visibleKidsGoals(
+      [
+        card('vecchio-aperto', coccodrillo.key, 'planned'),
+        card('vecchio-in-corso', coccodrillo.key, 'in_progress'),
+        card('nuovo', cerbiatto.key, 'planned'),
+      ],
+      'CERBIATTO'
+    );
+
+    expect(visibili.map((g) => g.id)).toEqual(['nuovo']);
+  });
+
+  it('tiene le card libere, che non appartengono a nessun percorso', () => {
+    const visibili = visibleKidsGoals(
+      [card('mia', null, 'planned'), card('vecchia', coccodrillo.key, 'planned')],
+      'CERBIATTO'
+    );
+
+    expect(visibili.map((g) => g.id)).toEqual(['mia']);
+  });
+
+  it('tiene lo storico: le concluse di un percorso precedente restano', () => {
+    const visibili = visibleKidsGoals(
+      [card('fatta-nel-coccodrillo', coccodrillo.key, 'completed')],
+      'CERBIATTO'
+    );
+
+    expect(visibili).toHaveLength(1);
+  });
+
+  it('senza percorso attivo restano solo le card libere e lo storico', () => {
+    const visibili = visibleKidsGoals(
+      [
+        card('mia', null, 'planned'),
+        card('aperta', cerbiatto.key, 'planned'),
+        card('conclusa', coccodrillo.key, 'completed'),
+      ],
+      null
+    );
+
+    expect(visibili.map((g) => g.id)).toEqual(['mia', 'conclusa']);
   });
 });
