@@ -238,6 +238,12 @@
      (chi lo mette) e `.full-bleed` (chi vuole uscirne). */
   --page-gutter: 1rem;
   --header-h: 3.5rem;
+
+  /* Zone occupate dal sistema: tacca e fotocamera in alto, barra dei gesti in
+     basso. Fuori da un'app installata valgono 0, quindi si possono usare
+     ovunque senza condizioni. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @media (min-width: 640px) {
@@ -310,12 +316,29 @@
 
 * { box-sizing: border-box; }
 
+/* NIENTE altezza percentuale su html.
+
+   Prima l'<html> aveva `h-full` e il body `min-h-full`. Su telefono le
+   percentuali si risolvono contro il viewport GRANDE (quello senza la barra
+   degli indirizzi), quindi appena aperta l'app il body era piu' alto della
+   parte visibile e sotto al contenuto restava una striscia vuota, che
+   spariva scorrendo perche' la barra si ritirava e i due valori tornavano a
+   coincidere.
+
+   `dvh` e' l'unita' che segue il viewport mentre cambia, ed e' l'unica che
+   descrive davvero "tutto lo schermo disponibile adesso".
+
+   Lo sfondo sta anche su html: e' l'elemento che il browser usa per dipingere
+   l'area di rimbalzo quando si tira oltre il bordo. Senza, quella zona
+   resterebbe bianca anche a tema scuro. */
 html {
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
+  background: var(--background);
 }
 
 body {
+  min-height: 100dvh;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
@@ -489,8 +512,6 @@ input[type="date"]::-webkit-datetime-edit { padding: 0; line-height: 1.25; }
   width: 3px;
   border-radius: 0 3px 3px 0;
   background: var(--cat-color, var(--primary));
-  transition: top var(--dur-base) var(--ease-out-quint),
-              bottom var(--dur-base) var(--ease-out-quint);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -519,8 +540,6 @@ input[type="date"]::-webkit-datetime-edit { padding: 0; line-height: 1.25; }
 
 .progress-fill {
   border-radius: 999px;
-  position: relative;
-  transition: width 700ms var(--ease-out-quint), background-color var(--dur-base) linear;
 }
 
 /* Nessun riflesso perpetuo sulla barra.

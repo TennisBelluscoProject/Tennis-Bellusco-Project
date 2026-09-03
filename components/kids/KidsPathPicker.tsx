@@ -109,13 +109,16 @@ export function KidsPathPicker({
   const nome = studentName.split(' ')[0] || studentName;
 
   return (
-    <div className="flex flex-col gap-3.5">
-      <p className="text-[12.5px] text-gray-500 leading-relaxed">
-        {isCoach
-          ? `I tre percorsi del Diario del Tennis. Quello attivo e' l'unico che ${nome} puo' modificare; gli altri li apri in sola lettura.`
-          : 'Il tuo cammino nel Diario del Tennis: tre percorsi, dodici passi ciascuno.'}
-      </p>
-
+    // Respiro in fondo: nella pagina dell'elenco l'ultima scheda (COCCODRILLO)
+    // e' l'ultima cosa della pagina, e senza questo tocca il bordo dello
+    // schermo. Sta qui e non sul contenitore in PlayerView perche' quello
+    // ospita anche la mappa, che il respiro se lo porta gia' dentro (la fascia
+    // del traguardo) e sotto la quale un rientro in piu' sembrerebbe un
+    // ritaglio sbagliato del fondale.
+    <div
+      className="flex flex-col gap-3.5"
+      style={{ paddingBottom: 'calc(1.5rem + var(--safe-bottom))' }}
+    >
       {KIDS_LEVEL_ORDER.map((level, i) => {
         const program = KIDS_PROGRAMS[level];
         const world = WORLDS[level];
@@ -132,9 +135,9 @@ export function KidsPathPicker({
         return (
           <article
             key={level}
-            className="rounded-2xl overflow-hidden bg-white"
+            className="rounded-[var(--radius-xl)] overflow-hidden bg-card"
             style={{
-              border: `1.5px solid ${stato === 'attivo' ? c.accent : '#E4E7EC'}`,
+              border: `1.5px solid ${stato === 'attivo' ? c.accent : 'var(--border)'}`,
               boxShadow: stato === 'attivo' ? `0 6px 20px ${c.accent}26` : 'var(--shadow-xs)',
             }}
           >
@@ -218,12 +221,12 @@ export function KidsPathPicker({
               </div>
 
               <div className="px-4 pt-3 pb-3.5">
-                <p className="text-[12.5px] text-gray-600 leading-relaxed">
+                <p className="text-[12.5px] text-muted-foreground leading-relaxed">
                   {DESCRIZIONI[level]}
                 </p>
 
                 <div className="flex items-center justify-between gap-3 mt-3">
-                  <span className="text-[11px] font-semibold text-gray-400">
+                  <span className="text-[11px] font-semibold text-subtle-foreground">
                     {passi} passi &middot; {program.stages.length} tappe
                   </span>
 
@@ -236,7 +239,7 @@ export function KidsPathPicker({
                       <ArrowRight size={14} strokeWidth={2.8} />
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-[11.5px] text-gray-400 leading-snug shrink-0 text-right">
+                    <span className="inline-flex items-center gap-1.5 text-[11.5px] text-subtle-foreground leading-snug shrink-0 text-right">
                       <Lock size={12} strokeWidth={2.6} className="shrink-0" />
                       {precedente ? `Si apre concludendo ${precedente}` : 'Non ancora disponibile'}
                     </span>
@@ -249,19 +252,18 @@ export function KidsPathPicker({
                 agiscono, non in una barra separata sopra la mappa. */}
             {isCoach && (
               <div
-                className="px-4 py-3 flex items-center gap-2 flex-wrap"
-                style={{ borderTop: '1px solid #EEF0F4', background: '#FBFCFD' }}
+                className="px-4 py-3 flex items-center gap-2 flex-wrap border-t border-border-soft bg-muted"
               >
                 {stato === 'attivo' ? (
                   <>
-                    <span className="flex-1 min-w-[130px] text-[11.5px] text-gray-500 leading-snug">
-                      In corso per <b className="text-gray-700">{nome}</b>
+                    <span className="flex-1 min-w-[130px] text-[11.5px] text-muted-foreground leading-snug">
+                      In corso per <b className="text-foreground">{nome}</b>
                     </span>
                     <button
                       type="button"
                       disabled={busy}
                       onClick={onDeactivate}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] text-[12px] font-semibold text-foreground bg-card border border-border hover:border-[var(--border-strong)] transition-colors disabled:opacity-50"
                     >
                       <Power size={13} strokeWidth={2.4} />
                       Disattiva
@@ -269,7 +271,7 @@ export function KidsPathPicker({
                   </>
                 ) : (
                   <>
-                    <span className="flex-1 min-w-[130px] text-[11.5px] text-gray-400 leading-snug">
+                    <span className="flex-1 min-w-[130px] text-[11.5px] text-subtle-foreground leading-snug">
                       {stato === 'concluso' ? 'Gia\u0027 concluso' : 'Non assegnato'}
                     </span>
                     <button

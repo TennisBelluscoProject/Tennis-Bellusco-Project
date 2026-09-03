@@ -42,8 +42,6 @@ interface ProgressBarProps {
   color?: string;
   height?: number;
   className?: string;
-  /** Spegne il riflesso animato (utile nelle liste lunghe). */
-  still?: boolean;
 }
 
 export function ProgressBar({
@@ -51,20 +49,25 @@ export function ProgressBar({
   color = 'var(--primary)',
   height = 6,
   className,
-  still,
 }: ProgressBarProps) {
   const pct = Math.min(100, Math.max(0, value));
   return (
     <div className={cn('progress-track w-full', className)} style={{ height }}>
+      {/* Si anima `scaleX`, non `width`.
+
+          La larghezza e' una proprieta' di layout: cambiarla obbliga il
+          browser a ricalcolare la disposizione e a ridisegnare a OGNI
+          fotogramma, per ogni barra visibile. `scaleX` invece la applica il
+          compositore sulla scheda grafica, senza toccare ne' layout ne'
+          disegno — ed e' la differenza fra scattare e scorrere liscio quando
+          a schermo ci sono venti obiettivi. */}
       <motion.div
-        className="h-full rounded-full relative overflow-hidden"
-        style={{ backgroundColor: color }}
+        className="h-full w-full rounded-full"
+        style={{ backgroundColor: color, transformOrigin: 'left center' }}
         initial={false}
-        animate={{ width: `${pct}%` }}
-        transition={{ type: 'spring', stiffness: 180, damping: 26 }}
-      >
-        {!still && <span className="progress-fill absolute inset-0" />}
-      </motion.div>
+        animate={{ scaleX: pct / 100 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 28 }}
+      />
     </div>
   );
 }

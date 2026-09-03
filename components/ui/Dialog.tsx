@@ -134,7 +134,6 @@ export function Dialog({
               'rounded-t-[var(--radius-2xl)] sm:rounded-[var(--radius-xl)]',
               'border border-border shadow-[var(--shadow-xl)]',
               'max-h-[92dvh] sm:max-h-[88dvh] flex flex-col',
-              'pb-[env(safe-area-inset-bottom)] sm:pb-0',
               SIZE_CLASS[size]
             )}
           >
@@ -169,12 +168,26 @@ export function Dialog({
               </div>
             )}
 
-            <div className="px-5 pb-5 overflow-y-auto overscroll-contain flex-1 min-h-0">
+            {/* Il respiro in fondo lo mette CHI SCORRE, non il pannello.
+
+                Se il rientro sta sul pannello, l'area di scorrimento finisce
+                prima e l'ultimo elemento resta comunque appiccicato al bordo
+                inferiore di quell'area: il rientro si vede sotto, ma il
+                contenuto no. Messo qui, invece, scorre insieme al contenuto e
+                l'ultima riga arriva sempre staccata dal fondo dello schermo.
+                Sopra il rientro di sistema si sommano 24px scelti da noi. */}
+            <div
+              className="px-5 overflow-y-auto overscroll-contain flex-1 min-h-0"
+              style={{ paddingBottom: footer ? '1rem' : 'calc(1.5rem + var(--safe-bottom))' }}
+            >
               {children}
             </div>
 
             {footer && (
-              <div className="px-5 py-3.5 border-t border-border-soft bg-[var(--card)] rounded-b-[var(--radius-xl)] shrink-0">
+              <div
+                className="px-5 pt-3.5 border-t border-border-soft bg-[var(--card)] rounded-b-[var(--radius-xl)] shrink-0"
+                style={{ paddingBottom: 'calc(0.875rem + var(--safe-bottom))' }}
+              >
                 {footer}
               </div>
             )}

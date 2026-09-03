@@ -25,7 +25,7 @@ import type { Profile, PlayerLevel } from '@/lib/database.types';
 import { KIDS_PROGRAMS, type KidsProgram } from '@/lib/kids/curriculum';
 import { computeKidsState, type KidsProgramState } from '@/lib/kids/progress';
 import { isEmptyPlan } from '@/lib/kids/goals';
-import { Spinner, ConfirmDialog } from '@/components/UI';
+import { Spinner, ConfirmDialog, Dialog, Button } from '@/components/UI';
 import { KidsPathMap } from './KidsPathMap';
 import { KidsPathPicker } from './KidsPathPicker';
 import { KidsStepSheet } from './KidsStepSheet';
@@ -377,7 +377,7 @@ export function KidsPathSection({
 
   return (
     <div className="flex flex-col">
-      {error && <p className="text-[12px] font-medium text-red-600 mb-3">{error}</p>}
+      {error && <p className="text-[12px] font-semibold text-destructive mb-3">{error}</p>}
 
       {vista === 'elenco' ? (
         /* PAGINA 1 — la scelta. Tre schede grandi con la loro descrizione,
@@ -404,7 +404,7 @@ export function KidsPathSection({
             <button
               type="button"
               onClick={() => setVista('elenco')}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 -ml-1 rounded-lg text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 -ml-1 rounded-[var(--radius-md)] text-[12.5px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <ArrowLeft size={15} strokeWidth={2.6} />
               Percorsi
@@ -412,7 +412,7 @@ export function KidsPathSection({
 
             <span
               className="text-[13px] font-bold"
-              style={{ color: program.colors.ink, fontFamily: 'var(--font-display)' }}
+              style={{ color: program.colors.ink }}
             >
               {program.name}
             </span>
@@ -480,24 +480,16 @@ function PromotionDialog({
 }) {
   const target = KIDS_PROGRAMS[to];
   return (
-    <div className="dialog-backdrop" onClick={onClose}>
-      <div
-        className="dialog-content p-7 text-center animate-slide-up"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Dialog open onClose={onClose} size="sm" hideClose>
+      <div className="text-center pt-2">
         <div
-          className="w-16 h-16 rounded-3xl mx-auto flex items-center justify-center mb-4 text-white"
+          className="w-16 h-16 rounded-[var(--radius-xl)] mx-auto flex items-center justify-center mb-4 text-white"
           style={{ background: 'linear-gradient(135deg, #F5C33B 0%, #D4A017 100%)' }}
         >
           <Trophy size={30} strokeWidth={2.2} />
         </div>
-        <h3
-          className="text-xl font-bold text-gray-900 mb-2"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          12 passi compiuti!
-        </h3>
-        <p className="text-[13.5px] text-gray-600 leading-relaxed mb-5">
+        <h3 className="text-[20px] font-bold tracking-[-0.025em] mb-2">12 passi compiuti!</h3>
+        <p className="text-[13.5px] text-muted-foreground leading-relaxed mb-5">
           Il percorso {KIDS_PROGRAMS[from].name} è concluso.
           <br />
           Da oggi si passa al livello{' '}
@@ -506,14 +498,15 @@ function PromotionDialog({
           </b>
           : ti aspettano 12 nuovi passi!
         </p>
-        <button
+        <Button
+          block
+          size="lg"
           onClick={onClose}
-          className="w-full py-3 rounded-xl text-white text-sm font-semibold"
-          style={{ background: target.colors.accent }}
+          style={{ backgroundColor: target.colors.accent }}
         >
           Inizia il percorso {target.name}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Dialog>
   );
 }

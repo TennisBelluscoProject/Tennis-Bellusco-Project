@@ -430,7 +430,7 @@ function NodeCard({
           </span>
         </div>
         <p className="text-[13px] font-bold line-clamp-2 leading-snug mb-2">{node.title}</p>
-        <ProgressBar value={node.progress ?? 0} color={cat.color} height={5} still />
+        <ProgressBar value={node.progress ?? 0} color={cat.color} height={5} />
       </motion.button>
     );
   }

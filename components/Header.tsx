@@ -31,7 +31,15 @@ export function Header() {
     : `Ciao, ${profile?.first_name || profile?.full_name || ''}`;
 
   return (
-    <header className="sticky top-0 z-40 glass border-b border-border">
+    // `viewportFit: cover` (in layout.tsx) fa arrivare la pagina fin sotto la
+    // tacca e la barra di stato: e' quello che permette allo sfondo di andare
+    // davvero a filo, ma vuol dire che il contenuto ci finisce sotto se
+    // nessuno se ne occupa. Il rientro lo mette la barra, che e' il primo
+    // elemento della pagina; il resto sta sotto di lei e non deve fare niente.
+    <header
+      className="sticky top-0 z-40 glass border-b border-border"
+      style={{ paddingTop: 'var(--safe-top)' }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-[var(--header-h)]">
           <div className="flex items-center gap-3 min-w-0">

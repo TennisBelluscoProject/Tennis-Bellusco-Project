@@ -144,7 +144,6 @@ export const GoalCard = memo(function GoalCard({
                 color={cat.color}
                 height={4}
                 className="flex-1"
-                still
               />
               <span className="text-[11px] font-bold tnum shrink-0" style={{ color: cat.color }}>
                 {goal.progress}%

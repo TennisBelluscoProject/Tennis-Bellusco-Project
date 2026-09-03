@@ -25,7 +25,7 @@ import {
 import { AnimatePresence, LayoutGroup, animate, motion, useMotionValue } from 'motion/react';
 import { CircleCheck, ClipboardList, Zap, type LucideIcon } from 'lucide-react';
 import type { Goal, GoalCategory, GoalStatus } from '@/lib/database.types';
-import { CATEGORY_CONFIG, STATUS_COLUMNS, STATUS_CONFIG, withAlpha } from '@/lib/constants';
+import { CATEGORY_CONFIG, STATUS_COLUMNS, STATUS_CONFIG } from '@/lib/constants';
 import { useIsMobile } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
@@ -587,7 +587,14 @@ function MobileBoard({
           // tiene l'orizzontale per noi. Con questo NON serve
           // `dragDirectionLock`, che aggiungeva solo una soglia di
           // riconoscimento e rendeva molli i primi pixel del gesto.
-          style={{ x, width: width * STATUS_COLUMNS.length, touchAction: 'pan-y' }}
+          style={{
+            x,
+            width: width * STATUS_COLUMNS.length,
+            touchAction: 'pan-y',
+            // Promuove il nastro a livello proprio: il compositore lo sposta
+            // senza ridisegnare i tre pannelli a ogni fotogramma del gesto.
+            willChange: 'transform',
+          }}
           layoutRoot
           drag="x"
           dragConstraints={{ left: -(STATUS_COLUMNS.length - 1) * width, right: 0 }}
@@ -732,16 +739,20 @@ function StatusSwitcher({
         </div>
       </LayoutGroup>
 
-      <div className="flex justify-center gap-1.5 mt-2.5">
+      {/* Indicatori: si anima `scaleX` su una lineetta di larghezza fissa,
+          non la larghezza vera. Animare `width` qui vorrebbe dire ricalcolare
+          il layout della riga a ogni fotogramma. */}
+      <div className="flex justify-center items-center gap-1.5 mt-2.5">
         {STATUS_COLUMNS.map((status, i) => (
           <motion.span
             key={status}
-            animate={{ width: i === index ? 16 : 5 }}
+            animate={{ scaleX: i === index ? 1 : 0.3, opacity: i === index ? 1 : 0.5 }}
             transition={{ type: 'spring', stiffness: 480, damping: 34 }}
-            className="h-[3px] rounded-full block"
+            className="h-[3px] w-4 rounded-full block"
             style={{
+              transformOrigin: 'center',
               backgroundColor:
-                i === index ? STATUS_CONFIG[status].color : withAlpha('var(--muted-foreground)', 28),
+                i === index ? STATUS_CONFIG[status].color : 'var(--border-strong)',
             }}
           />
         ))}

@@ -68,13 +68,13 @@ export default function RootLayout({
     <html
       lang="it"
       suppressHydrationWarning
-      className={`h-full antialiased ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`antialiased ${inter.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="flex flex-col font-sans">
         <ThemeProvider>
           <ToastProvider>{children}</ToastProvider>
         </ThemeProvider>
