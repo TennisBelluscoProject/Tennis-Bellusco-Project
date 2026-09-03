@@ -254,14 +254,30 @@ export function KidsPathSection({
 
   // ─── Attivazione / cambio / spegnimento (solo maestro) ───────────────────
 
+  /**
+   * Un'attivazione alla volta.
+   *
+   * `busy` disabilita i pulsanti, ma e' uno stato React: fra il clic e il
+   * render che lo applica passa un istante, e su un touch screen due tocchi
+   * ravvicinati (o un doppio tocco involontario) partono entrambi. Due
+   * scritture in volo sullo stesso profilo si sovrappongono e vince quella
+   * che arriva per ultima, che non e' detto sia l'ultima richiesta: e' uno
+   * dei modi in cui l'attivazione sembrava "non prendere" al primo colpo.
+   * Un ref e' sincrono e chiude la porta subito.
+   */
+  const cambioInCorso = useRef(false);
+
   const cambiaPercorso = useCallback(
     async (level: PlayerLevel | null) => {
       if (!isCoach) return;
+      if (cambioInCorso.current) return;
+      cambioInCorso.current = true;
       setBusy(true);
       setError(null);
 
       const res = await profileRepo.setKidsPath(student.id, level, actorId);
       if (res.error) {
+        cambioInCorso.current = false;
         setBusy(false);
         setError(`Operazione non riuscita: ${res.error.message}`);
         return;
@@ -287,9 +303,11 @@ export function KidsPathSection({
         // mappa continuerebbe a mostrare i progressi appena eliminati.
         setDoneKeys(new Set());
         setCompletedLevels(new Set());
+        setInProgressKeys(new Set());
         setOpenStep(null);
       }
 
+      cambioInCorso.current = false;
       setBusy(false);
       onLevelChanged?.(level);
     },

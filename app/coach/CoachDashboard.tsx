@@ -157,6 +157,28 @@ function CoachDesktopDashboard() {
     return () => { cancelled = true; };
   }, [reloadTick]);
 
+  // L'allievo aperto e' una COPIA presa dall'elenco al momento del clic: da
+  // quel punto in poi non lo tocca piu' nessuno. Ogni volta che l'elenco
+  // viene riletto va quindi risincronizzato, altrimenti la sua scheda
+  // continua a ragionare su un profilo vecchio.
+  //
+  // E' il difetto che si vedeva sull'attivazione dei percorsi Kids: il
+  // maestro attivava o disattivava un percorso, tornava all'elenco e
+  // rientrava, e si ritrovava davanti lo stato di prima — perche' il profilo
+  // che gli veniva ripassato era ancora quello caricato all'apertura. Al
+  // secondo tentativo "funzionava", cioe' la scrittura era andata a buon fine
+  // fin dalla prima volta ma non si vedeva.
+  //
+  // Se l'allievo sparisce dall'elenco (rifiutato, disattivato) si tiene
+  // quello che c'e': chiudergli la scheda sotto le mani sarebbe peggio.
+  useEffect(() => {
+    if (!selectedStudent) return;
+    const fresco =
+      students.find((s) => s.id === selectedStudent.id) ??
+      groups.find((g) => g.id === selectedStudent.id);
+    if (fresco && fresco !== selectedStudent) setSelectedStudent(fresco);
+  }, [students, groups, selectedStudent]);
+
   useEffect(() => {
     if (activeTab !== 'risultati') return;
     let cancelled = false;

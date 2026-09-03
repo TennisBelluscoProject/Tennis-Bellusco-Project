@@ -88,6 +88,13 @@ export class SupabaseProfileRepository implements IProfileRepository {
    *
    * Il CAMBIO di percorso (es. da Delfino a Cerbiatto) non azzera niente: e'
    * un'altra cosa, e lo storico dell'allievo resta.
+   *
+   * In entrambi i casi si VERIFICA che la scrittura abbia davvero toccato una
+   * riga. Un `update` che non trova nulla (riga filtrata da RLS, id sbagliato)
+   * non e' un errore per PostgREST: torna zero righe e nessun messaggio.
+   * Senza questo controllo l'interfaccia mostrava il percorso attivato mentre
+   * sul database non era cambiato niente, e la cosa saltava fuori solo al
+   * ricaricamento successivo.
    */
   async setKidsPath(
     studentId: string,
@@ -99,18 +106,54 @@ export class SupabaseProfileRepository implements IProfileRepository {
         p_student_id: studentId,
       });
       if (error) return fail(error);
-      return ok(undefined);
+      // La RPC solleva eccezione se non autorizzata, ma non dice se il
+      // profilo esisteva: lo rileggiamo.
+      return this.verifyKidsPath(studentId, null);
     }
 
-    const { error } = await this.client
+    const { data, error } = await this.client
       .from('profiles')
       .update({
         kids_path_level: level,
         kids_path_set_at: new Date().toISOString(),
         kids_path_set_by: coachId,
       })
-      .eq('id', studentId);
+      .eq('id', studentId)
+      .select('id');
     if (error) return fail(error);
+    if ((data ?? []).length === 0) {
+      return fail({
+        message:
+          'Nessun profilo aggiornato: potresti non avere i permessi per questo allievo.',
+        code: 'NO_ROWS',
+      });
+    }
+    return ok(undefined);
+  }
+
+  /**
+   * Rilegge `kids_path_level` e controlla che sia quello atteso. E' il modo
+   * piu' semplice per non fidarsi di una scrittura andata a vuoto in silenzio.
+   */
+  private async verifyKidsPath(
+    studentId: string,
+    atteso: PlayerLevel | null
+  ): Promise<RepoResult<void>> {
+    const { data, error } = await this.client
+      .from('profiles')
+      .select('kids_path_level')
+      .eq('id', studentId)
+      .maybeSingle();
+    if (error) return fail(error);
+    const attuale = (data as { kids_path_level: PlayerLevel | null } | null)
+      ?.kids_path_level ?? null;
+    if (attuale !== atteso) {
+      return fail({
+        message:
+          'Il percorso non risulta aggiornato sul database: riprova o ricarica la pagina.',
+        code: 'NOT_APPLIED',
+      });
+    }
     return ok(undefined);
   }
 }

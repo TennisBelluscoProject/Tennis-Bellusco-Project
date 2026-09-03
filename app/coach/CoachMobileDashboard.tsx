@@ -139,6 +139,19 @@ export function CoachMobileDashboard() {
     };
   }, [reloadTick]);
 
+  // Stessa ragione della dashboard da scrivania: `selectedStudent` e' una
+  // copia scattata al momento del clic e `fetchAll()` ricarica l'elenco ma
+  // non lei. Senza questa risincronizzazione la scheda dell'allievo continua
+  // a lavorare sul profilo vecchio, e un percorso Kids appena attivato o
+  // disattivato sembra non essere cambiato finche' non si ricarica la pagina.
+  useEffect(() => {
+    if (!selectedStudent) return;
+    const fresco =
+      students.find((s) => s.id === selectedStudent.id) ??
+      groups.find((g) => g.id === selectedStudent.id);
+    if (fresco && fresco !== selectedStudent) setSelectedStudent(fresco);
+  }, [students, groups, selectedStudent]);
+
   // Approve / Reject
   const handleApprove = async (p: Profile) => {
     setActingOn(p.id);

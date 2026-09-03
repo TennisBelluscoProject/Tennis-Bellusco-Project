@@ -72,6 +72,15 @@ export function PlayerView({
   const [pathViews, setPathViews] = useState<Record<string, PathTreeData>>({});
   const [deactivatePathOpen, setDeactivatePathOpen] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
+  /**
+   * Errore dell'ultima disattivazione di un Percorso (skill tree).
+   *
+   * Prima l'esito della RPC veniva ignorato: se `deactivate_path` falliva
+   * (permessi, rete, riga non trovata) la finestra si chiudeva lo stesso e
+   * partiva un ricaricamento, che ovviamente ritrovava il percorso ancora
+   * attivo. Da fuori sembrava che il clic non avesse fatto niente.
+   */
+  const [pathError, setPathError] = useState<string | null>(null);
 
   /**
    * Percorso Kids attivo per questo allievo: NULL = nessuno. Non si deduce
@@ -302,8 +311,16 @@ export function PlayerView({
   const handleDeactivatePath = async () => {
     if (!selectedPathId || deactivating) return;
     setDeactivating(true);
-    await studentPathRepo.deactivate(selectedPathId, player.id);
+    setPathError(null);
+    const res = await studentPathRepo.deactivate(selectedPathId, player.id);
     setDeactivating(false);
+    if (res.error) {
+      // La finestra resta aperta: il maestro deve poter riprovare senza
+      // ricominciare, e soprattutto deve sapere che non e' successo niente
+      // invece di crederci.
+      setPathError(`Disattivazione non riuscita: ${res.error.message}`);
+      return;
+    }
     setDeactivatePathOpen(false);
     await triggerRefresh();
   };
@@ -644,6 +661,9 @@ export function PlayerView({
 
   const percorsoContent = (
     <div className="flex flex-col min-h-full">
+      {pathError && (
+        <p className="shrink-0 text-[12px] font-medium text-red-600 mb-3">{pathError}</p>
+      )}
       {activePaths.length > 1 && (
         <div className="shrink-0 flex gap-2 mb-3 overflow-x-auto scrollbar-hidden">
           {activePaths.map((ap) => (
