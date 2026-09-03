@@ -1,99 +1,354 @@
 @import "tailwindcss";
 
+/* Tailwind v4: il tema scuro si attiva dalla classe `.dark` sull'<html>, non
+   da prefers-color-scheme. Lo decide ThemeProvider, che legge la preferenza
+   salvata e ricade sul sistema solo se non c'e'. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PALETTE — Cobalt Steel (21st.dev/@serafimcloud/themes/cobalt-steel)
+   estesa con i colori di dominio (categorie, stati, semantica).
+
+   Regola: NESSUN colore scritto a mano nei componenti. Tutto passa da qui,
+   cosi' chiaro e scuro restano allineati per costruzione e un cambio di
+   palette e' una modifica a un file solo.
+   ═══════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /* ─── Club Colors ─── */
-  --club-red: #C41E3A;
-  --club-blue: #1B3A5C;
-  --club-white: #FFFFFF;
-  --club-red-light: #F8E8EB;
-  --club-blue-light: #E8EDF2;
-  --club-red-dark: #9A1830;
-  --club-blue-dark: #122840;
+  color-scheme: light;
 
-  /* ─── Surfaces ─── */
-  --background: #F3F5F9;
-  --foreground: #18223A;
+  /* ─── Superfici ─── */
+  --background: #F5F5F9;
+  --background-alt: #EFEFF5;
+  --foreground: #141416;
   --card: #FFFFFF;
-  --card-border: #E2E4E9;
-  --card-hover-border: #C8CBD2;
-  --muted: #6B7280;
+  --card-foreground: #141416;
+  --sunken: #EDEDF3;
+  --popover: #FFFFFF;
+  --popover-foreground: #141416;
+  --overlay: rgba(20, 20, 22, 0.32);
 
-  /* ─── Semantic ─── */
-  --success: #16a34a;
-  --success-light: #dcfce7;
-  --warning: #E65100;
-  --warning-light: #FFF3E0;
-  --purple: #7B1FA2;
-  --purple-light: #F3E5F5;
+  /* ─── Primario (cobalto) ─── */
+  --primary: #3A64F2;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #2E52D6;
+  --primary-active: #2544B4;
+  --primary-soft: #EDF1FE;
+  --primary-soft-hover: #DFE7FD;
+  --primary-border: #C3D0FB;
 
-  /* ─── Shadows ─── */
-  --shadow-xs: 0 1px 2px rgba(27, 58, 92, 0.04);
-  --shadow-sm: 0 1px 3px rgba(27, 58, 92, 0.06), 0 1px 2px rgba(27, 58, 92, 0.04);
-  --shadow-md: 0 4px 12px rgba(27, 58, 92, 0.08), 0 1px 3px rgba(27, 58, 92, 0.04);
-  --shadow-lg: 0 12px 32px rgba(27, 58, 92, 0.10), 0 4px 8px rgba(27, 58, 92, 0.04);
-  --shadow-red: 0 4px 14px rgba(196, 30, 58, 0.25);
+  /* ─── Neutri ─── */
+  --secondary: #E6E6ED;
+  --secondary-foreground: #141416;
+  --secondary-hover: #DCDCE6;
+  --muted: #EDEDF2;
+  --muted-foreground: #676B77;
+  --subtle-foreground: #8B8F9C;
+  --accent: #F2F5FF;
+  --accent-foreground: #3A64F2;
 
-  /* ─── Transitions ─── */
+  /* ─── Bordi e campi ─── */
+  --border: #DBDBE6;
+  --border-soft: #E8E8F0;
+  --border-strong: #C6C6D6;
+  --input: #E4E4E7;
+  --input-bg: #FFFFFF;
+  --ring: #3A64F2;
+
+  /* ─── Semantica ─── */
+  --destructive: #E52441;
+  --destructive-foreground: #FFFFFF;
+  --destructive-hover: #CB1B36;
+  --destructive-soft: #FDECEF;
+  --success: #0EA47F;
+  --success-foreground: #FFFFFF;
+  --success-soft: #E2F6F0;
+  --warning: #D98A00;
+  --warning-foreground: #FFFFFF;
+  --warning-soft: #FCF3E1;
+  --info: #0B9BE0;
+  --info-soft: #E5F5FD;
+
+  /* ─── Categorie obiettivi ─── */
+  --cat-tecnica: #E5484D;
+  --cat-tecnica-soft: #FDECEC;
+  --cat-tattica: #3A64F2;
+  --cat-tattica-soft: #EDF1FE;
+  --cat-fisico: #0EA47F;
+  --cat-fisico-soft: #E2F6F0;
+  --cat-mente: #7C5CFC;
+  --cat-mente-soft: #F0ECFE;
+  --cat-agonismo: #D98A00;
+  --cat-agonismo-soft: #FCF3E1;
+
+  /* ─── Stati del Kanban ─── */
+  --status-planned: #676B77;
+  --status-planned-soft: #ECECF1;
+  --status-progress: #3A64F2;
+  --status-progress-soft: #EDF1FE;
+  --status-completed: #0EA47F;
+  --status-completed-soft: #E2F6F0;
+
+  /* ─── Grafici ─── */
+  --chart-1: #3A64F2;
+  --chart-2: #0EA47F;
+  --chart-3: #0B9BE0;
+  --chart-4: #D98A00;
+  --chart-5: #E5484D;
+
+  /* ─── Ombre ─── */
+  --shadow-xs: 0 1px 2px rgba(20, 20, 40, 0.05);
+  --shadow-sm: 0 1px 3px rgba(20, 20, 40, 0.07), 0 1px 2px rgba(20, 20, 40, 0.04);
+  --shadow-md: 0 4px 14px rgba(20, 20, 40, 0.08), 0 2px 4px rgba(20, 20, 40, 0.04);
+  --shadow-lg: 0 12px 32px rgba(20, 20, 40, 0.12), 0 4px 10px rgba(20, 20, 40, 0.05);
+  --shadow-xl: 0 24px 56px rgba(20, 20, 40, 0.18), 0 8px 18px rgba(20, 20, 40, 0.07);
+  --shadow-primary: 0 6px 20px rgba(58, 100, 242, 0.28);
+  --shadow-drag: 0 18px 40px rgba(20, 20, 40, 0.20), 0 4px 10px rgba(20, 20, 40, 0.10);
+
+  /* ─── Compatibilita' con i componenti non ancora ridisegnati ───
+     I vecchi nomi restano vivi ma puntano alla nuova palette: cosi' le
+     sezioni ancora da rifare cambiano colore da sole e non si rompe niente
+     mentre il redesign avanza schermata per schermata. */
+  --club-blue: var(--primary);
+  --club-blue-dark: #2440A8;
+  --club-blue-light: var(--primary-soft);
+  --club-red: var(--cat-tecnica);
+  --club-red-dark: #C4323A;
+  --club-red-light: var(--cat-tecnica-soft);
+  --club-white: var(--card);
+  --success-light: var(--success-soft);
+  --warning-light: var(--warning-soft);
+  --purple: var(--cat-mente);
+  --purple-light: var(--cat-mente-soft);
+  --card-border: var(--border);
+  --card-hover-border: var(--border-strong);
+  --shadow-red: var(--shadow-primary);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #141416;
+  --background-alt: #0E0E10;
+  --foreground: #FFFFFF;
+  --card: #18181A;
+  --card-foreground: #FFFFFF;
+  --sunken: #101012;
+  --popover: #1C1C1F;
+  --popover-foreground: #FFFFFF;
+  --overlay: rgba(0, 0, 0, 0.62);
+
+  --primary: #5479F5;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #6A8AF7;
+  --primary-active: #7E9AF9;
+  --primary-soft: rgba(84, 121, 245, 0.16);
+  --primary-soft-hover: rgba(84, 121, 245, 0.26);
+  --primary-border: rgba(84, 121, 245, 0.38);
+
+  --secondary: #212124;
+  --secondary-foreground: #FFFFFF;
+  --secondary-hover: #2A2A2E;
+  --muted: #1E1E21;
+  --muted-foreground: #9A9EA8;
+  --subtle-foreground: #71757A;
+  --accent: #1B1D24;
+  --accent-foreground: #5479F5;
+
+  --border: #26262A;
+  --border-soft: #1F1F23;
+  --border-strong: #35353B;
+  --input: #26262A;
+  --input-bg: #1C1C1F;
+  --ring: #5479F5;
+
+  --destructive: #F5566B;
+  --destructive-foreground: #FFFFFF;
+  --destructive-hover: #F76F81;
+  --destructive-soft: rgba(245, 86, 107, 0.16);
+  --success: #34D3A6;
+  --success-foreground: #08110E;
+  --success-soft: rgba(52, 211, 166, 0.16);
+  --warning: #F0B23C;
+  --warning-foreground: #1A1204;
+  --warning-soft: rgba(240, 178, 60, 0.16);
+  --info: #4FC0F5;
+  --info-soft: rgba(79, 192, 245, 0.16);
+
+  --cat-tecnica: #F5686D;
+  --cat-tecnica-soft: rgba(245, 104, 109, 0.16);
+  --cat-tattica: #5479F5;
+  --cat-tattica-soft: rgba(84, 121, 245, 0.16);
+  --cat-fisico: #34D3A6;
+  --cat-fisico-soft: rgba(52, 211, 166, 0.16);
+  --cat-mente: #A48CFF;
+  --cat-mente-soft: rgba(164, 140, 255, 0.16);
+  --cat-agonismo: #F0B23C;
+  --cat-agonismo-soft: rgba(240, 178, 60, 0.16);
+
+  --status-planned: #9A9EA8;
+  --status-planned-soft: rgba(154, 158, 168, 0.14);
+  --status-progress: #5479F5;
+  --status-progress-soft: rgba(84, 121, 245, 0.16);
+  --status-completed: #34D3A6;
+  --status-completed-soft: rgba(52, 211, 166, 0.16);
+
+  --chart-1: #5479F5;
+  --chart-2: #34D3A6;
+  --chart-3: #4FC0F5;
+  --chart-4: #F0B23C;
+  --chart-5: #F5686D;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.50), 0 2px 4px rgba(0, 0, 0, 0.30);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.58), 0 4px 10px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.66), 0 8px 18px rgba(0, 0, 0, 0.40);
+  --shadow-primary: 0 6px 20px rgba(84, 121, 245, 0.36);
+  --shadow-drag: 0 18px 40px rgba(0, 0, 0, 0.60), 0 4px 10px rgba(0, 0, 0, 0.40);
+
+  --club-blue-dark: #7E9AF9;
+  --club-red-dark: #F76F81;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FORMA E MOVIMENTO — valori che non cambiano fra chiaro e scuro
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+
+  /* Curve di accelerazione. `--ease-out-quint` e' quella di default: parte
+     decisa e si posa piano, che e' come si muovono le cose fisiche. */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
 
-  /* ─── Margine laterale delle pagine ───
-     Unica fonte di verita' per il respiro ai lati del contenuto. Serve a
-     `.page-gutter-x` (chi lo mette) e a `.full-bleed` (chi vuole uscirne):
-     finche' il valore vive qui, i due restano allineati per costruzione. */
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 380ms;
+
+  /* Margine laterale delle pagine — unica fonte di verita' per `.page-gutter-x`
+     (chi lo mette) e `.full-bleed` (chi vuole uscirne). */
   --page-gutter: 1rem;
+  --header-h: 3.5rem;
 }
 
 @media (min-width: 640px) {
-  :root {
-    --page-gutter: 1.5rem;
-  }
+  :root { --page-gutter: 1.5rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MAPPATURA TAILWIND
+   ═══════════════════════════════════════════════════════════════════════ */
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-alt: var(--background-alt);
   --color-foreground: var(--foreground);
-  --color-club-red: var(--club-red);
-  --color-club-blue: var(--club-blue);
-  --color-club-white: var(--club-white);
-  --color-club-red-light: var(--club-red-light);
-  --color-club-blue-light: var(--club-blue-light);
-  --color-club-red-dark: var(--club-red-dark);
-  --color-club-blue-dark: var(--club-blue-dark);
   --color-card: var(--card);
-  --color-card-border: var(--card-border);
+  --color-card-foreground: var(--card-foreground);
+  --color-sunken: var(--sunken);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
   --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
-  --color-purple: var(--purple);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+
   --font-sans: var(--font-sans);
-  --font-display: var(--font-display);
   --font-mono: var(--font-mono);
 }
 
-* {
-  box-sizing: border-box;
-}
+/* ═══════════════════════════════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; }
 
 html {
   -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Il cambio di tema non deve "sbattere": le due superfici piu' grandi
+     sfumano l'una nell'altra invece di scattare. */
+  transition: background-color var(--dur-slow) var(--ease-in-out-soft),
+              color var(--dur-slow) var(--ease-in-out-soft);
 }
 
-/* ─── Titoli col font display (Bricolage Grotesque) ─── */
-h1, h2, h3 {
-  font-family: var(--font-display), var(--font-sans), sans-serif;
-  letter-spacing: -0.015em;
+h1, h2, h3, h4 {
+  letter-spacing: -0.022em;
+  font-weight: 700;
 }
 
-/* ─── Date inputs: keep height in line with other inputs on iOS/mobile ─── */
+/* Numeri: cifre a larghezza fissa, cosi' contatori e punteggi non "ballano"
+   mentre cambiano. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+::selection {
+  background: var(--primary-soft-hover);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
@@ -101,232 +356,207 @@ input[type="date"] {
   line-height: 1.25;
   font-family: inherit;
 }
-input[type="date"]::-webkit-date-and-time-value {
-  text-align: left;
-  min-height: 0;
-}
-input[type="date"]::-webkit-datetime-edit {
-  padding: 0;
-  line-height: 1.25;
-}
+input[type="date"]::-webkit-date-and-time-value { text-align: left; min-height: 0; }
+input[type="date"]::-webkit-datetime-edit { padding: 0; line-height: 1.25; }
+.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 
 /* ─── Scrollbar ─── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 
-/* Hidden scrollbar (still scrollable) — used on mobile kanban list */
 .scrollbar-hidden {
-  scrollbar-width: none;          /* Firefox */
-  -ms-overflow-style: none;       /* IE/Edge legacy */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-.scrollbar-hidden::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none;
-}
+.scrollbar-hidden::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
-/* Visible, slightly thicker scrollbar — used on desktop kanban columns */
-.kanban-col-scroll {
-  scrollbar-gutter: stable;
-}
-.kanban-col-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-.kanban-col-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
+.kanban-col-scroll { scrollbar-gutter: stable; }
+.kanban-col-scroll::-webkit-scrollbar { width: 8px; }
 .kanban-col-scroll::-webkit-scrollbar-thumb {
-  background: #B8BFCA;
+  background: var(--border-strong);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-.kanban-col-scroll::-webkit-scrollbar-thumb:hover {
-  background: #8A93A3;
-  background-clip: padding-box;
-  border: 2px solid transparent;
-}
 
-/* ─── Margine di pagina e full-bleed ───
+/* ═══════════════════════════════════════════════════════════════════════
+   LAYOUT DI PAGINA
 
    `.page-gutter-x` mette il respiro laterale, `.full-bleed` lo toglie a un
    singolo figlio per fargli toccare i bordi dello schermo.
 
-   Perche' margini negativi e non `width: 100vw`:
-     - `100vw` include la scrollbar, quindi su desktop crea uno scroll
-       orizzontale di pochi pixel;
-     - `calc(50% - 50vw)` funziona solo se il contenitore e' centrato nel
-       viewport, cosa che qui non e' garantita;
-     - un margine negativo pari al padding del contenitore arriva ESATTAMENTE
-       sul suo padding box, quindi non produce overflow e non viene ritagliato
-       nemmeno dentro un contenitore di scorrimento.
+   Margini negativi e non `width: 100vw`: `100vw` include la scrollbar e su
+   desktop crea uno scroll orizzontale di pochi pixel, mentre un margine
+   negativo pari al padding del contenitore arriva esattamente sul suo
+   padding box, quindi non produce overflow e non viene ritagliato nemmeno
+   dentro un contenitore di scorrimento.
 
    ATTENZIONE: entrambe evitano di proposito `transform`. Il foglio del passo
    (KidsStepSheet su telefono) e' `position: fixed`, e un antenato trasformato
-   ne diventerebbe il containing block, incollandolo alla mappa. */
-.page-gutter-x {
-  padding-inline: var(--page-gutter);
-}
+   ne diventerebbe il containing block, incollandolo alla mappa.
+   ═══════════════════════════════════════════════════════════════════════ */
 
-.full-bleed {
-  margin-inline: calc(var(--page-gutter) * -1);
-}
+.page-gutter-x { padding-inline: var(--page-gutter); }
+.full-bleed { margin-inline: calc(var(--page-gutter) * -1); }
 
-/* ─── Club stripe (used under header) ─── */
-.club-stripe {
-  height: 3px;
-  background: linear-gradient(90deg, var(--club-red) 0%, var(--club-red) 33.33%, var(--club-white) 33.33%, var(--club-white) 66.66%, var(--club-blue) 66.66%, var(--club-blue) 100%);
-}
+/* ═══════════════════════════════════════════════════════════════════════
+   SUPERFICI
+   ═══════════════════════════════════════════════════════════════════════ */
 
-/* ─── Card system ─── */
 .card {
   background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
-  transition: box-shadow 0.3s var(--ease-out-expo), border-color 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo);
+  /* NIENTE `transform` in questa transizione.
+
+     Diverse card sono anche elementi animati da motion, che scrive la
+     `transform` in linea fotogramma per fotogramma. Se il CSS pretende di
+     interpolare la stessa proprieta', ogni fotogramma parte una transizione
+     nuova verso un bersaglio che nel frattempo e' gia' cambiato: il risultato
+     e' un movimento gommoso e in ritardo. La transform, dove serve, la anima
+     chi la possiede. */
+  transition: box-shadow var(--dur-base) var(--ease-out-quint),
+              border-color var(--dur-base) var(--ease-out-quint),
+              background-color var(--dur-slow) var(--ease-in-out-soft);
 }
 
 .card-interactive {
   cursor: pointer;
+  transition: box-shadow var(--dur-base) var(--ease-out-quint),
+              border-color var(--dur-base) var(--ease-out-quint),
+              transform var(--dur-base) var(--ease-out-quint);
 }
-
 .card-interactive:hover {
   box-shadow: var(--shadow-md);
-  border-color: var(--card-hover-border);
-  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+.card-interactive:active { transform: translateY(0) scale(0.995); box-shadow: var(--shadow-sm); }
+
+.surface-sunken {
+  background: var(--sunken);
+  border-radius: var(--radius-xl);
 }
 
-.card-interactive:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-sm);
+/* Vetro: sfondo semitrasparente SENZA sfocatura.
+
+   `backdrop-filter` su una barra appiccicata in alto costringe il browser a
+   rileggere e risfocare tutto quello che le scorre sotto a ogni fotogramma.
+   Su telefono e' una delle cause piu' comuni di tremolio durante lo
+   scorrimento, e qui in cambio dava pochissimo: sotto la barra passa quasi
+   sempre fondo pieno. */
+.glass {
+  background: color-mix(in srgb, var(--card) 92%, transparent);
 }
 
-/* ─── Accent border cards ─── */
-.card-accent-left {
-  border-left: 3px solid var(--club-blue);
-}
-
-/* ─── Stat card with colored top accent ─── */
-.stat-card {
+/* Filo di luce sul bordo superiore — da' spessore alle card scure senza
+   aggiungere un bordo vero. */
+.hairline-top {
   position: relative;
-  overflow: hidden;
+}
+.hairline-top::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--foreground) 12%, transparent), transparent);
+  pointer-events: none;
 }
 
+.card-accent-left { border-left: 3px solid var(--primary); }
+
+.stat-card { position: relative; overflow: hidden; }
 .stat-card::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--stat-accent, var(--club-blue));
-  border-radius: 16px 16px 0 0;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--stat-accent, var(--primary));
 }
 
-/* ─── Goal card category accent ─── */
-.goal-card {
-  position: relative;
-  overflow: hidden;
-}
-
+/* Filetto colorato della categoria sulla card obiettivo. */
+.goal-card { position: relative; }
 .goal-card::before {
   content: '';
   position: absolute;
-  top: 12px;
-  bottom: 12px;
-  left: 0;
+  top: 10px; bottom: 10px; left: 0;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: var(--cat-color, var(--club-blue));
+  background: var(--cat-color, var(--primary));
+  transition: top var(--dur-base) var(--ease-out-quint),
+              bottom var(--dur-base) var(--ease-out-quint);
 }
 
-/* ─── Progress bar with glow ─── */
+/* ═══════════════════════════════════════════════════════════════════════
+   BADGE, PROGRESSO
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
 .progress-track {
   position: relative;
   overflow: hidden;
   border-radius: 999px;
+  background: var(--muted);
 }
 
 .progress-fill {
   border-radius: 999px;
-  transition: width 0.6s var(--ease-out-expo);
   position: relative;
+  transition: width 700ms var(--ease-out-quint), background-color var(--dur-base) linear;
 }
 
-.progress-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 30px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
-  border-radius: 0 999px 999px 0;
+/* Nessun riflesso perpetuo sulla barra.
+
+   C'era un gradiente che scorreva in continuazione su OGNI barra di
+   progresso. Con venti obiettivi a schermo sono venti animazioni infinite che
+   ridisegnano in eterno: sui telefoni meno recenti bastava quello a far
+   perdere fotogrammi a tutto il resto, scorrimento compreso. Una barra ferma
+   dice la stessa cosa. */
+
+.score-display {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
 }
 
-/* ─── Animations ─── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+.result-badge-win {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 22%, transparent);
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+.result-badge-loss {
+  background: var(--destructive-soft);
+  color: var(--destructive);
+  border: 1px solid color-mix(in srgb, var(--destructive) 22%, transparent);
 }
 
-@keyframes pulse-soft {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.7; }
-}
+/* ═══════════════════════════════════════════════════════════════════════
+   DIALOG (le finestre nuove usano i componenti in components/ui, queste
+   regole restano per le sezioni non ancora ridisegnate)
+   ═══════════════════════════════════════════════════════════════════════ */
 
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.35s var(--ease-out-expo) forwards;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.4s var(--ease-out-expo) forwards;
-}
-
-.animate-pulse-soft {
-  animation: pulse-soft 2.4s ease-in-out infinite;
-}
-
-/* Stagger children */
-.stagger-children > * {
-  opacity: 0;
-  animation: fadeIn 0.35s var(--ease-out-expo) forwards;
-}
-.stagger-children > *:nth-child(1) { animation-delay: 0.03s; }
-.stagger-children > *:nth-child(2) { animation-delay: 0.06s; }
-.stagger-children > *:nth-child(3) { animation-delay: 0.09s; }
-.stagger-children > *:nth-child(4) { animation-delay: 0.12s; }
-.stagger-children > *:nth-child(5) { animation-delay: 0.15s; }
-.stagger-children > *:nth-child(6) { animation-delay: 0.18s; }
-.stagger-children > *:nth-child(7) { animation-delay: 0.21s; }
-.stagger-children > *:nth-child(8) { animation-delay: 0.24s; }
-.stagger-children > *:nth-child(9) { animation-delay: 0.27s; }
-
-/* ─── Dialog backdrop ─── */
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(27, 58, 92, 0.3);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: var(--overlay);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -335,163 +565,304 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .dialog-content {
-  background: white;
-  border-radius: 20px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border-radius: var(--radius-xl);
   width: 100%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border);
 }
 
-/* ─── Drag styles ─── */
-.dragging {
-  opacity: 0.4;
-  transform: rotate(1.5deg) scale(1.02);
-  box-shadow: var(--shadow-md);
+/* ═══════════════════════════════════════════════════════════════════════
+   SFONDO DI ACCESSO
+
+   Due aloni di cobalto molto diluiti su fondo pagina. Restano dietro alla
+   card senza chiedere attenzione, e funzionano su entrambi i temi perche'
+   sono trasparenze del colore primario, non due immagini diverse.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.login-bg {
+  position: relative;
+  min-height: 100dvh;
+  background: var(--background);
+  overflow: hidden;
 }
 
+.login-bg::before,
+.login-bg::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  /* Sfocatura su un elemento fermo: si calcola una volta e resta in cache.
+     Diverso da `backdrop-filter`, che va ricalcolato a ogni scorrimento. */
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+.login-bg::before {
+  width: 420px;
+  height: 420px;
+  top: -140px;
+  right: -120px;
+  background: color-mix(in srgb, var(--primary) 26%, transparent);
+}
+
+.login-bg::after {
+  width: 360px;
+  height: 360px;
+  bottom: -160px;
+  left: -140px;
+  background: color-mix(in srgb, var(--cat-mente) 20%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SLIDER (progresso obiettivo)
+
+   Vive qui e non nel componente perche' le pseudo-classi native del range
+   (::-webkit-slider-thumb e compagnia) non si possono scrivere in linea:
+   servono selettori veri.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tcb-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+.tcb-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--slider-color) var(--slider-pct),
+    var(--muted) var(--slider-pct)
+  );
+}
+.tcb-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 3px solid var(--slider-color);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.tcb-slider:active::-webkit-slider-thumb { transform: scale(1.18); }
+.tcb-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+.tcb-slider::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--slider-color);
+}
+.tcb-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 3px solid var(--slider-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TRASCINAMENTO
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.dragging { opacity: 0.35; }
+
+.drop-target {
+  background: var(--primary-soft) !important;
+  box-shadow: inset 0 0 0 2px var(--primary-border);
+}
+
+/* Alias storico, usato dalle sezioni non ancora ridisegnate. */
 .drag-over {
-  background: var(--club-blue-light) !important;
-  border: 2px dashed var(--club-blue) !important;
+  background: var(--primary-soft) !important;
+  border: 2px dashed var(--primary) !important;
 }
 
-/* ─── FAB (floating action button) ─── */
+/* Segnaposto che si apre nel punto in cui la card verrebbe rilasciata. */
+.drop-placeholder {
+  border: 1.5px dashed var(--primary-border);
+  border-radius: var(--radius-lg);
+  background: var(--primary-soft);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FAB
+   ═══════════════════════════════════════════════════════════════════════ */
+
 .fab {
   position: fixed;
   bottom: 1.5rem;
   right: 1.25rem;
   z-index: 40;
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: var(--club-red);
-  color: white;
+  width: 54px;
+  height: 54px;
+  border-radius: var(--radius-xl);
+  background: var(--primary);
+  color: var(--primary-foreground);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-red);
-  transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+  box-shadow: var(--shadow-primary);
+  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-base);
   cursor: pointer;
 }
+.fab:active { transform: scale(0.9); }
 
-.fab:active {
-  transform: scale(0.92);
-  box-shadow: 0 2px 8px rgba(196, 30, 58, 0.3);
+/* ═══════════════════════════════════════════════════════════════════════
+   ANIMAZIONI
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── Login decorative background ─── */
-.login-bg {
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.05); opacity: 0.7; }
+}
+
+@keyframes shimmer {
+  0%        { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(100%); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Spunta che si disegna da sola quando un obiettivo viene concluso. */
+@keyframes drawCheck {
+  from { stroke-dashoffset: 26; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* Onda che si allarga dal punto toccato. */
+@keyframes ripple {
+  from { transform: scale(0.4); opacity: 0.45; }
+  to   { transform: scale(2.4); opacity: 0; }
+}
+
+.animate-fade-in    { animation: fadeIn var(--dur-slow) var(--ease-out-quint) forwards; }
+.animate-slide-up   { animation: slideUp var(--dur-slow) var(--ease-out-quint) forwards; }
+.animate-scale-in   { animation: scaleIn var(--dur-base) var(--ease-out-quint) forwards; }
+.animate-pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
+.animate-spin-slow  { animation: spin-slow 8s linear infinite; }
+
+.draw-check {
+  stroke-dasharray: 26;
+  animation: drawCheck 420ms var(--ease-out-quint) forwards;
+}
+
+/* Ingressi scaglionati: le liste non compaiono tutte insieme, si "srotolano". */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeIn 320ms var(--ease-out-quint) forwards;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 20ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 45ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 70ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 95ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 145ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 170ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 195ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 220ms; }
+.stagger-children > *:nth-child(n+10) { animation-delay: 240ms; }
+
+/* Scheletri di caricamento. */
+.skeleton {
   position: relative;
-  min-height: 100vh;
   overflow: hidden;
+  background: var(--muted);
+  border-radius: var(--radius-sm);
 }
-
-.login-bg::before {
+.skeleton::after {
   content: '';
   position: absolute;
-  top: -30%;
-  right: -20%;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(196, 30, 58, 0.04) 0%, transparent 70%);
-  pointer-events: none;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--card) 70%, transparent), transparent);
+  animation: shimmer 1.5s var(--ease-in-out-soft) infinite;
 }
 
-.login-bg::after {
-  content: '';
-  position: absolute;
-  bottom: -20%;
-  left: -15%;
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(27, 58, 92, 0.04) 0%, transparent 70%);
-  pointer-events: none;
-}
+/* ═══════════════════════════════════════════════════════════════════════
+   SEZIONE PERCORSI — regole ereditate, lasciate intatte nel comportamento
+   (mappa, tappe, avatar e fondali non si toccano): cambiano solo i colori,
+   che ora arrivano dalla palette.
+   ═══════════════════════════════════════════════════════════════════════ */
 
-/* ─── Tab indicator ─── */
 .tab-indicator {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2.5px;
-  background: var(--club-blue);
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--primary);
   border-radius: 2px 2px 0 0;
-  transition: all 0.3s var(--ease-out-expo);
 }
 
-/* ─── Badge refined ─── */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1.4;
-}
-
-/* ─── Score display ─── */
-.score-display {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.05em;
-}
-
-/* ─── Match result badge ─── */
-.result-badge-win {
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  color: #166534;
-  border: 1px solid rgba(22, 163, 74, 0.15);
-}
-
-.result-badge-loss {
-  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
-  color: #991b1b;
-  border: 1px solid rgba(239, 68, 68, 0.15);
-}
-
-/* ─── Input focus enhancement ─── */
-input:focus, textarea:focus, select:focus {
-  border-color: var(--club-blue) !important;
-  box-shadow: 0 0 0 3px rgba(27, 58, 92, 0.08) !important;
-}
-
-/* ─── Sblocco nodo percorso (skill tree) ─── */
 @keyframes unlockPop {
-  0%   { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(196, 30, 58, 0.45); }
+  0%   { transform: scale(0.92); box-shadow: 0 0 0 0 var(--primary-border); }
   50%  { transform: scale(1.05); }
-  100% { transform: scale(1); box-shadow: 0 0 0 16px rgba(196, 30, 58, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 16px transparent; }
 }
-.animate-unlock {
-  animation: unlockPop 0.85s var(--ease-spring);
-  border-radius: 16px;
-}
+.animate-unlock { animation: unlockPop 0.85s var(--ease-spring); border-radius: var(--radius-lg); }
 
-/* ─── Percorso (skill tree): alone soft sui nodi disponibili ─── */
-@keyframes nodeHalo {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(196, 30, 58, 0.22); }
-  50%      { box-shadow: 0 0 0 7px rgba(196, 30, 58, 0); }
-}
+/* Alone attorno alla tappa disponibile.
+
+   Anima `transform` e `opacity` di uno pseudo-elemento, non la `box-shadow`
+   dell'elemento vero. Animare un'ombra obbliga il browser a ridisegnare il
+   riquadro a ogni fotogramma; una trasformazione la gestisce il compositore e
+   non tocca il disegno. Con piu' tappe disponibili sullo schermo la
+   differenza si vede. */
 .node-halo {
+  position: relative;
+}
+.node-halo::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid var(--primary);
+  opacity: 0;
+  pointer-events: none;
   animation: nodeHalo 2.6s ease-in-out infinite;
 }
-@media (prefers-reduced-motion: reduce) {
-  .node-halo, .animate-unlock { animation: none; }
+
+@keyframes nodeHalo {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50%      { transform: scale(1.045); opacity: 0; }
 }
 
-/* Etichetta del livello/strato nell'albero del percorso */
 .path-level-label {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #9AA3B5;
+  color: var(--subtle-foreground);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -503,52 +874,49 @@ input:focus, textarea:focus, select:focus {
   content: '';
   height: 1px;
   flex: 1;
-  background: linear-gradient(90deg, transparent, #DDE2EC 30%, #DDE2EC 70%, transparent);
+  background: linear-gradient(90deg, transparent, var(--border) 30%, var(--border) 70%, transparent);
 }
 
-/* ─── Percorso avventura (stile Duolingo) ─── */
-
-/* Pulsante tappa: schiacciamento "3D" al tocco */
+/* Percorso avventura (mappa dei 12 passi) — intoccato. */
 .adv-node {
   border: none;
   padding: 0;
   cursor: pointer;
-  transition: transform 0.15s var(--ease-out-expo), box-shadow 0.15s var(--ease-out-expo);
+  transition: transform var(--dur-fast) var(--ease-out-quint), box-shadow var(--dur-fast) var(--ease-out-quint);
 }
-.adv-node:active {
-  transform: translateY(3px);
-}
+.adv-node:active { transform: translateY(3px); }
 
-/* Anello pulsante sulla tappa corrente */
 @keyframes advPulse {
   0%   { transform: scale(0.92); opacity: 0.85; }
   70%  { transform: scale(1.14); opacity: 0; }
   100% { transform: scale(1.14); opacity: 0; }
 }
-.adv-pulse-ring {
-  animation: advPulse 1.7s ease-out infinite;
-}
+.adv-pulse-ring { animation: advPulse 1.7s ease-out infinite; }
 
-/* Mascotte che "galleggia" (testata del percorso) e punta che indica il passo
-   corrente sulla mappa: stesso salterello, stesso ritmo. */
 @keyframes advBob {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-5px); }
 }
-.adv-bob {
-  animation: advBob 3.2s ease-in-out infinite;
-}
+.adv-bob { animation: advBob 3.2s ease-in-out infinite; }
 
-/* Alone colorato che respira dietro alla testata del percorso */
 @keyframes advGlow {
   0%, 100% { opacity: 0.55; }
   50%      { opacity: 0.9; }
 }
-.adv-glow {
-  animation: advGlow 7s ease-in-out infinite;
-}
+.adv-glow { animation: advGlow 7s ease-in-out infinite; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ACCESSIBILITA'
+   ═══════════════════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
-  .adv-pulse-ring, .adv-bob, .adv-glow { animation: none; }
-  .adv-node { transition: none; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .stagger-children > * { opacity: 1; }
 }

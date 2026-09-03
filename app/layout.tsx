@@ -1,25 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Sans, Bricolage_Grotesque, DM_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ToastProvider } from "@/components/ui/Toast";
+import { themeInitScript } from "@/lib/theme-script";
 
-// Corpo/UI: Instrument Sans — grotesque pulita e leggibile, ottima su mobile.
-const instrumentSans = Instrument_Sans({
+// Una sola famiglia per tutto: Inter, la stessa che indica il tema Cobalt
+// Steel. La gerarchia la fanno peso e crenatura, non l'alternanza di due
+// caratteri diversi — e' quello che tiene insieme il tono dell'interfaccia.
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 });
 
-// Titoli: Bricolage Grotesque — display sportivo con carattere da club.
-const bricolageGrotesque = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
-
-const dmMono = DM_Mono({
+// Solo per i numeri che devono stare in colonna: punteggi, statistiche,
+// contatori.
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-  weight: ["400", "500"],
+  weight: ["400", "500", "700"],
   display: "swap",
 });
 
@@ -27,19 +27,27 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#C41E3A",
+  viewportFit: "cover",
+  // La barra di sistema segue il tema: due valori, uno per preferenza.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F5F5F9" },
+    { media: "(prefers-color-scheme: dark)", color: "#141416" },
+  ],
 };
 
 export const metadata: Metadata = {
-  title: "Tennis Club Bellusco",
-  description: "Gestione allievi e maestri - Tennis Club Bellusco",
+  title: "Bellusco Tennis Club",
+  description: "Obiettivi, percorsi e risultati — Bellusco Tennis Club",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "TC Bellusco",
+    title: "Bellusco",
   },
   icons: {
-    icon: "/icons/icon-192x192.png",
+    icon: [
+      { url: "/logo-mark.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: "/icons/icon-192x192.png",
   },
   other: {
@@ -53,19 +61,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it" className={`h-full antialiased ${instrumentSans.variable} ${bricolageGrotesque.variable} ${dmMono.variable}`}>
+    // `suppressHydrationWarning`: la classe `dark` la mette lo script qui
+    // sotto prima dell'idratazione, quindi il markup del client differisce da
+    // quello del server. E' voluto, ed e' l'unico modo per non avere un lampo
+    // di tema sbagliato al caricamento.
+    <html
+      lang="it"
+      suppressHydrationWarning
+      className={`h-full antialiased ${inter.variable} ${jetbrainsMono.variable}`}
+    >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className="min-h-full flex flex-col font-sans">
-        {children}
+        <ThemeProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </ThemeProvider>
         <ServiceWorkerRegister />
       </body>
     </html>
   );
 }
 
-// Client component for SW registration (inline to avoid extra file)
+// Registrazione del service worker, in linea per non aggiungere un file.
 function ServiceWorkerRegister() {
   return (
     <script

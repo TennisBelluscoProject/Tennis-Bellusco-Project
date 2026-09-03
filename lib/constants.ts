@@ -1,18 +1,40 @@
 import { GoalCategory, GoalStatus, SurfaceType, MatchResult } from './database.types';
 
-export const CATEGORY_CONFIG: Record<GoalCategory, { label: string; icon: string; color: string; bg: string }> = {
-  tecnica: { label: 'Tecnica', icon: 'racquet', color: '#C41E3A', bg: '#F8E8EB' },
-  tattica: { label: 'Tattica', icon: 'brain', color: '#1B3A5C', bg: '#E8EDF2' },
-  fisico: { label: 'Fisico/Motori', icon: 'dumbbell', color: '#2E7D32', bg: '#E8F5E9' },
-  mente: { label: 'Mente', icon: 'sparkles', color: '#7B1FA2', bg: '#F3E5F5' },
-  agonismo: { label: 'Agonismo', icon: 'trophy', color: '#E65100', bg: '#FFF3E0' },
+/**
+ * Colori di dominio.
+ *
+ * Sono variabili CSS, non esadecimali: i valori veri stanno in globals.css e
+ * cambiano fra tema chiaro e scuro. Se restassero fissi qui, ogni pastello
+ * pensato per il fondo bianco andrebbe rifatto a mano per quello scuro — e
+ * prima o poi qualcuno se ne dimenticherebbe uno.
+ *
+ * Nota per chi tocca il codice: NON concatenare (`${color}15` per ottenere
+ * l'alfa) — su una var() non funziona. Si usa `withAlpha()` qui sotto.
+ */
+export const CATEGORY_CONFIG: Record<GoalCategory, { label: string; short: string; icon: string; color: string; bg: string }> = {
+  tecnica:  { label: 'Tecnica',        short: 'Tec', icon: 'racquet',  color: 'var(--cat-tecnica)',  bg: 'var(--cat-tecnica-soft)' },
+  tattica:  { label: 'Tattica',        short: 'Tat', icon: 'brain',    color: 'var(--cat-tattica)',  bg: 'var(--cat-tattica-soft)' },
+  fisico:   { label: 'Fisico/Motori',  short: 'Fis', icon: 'dumbbell', color: 'var(--cat-fisico)',   bg: 'var(--cat-fisico-soft)' },
+  mente:    { label: 'Mente',          short: 'Men', icon: 'sparkles', color: 'var(--cat-mente)',    bg: 'var(--cat-mente-soft)' },
+  agonismo: { label: 'Agonismo',       short: 'Ago', icon: 'trophy',   color: 'var(--cat-agonismo)', bg: 'var(--cat-agonismo-soft)' },
 };
 
-export const STATUS_CONFIG: Record<GoalStatus, { label: string; labelIt: string }> = {
-  planned: { label: 'Planned', labelIt: 'In Programma' },
-  in_progress: { label: 'In Progress', labelIt: 'In Corso' },
-  completed: { label: 'Completed', labelIt: 'Conclusi' },
+export const STATUS_CONFIG: Record<
+  GoalStatus,
+  { label: string; labelIt: string; short: string; color: string; soft: string }
+> = {
+  planned:     { label: 'Planned',     labelIt: 'In programma', short: 'Programma', color: 'var(--status-planned)',   soft: 'var(--status-planned-soft)' },
+  in_progress: { label: 'In Progress', labelIt: 'In corso',     short: 'In corso',  color: 'var(--status-progress)',  soft: 'var(--status-progress-soft)' },
+  completed:   { label: 'Completed',   labelIt: 'Conclusi',     short: 'Conclusi',  color: 'var(--status-completed)', soft: 'var(--status-completed-soft)' },
 };
+
+/**
+ * Versione trasparente di un colore, che funziona anche sulle variabili CSS.
+ * `color-mix` e' supportato da tutti i browser che reggono questa app.
+ */
+export function withAlpha(color: string, percent: number): string {
+  return `color-mix(in srgb, ${color} ${percent}%, transparent)`;
+}
 
 export const STATUS_COLUMNS: GoalStatus[] = ['planned', 'in_progress', 'completed'];
 

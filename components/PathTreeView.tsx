@@ -19,6 +19,9 @@
  *
  * Quando un nodo viene completato e il ricalcolo sblocca nuovi nodi, questi
  * ricevono una breve animazione di sblocco (classe .animate-unlock).
+ *
+ * La stessa vista serve all'allievo e all'anteprima dell'editor (`isPreview`):
+ * il maestro progetta guardando esattamente quello che vedra' chi gioca.
  */
 
 import {
@@ -29,10 +32,16 @@ import {
   useRef,
   useState,
 } from 'react';
+import { motion } from 'motion/react';
+import { Check, Info, Lock, Play, Trophy, X } from 'lucide-react';
 import type { GoalCategory, GoalStatus, PlayerLevel } from '@/lib/database.types';
-import { CATEGORY_CONFIG } from '@/lib/constants';
+import { CATEGORY_CONFIG, withAlpha } from '@/lib/constants';
 import { computePathState, type NodeId } from '@/lib/paths/topo';
-import { Badge, ProgressBar } from './UI';
+import { cn } from '@/lib/utils';
+import { Badge, ProgressBar } from './ui/Feedback';
+import { Button } from './ui/Button';
+import { Dialog } from './ui/Dialog';
+import { Slider } from './ui/Field';
 import { CategoryIcon } from './CategoryIcon';
 
 // ─── View-model ─────────────────────────────────────────────────────────────
@@ -190,71 +199,53 @@ export function PathTreeView({
 
   const selected = selectedId ? byId.get(selectedId) ?? null : null;
 
+  // Il foglio deve poter USCIRE con la sua animazione: se lo smontassimo
+  // nell'istante in cui la selezione torna a null, sparirebbe di colpo. Si
+  // tiene quindi l'ultima tappa mostrata e si comanda solo l'apertura.
+  const lastShown = useRef<PathTreeNode | null>(null);
+  if (selected) lastShown.current = selected;
+  const sheetNode = selected ?? lastShown.current;
+
   return (
     <div className="flex flex-col">
-      {/* Header: titolo + avanzamento, nei colori del club */}
-      <div
-        className="shrink-0 rounded-2xl overflow-hidden mb-4 text-white shadow-sm"
-        style={{
-          background:
-            'linear-gradient(135deg, var(--club-blue-dark) 0%, var(--club-blue) 100%)',
-        }}
-      >
-        <div className="p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3
-                className="text-[17px] font-bold tracking-[-0.015em] truncate"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {data.title}
-              </h3>
-              <p className="text-[11px] text-white/60 mt-0.5">
-                {completed} di {total} tappe completate
-              </p>
-            </div>
-            <span
-              className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-white"
-              style={{ backgroundColor: 'var(--club-red)' }}
-            >
-              {data.difficulty}
-            </span>
+      {/* Testata: titolo e avanzamento */}
+      <div className="shrink-0 card p-4 mb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-[16px] font-bold tracking-[-0.02em] truncate">{data.title}</h3>
+            <p className="text-[12px] text-muted-foreground mt-0.5 tnum">
+              {completed} di {total} tappe completate
+            </p>
           </div>
-          <div className="flex items-center gap-3 mt-3">
-            <div
-              className="progress-track flex-1"
-              style={{ height: 8, background: 'rgba(255,255,255,0.14)' }}
-            >
-              <div
-                className="progress-fill h-full"
-                style={{ width: `${pct}%`, backgroundColor: 'var(--club-red)' }}
-              />
-            </div>
-            <span className="text-[12px] font-bold text-white/80 tabular-nums w-9 text-right">
-              {pct}%
-            </span>
-          </div>
-          {onDeactivate && !isPreview && (
-            <button
-              onClick={onDeactivate}
-              className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/70 hover:text-white px-2.5 py-1.5 rounded-lg border border-white/20 hover:border-white/40 hover:bg-white/5 transition-colors"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-              Disattiva percorso per questo allievo
-            </button>
-          )}
+          <Badge color="var(--primary)" bg="var(--primary-soft)">
+            {data.difficulty}
+          </Badge>
         </div>
-        <div className="club-stripe" />
+
+        <div className="flex items-center gap-3 mt-3">
+          <ProgressBar value={pct} color="var(--primary)" height={7} className="flex-1" />
+          <span className="text-[12px] font-bold tnum w-9 text-right text-primary">{pct}%</span>
+        </div>
+
+        {onDeactivate && !isPreview && (
+          <div className="mt-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDeactivate}
+              icon={<X size={13} strokeWidth={2.6} />}
+              className="text-destructive hover:bg-destructive-soft hover:text-destructive -ml-2"
+            >
+              Disattiva percorso per questo allievo
+            </Button>
+          </div>
+        )}
       </div>
 
       {isPreview && (
-        <div className="shrink-0 mb-3 flex items-center gap-2 text-[12px] text-[var(--club-blue)] bg-[var(--club-blue-light)] border border-[var(--club-blue)]/10 rounded-xl px-3 py-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          Anteprima struttura del percorso (sola lettura).
+        <div className="shrink-0 mb-3 flex items-center gap-2 text-[12px] text-primary bg-primary-soft border border-[var(--primary-border)] rounded-[var(--radius-lg)] px-3 py-2.5">
+          <Info size={14} strokeWidth={2.2} className="shrink-0" />
+          Anteprima della struttura: le azioni sono disattivate.
         </div>
       )}
 
@@ -290,13 +281,13 @@ export function PathTreeView({
                       toUnlocked
                         ? fromDone
                           ? 'var(--success)'
-                          : 'var(--club-blue)'
-                        : '#C7CDD9'
+                          : 'var(--primary)'
+                        : 'var(--border-strong)'
                     }
                     strokeWidth={2}
                     strokeLinecap="round"
                     strokeDasharray={toUnlocked ? undefined : '4 5'}
-                    strokeOpacity={toUnlocked ? 0.5 : 0.9}
+                    strokeOpacity={toUnlocked ? 0.55 : 0.9}
                   />
                 );
               })}
@@ -315,9 +306,10 @@ export function PathTreeView({
                     <div
                       key={n.id}
                       ref={setNodeRef(n.id)}
-                      className={`w-[180px] max-w-[46%] min-w-[150px] ${
-                        justUnlocked.has(n.id) ? 'animate-unlock' : ''
-                      }`}
+                      className={cn(
+                        'w-[180px] max-w-[46%] min-w-[150px]',
+                        justUnlocked.has(n.id) && 'animate-unlock'
+                      )}
                     >
                       <NodeCard node={n} visual={visualOf(n)} onTap={() => setSelectedId(n.id)} />
                     </div>
@@ -329,19 +321,21 @@ export function PathTreeView({
         </div>
       </div>
 
-      {/* Bottom sheet di dettaglio nodo */}
-      {selected && (
-        <NodeSheet
-          node={selected}
-          visual={visualOf(selected)}
-          blockedBy={state.blockedBy[selected.id]?.map((id) => byId.get(id)?.title ?? id) ?? []}
-          isPreview={isPreview}
-          onStart={onStart}
-          onProgress={onProgress}
-          onComplete={onComplete}
-          onClose={() => setSelectedId(null)}
-        />
-      )}
+      <NodeSheet
+        node={sheetNode}
+        open={!!selected}
+        visual={sheetNode ? visualOf(sheetNode) : 'locked'}
+        blockedBy={
+          sheetNode
+            ? state.blockedBy[sheetNode.id]?.map((id) => byId.get(id)?.title ?? id) ?? []
+            : []
+        }
+        isPreview={isPreview}
+        onStart={onStart}
+        onProgress={onProgress}
+        onComplete={onComplete}
+        onClose={() => setSelectedId(null)}
+      />
     </div>
   );
 }
@@ -359,101 +353,118 @@ function NodeCard({
 }) {
   const cat = CATEGORY_CONFIG[node.category];
 
+  const shell =
+    'w-full h-full text-left rounded-[var(--radius-lg)] p-3 transition-[border-color,box-shadow] duration-[var(--dur-base)]';
+
   if (visual === 'locked') {
     return (
-      <button
+      <motion.button
         onClick={onTap}
-        className="w-full h-full text-left rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/80 p-3 active:scale-[0.97] transition-transform"
+        whileTap={{ scale: 0.96 }}
+        transition={{ type: 'spring', stiffness: 600, damping: 26 }}
+        className={cn(shell, 'border border-dashed border-[var(--border-strong)] bg-muted')}
       >
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-7 h-7 rounded-full bg-gray-200/80 text-gray-400 flex items-center justify-center shrink-0">
-            <LockIcon />
+          <span className="w-7 h-7 rounded-full bg-[var(--secondary)] text-subtle-foreground flex items-center justify-center shrink-0">
+            <Lock size={13} strokeWidth={2.2} />
           </span>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-subtle-foreground">
             Bloccato
           </span>
         </div>
-        <p className="text-[13px] font-bold text-gray-500 line-clamp-2 leading-snug">{node.title}</p>
-      </button>
+        <p className="text-[13px] font-bold text-muted-foreground line-clamp-2 leading-snug">
+          {node.title}
+        </p>
+      </motion.button>
     );
   }
 
   if (visual === 'completed') {
     return (
-      <button
+      <motion.button
         onClick={onTap}
-        className="w-full h-full text-left rounded-2xl border border-green-200 bg-green-50 p-3 active:scale-[0.97] transition-transform"
+        whileTap={{ scale: 0.96 }}
+        transition={{ type: 'spring', stiffness: 600, damping: 26 }}
+        className={cn(shell, 'border')}
+        style={{
+          backgroundColor: 'var(--success-soft)',
+          borderColor: withAlpha('var(--success)', 24),
+        }}
       >
         <div className="flex items-center gap-2 mb-2">
           <span
-            className="w-7 h-7 rounded-full text-white flex items-center justify-center shrink-0"
-            style={{ backgroundColor: 'var(--success)' }}
+            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: 'var(--success)', color: 'var(--success-foreground)' }}
           >
-            <CheckIcon />
+            <Check size={13} strokeWidth={3} />
           </span>
-          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--success)' }}>
+          <span
+            className="text-[10px] font-bold uppercase tracking-[0.1em]"
+            style={{ color: 'var(--success)' }}
+          >
             Completato
           </span>
         </div>
-        <p className="text-[13px] font-bold text-gray-700 line-clamp-2 leading-snug">{node.title}</p>
-      </button>
+        <p className="text-[13px] font-bold text-foreground line-clamp-2 leading-snug">
+          {node.title}
+        </p>
+      </motion.button>
     );
   }
 
   if (visual === 'in_progress') {
     return (
-      <button
+      <motion.button
         onClick={onTap}
-        className="w-full h-full text-left rounded-2xl border border-gray-100 bg-white shadow-sm p-3 active:scale-[0.97] transition-transform"
-        style={{ borderLeftWidth: 4, borderLeftColor: cat.color }}
+        whileTap={{ scale: 0.96 }}
+        transition={{ type: 'spring', stiffness: 600, damping: 26 }}
+        className={cn(shell, 'border border-border bg-card shadow-[var(--shadow-xs)]')}
+        style={{ borderLeftWidth: 3, borderLeftColor: cat.color }}
       >
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <Badge color={cat.color} bg={cat.bg}>
             <CategoryIcon name={cat.icon} size={11} /> {cat.label}
           </Badge>
-          <span className="text-[11px] font-bold tabular-nums" style={{ color: cat.color }}>
+          <span className="text-[11px] font-bold tnum" style={{ color: cat.color }}>
             {node.progress ?? 0}%
           </span>
         </div>
-        <p className="text-[13px] font-bold text-gray-900 line-clamp-2 leading-snug mb-2">{node.title}</p>
-        <ProgressBar value={node.progress ?? 0} color={cat.color} height={5} />
-      </button>
+        <p className="text-[13px] font-bold line-clamp-2 leading-snug mb-2">{node.title}</p>
+        <ProgressBar value={node.progress ?? 0} color={cat.color} height={5} still />
+      </motion.button>
     );
   }
 
-  // available
+  // available — l'unica card con l'alone: e' quella su cui si puo' agire ora.
   return (
-    <button
+    <motion.button
       onClick={onTap}
-      className="node-halo w-full h-full text-left rounded-2xl bg-white shadow-sm p-3 active:scale-[0.97] transition-transform"
-      style={{ border: '2px solid var(--club-red)' }}
+      whileTap={{ scale: 0.96 }}
+      transition={{ type: 'spring', stiffness: 600, damping: 26 }}
+      className={cn(shell, 'node-halo bg-card shadow-[var(--shadow-sm)]')}
+      style={{ border: '2px solid var(--primary)' }}
     >
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <Badge color={cat.color} bg={cat.bg}>
           <CategoryIcon name={cat.icon} size={11} /> {cat.label}
         </Badge>
       </div>
-      <p className="text-[13px] font-bold text-gray-900 line-clamp-2 leading-snug mb-2">{node.title}</p>
-      <span
-        className="inline-flex items-center gap-1.5 text-[11px] font-bold"
-        style={{ color: 'var(--club-red)' }}
-      >
-        <span
-          className="w-5 h-5 rounded-full text-white flex items-center justify-center"
-          style={{ backgroundColor: 'var(--club-red)' }}
-        >
-          <PlayIcon />
+      <p className="text-[13px] font-bold line-clamp-2 leading-snug mb-2">{node.title}</p>
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-primary">
+        <span className="w-5 h-5 rounded-full bg-primary text-[var(--primary-foreground)] flex items-center justify-center">
+          <Play size={9} fill="currentColor" strokeWidth={0} />
         </span>
         Inizia
       </span>
-    </button>
+    </motion.button>
   );
 }
 
-// ─── Bottom sheet ────────────────────────────────────────────────────────────
+// ─── Foglio di dettaglio della tappa ─────────────────────────────────────────
 
 function NodeSheet({
   node,
+  open,
   visual,
   blockedBy,
   isPreview,
@@ -462,7 +473,8 @@ function NodeSheet({
   onComplete,
   onClose,
 }: {
-  node: PathTreeNode;
+  node: PathTreeNode | null;
+  open: boolean;
   visual: VisualState;
   blockedBy: string[];
   isPreview?: boolean;
@@ -471,41 +483,45 @@ function NodeSheet({
   onComplete?: (goalId: string) => void;
   onClose: () => void;
 }) {
+  // Il cursore tiene una copia locale, riallineata quando cambia TAPPA. La
+  // dipendenza e' solo l'id: se dipendesse anche dal progresso, ogni
+  // aggiornamento ottimistico del genitore lo rimetterebbe a posto mentre il
+  // dito lo sta ancora trascinando.
+  const nodeId = node?.id;
+  const nodeProgress = node?.progress ?? 0;
+  const [localProgress, setLocalProgress] = useState(nodeProgress);
+  useEffect(() => {
+    setLocalProgress(nodeProgress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeId]);
+
+  if (!node) return null;
+
   const cat = CATEGORY_CONFIG[node.category];
-  const [localProgress, setLocalProgress] = useState(node.progress ?? 0);
   const canAct = !isPreview && !!node.goalId;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-      <div
-        className="relative w-full max-w-[520px] bg-white rounded-t-3xl p-5 pb-8 animate-slide-up"
-        style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto w-10 h-1 rounded-full bg-gray-200 mb-4" />
+    <Dialog open={open} onClose={onClose} size="sm">
+      <div className="pt-1">
+        <Badge color={cat.color} bg={cat.bg}>
+          <CategoryIcon name={cat.icon} size={12} /> {cat.label}
+        </Badge>
 
-        <div className="flex items-center gap-2 mb-2">
-          <Badge color={cat.color} bg={cat.bg}>
-            <CategoryIcon name={cat.icon} size={12} /> {cat.label}
-          </Badge>
-        </div>
-        <h3
-          className="text-lg font-bold text-gray-900 tracking-[-0.015em] mb-1"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
+        <h3 className="text-[18px] font-bold tracking-[-0.025em] mt-2.5 leading-snug">
           {node.title}
         </h3>
         {node.description && (
-          <p className="text-sm text-gray-500 leading-relaxed mb-4">{node.description}</p>
+          <p className="text-[13.5px] text-muted-foreground leading-relaxed mt-1.5">
+            {node.description}
+          </p>
         )}
 
         {visual === 'locked' && (
-          <div className="bg-gray-50 rounded-xl p-3 mb-4">
-            <p className="text-[12px] font-bold text-gray-600 mb-1.5 flex items-center gap-1.5">
-              <LockIcon /> Per sbloccare, completa prima:
+          <div className="bg-muted rounded-[var(--radius-lg)] p-3.5 mt-4">
+            <p className="text-[12px] font-bold text-foreground mb-1.5 flex items-center gap-1.5">
+              <Lock size={13} strokeWidth={2.2} /> Per sbloccare, completa prima:
             </p>
-            <ul className="text-[13px] text-gray-700 list-disc pl-5 space-y-0.5">
+            <ul className="text-[13px] text-muted-foreground list-disc pl-5 space-y-0.5">
               {blockedBy.map((t, i) => (
                 <li key={i}>{t}</li>
               ))}
@@ -514,100 +530,83 @@ function NodeSheet({
         )}
 
         {visual === 'in_progress' && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[12px] font-medium text-gray-500">Progresso</span>
-              <span className="text-[12px] font-bold tabular-nums" style={{ color: cat.color }}>{localProgress}%</span>
-            </div>
+          <div className="mt-4 p-3.5 rounded-[var(--radius-lg)] bg-muted">
             {canAct ? (
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={5}
+              <Slider
+                label="A che punto sei"
                 value={localProgress}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
+                color={cat.color}
+                onChange={(v) => {
                   setLocalProgress(v);
                   onProgress?.(node.goalId!, v);
                 }}
-                className="w-full accent-[var(--club-blue)]"
               />
             ) : (
-              <ProgressBar value={localProgress} color={cat.color} height={6} />
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[12px] font-semibold text-muted-foreground">Progresso</span>
+                  <span className="text-[13px] font-bold tnum" style={{ color: cat.color }}>
+                    {localProgress}%
+                  </span>
+                </div>
+                <ProgressBar value={localProgress} color={cat.color} height={6} />
+              </>
             )}
           </div>
         )}
 
         {visual === 'completed' && (
-          <div className="flex items-center gap-2 text-[13px] font-semibold mb-4" style={{ color: 'var(--success)' }}>
-            <TrophyIcon /> Obiettivo completato
+          <div
+            className="flex items-center gap-2 text-[13px] font-bold mt-4"
+            style={{ color: 'var(--success)' }}
+          >
+            <Trophy size={14} strokeWidth={2.2} /> Tappa completata
           </div>
         )}
 
-        {/* Azioni */}
         {visual === 'available' && (
-          <button
+          <Button
+            block
+            size="lg"
+            className="mt-5"
             disabled={!canAct}
-            onClick={() => { if (node.goalId) { onStart?.(node.goalId); onClose(); } }}
-            className="w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
-            style={{ backgroundColor: 'var(--club-red)' }}
+            onClick={() => {
+              if (node.goalId) {
+                onStart?.(node.goalId);
+                onClose();
+              }
+            }}
+            icon={<Play size={14} fill="currentColor" strokeWidth={0} />}
           >
-            Inizia obiettivo
-          </button>
+            Inizia questa tappa
+          </Button>
         )}
 
         {visual === 'in_progress' && (
-          <button
+          <Button
+            block
+            size="lg"
+            variant="success"
+            className="mt-3"
             disabled={!canAct}
-            onClick={() => { if (node.goalId) { onComplete?.(node.goalId); onClose(); } }}
-            className="w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
-            style={{ backgroundColor: 'var(--success)' }}
+            onClick={() => {
+              if (node.goalId) {
+                onComplete?.(node.goalId);
+                onClose();
+              }
+            }}
+            icon={<Check size={15} strokeWidth={3} />}
           >
-            Segna come completato
-          </button>
+            Segna come completata
+          </Button>
         )}
 
         {isPreview && (visual === 'available' || visual === 'in_progress') && (
-          <p className="text-[11px] text-gray-400 text-center mt-2">Anteprima: azioni disabilitate</p>
+          <p className="text-[11px] text-subtle-foreground text-center mt-2">
+            Anteprima: le azioni sono disattivate.
+          </p>
         )}
       </div>
-    </div>
-  );
-}
-
-// ─── Icone inline (nessuna dipendenza esterna) ───────────────────────────────
-
-function LockIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-function TrophyIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-      <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z" />
-      <path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-      <polygon points="6 4 20 12 6 20 6 4" />
-    </svg>
+    </Dialog>
   );
 }

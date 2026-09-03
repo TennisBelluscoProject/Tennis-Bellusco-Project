@@ -1,10 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Target, Trophy, Trash2, Users } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ChevronDown, ChevronLeft, Pencil, Plus, Target, Trophy, Trash2, Users } from 'lucide-react';
 import { goalRepo, matchRepo, studentPathRepo, pathRepo, kidsPathRepo } from '@/lib/repositories';
 import type { ActiveStudentPath } from '@/lib/repositories';
-import { Button, Tabs, Spinner, EmptyState, ConfirmDialog } from '@/components/UI';
+import {
+  AnimatedNumber,
+  Badge,
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  IconButton,
+  Spinner,
+  Tabs,
+} from '@/components/UI';
 import { AvatarDisplay } from '@/components/AvatarDisplay';
 import type { Profile, Goal, MatchResultRow, GoalStatus, PlayerLevel } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified, LEVELS, PATHS_PREVIEW, KIDS_PATHS } from '@/lib/constants';
@@ -12,6 +22,7 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import { KidsPathSection } from '@/components/kids/KidsPathSection';
 import { PathTreeView, type PathTreeData } from '@/components/PathTreeView';
 import { computePathState } from '@/lib/paths/topo';
+import { applyStatus } from '@/components/kanban/goal-utils';
 import { isEmptyPlan, visibleKidsGoals } from '@/lib/kids/goals';
 import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
@@ -62,9 +73,24 @@ export function PlayerView({
   const [coachNotesOpen, setCoachNotesOpen] = useState(false);
   const [coachNotesMatch, setCoachNotesMatch] = useState<MatchResultRow | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  /** Statistiche della testata: chiuse di default, si aprono con la freccina. */
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const [reloadTick, setReloadTick] = useState(0);
-  const refetch = useCallback(() => setReloadTick((t) => t + 1), []);
+  /**
+   * Una ricarica "silenziosa" rilegge tutto senza accendere lo spinner.
+   *
+   * Serve dopo la conclusione di un nodo di percorso: quel gesto sblocca i
+   * nodi successivi, e la frontiera la sa calcolare solo l'effetto qui sotto.
+   * Ma smontare il Kanban per mezzo secondo dopo ogni completamento e' proprio
+   * lo scatto che si voleva togliere — quindi la lettura avviene sotto, e a
+   * schermo resta la lista gia' aggiornata dall'ottimismo.
+   */
+  const silentReload = useRef(false);
+  const refetch = useCallback((silent = false) => {
+    silentReload.current = silent;
+    setReloadTick((t) => t + 1);
+  }, []);
 
   // ─── Percorso (skill tree) ──────────────────────────
   const [activePaths, setActivePaths] = useState<ActiveStudentPath[]>([]);
@@ -126,7 +152,11 @@ export function PlayerView({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      // Lo spinner si accende solo per le letture che l'utente sta
+      // aspettando. Quelle di riallineamento avvengono in silenzio.
+      const silent = silentReload.current;
+      silentReload.current = false;
+      if (!silent) setLoading(true);
       const [freeRes, matchRes, activeRes, kidsSyncRes] = await Promise.all([
         goalRepo.listByStudent(player.id),
         matchRepo.listByStudent(player.id),
@@ -262,31 +292,72 @@ export function PlayerView({
     setEditingGoal(null);
   };
 
+  /** Anche l'eliminazione e' immediata: la card sparisce, poi si scrive. */
   const handleDeleteGoal = async (id: string) => {
-    await goalRepo.delete(id);
-    await triggerRefresh();
+    const before = goals;
+    setGoals((prev) => prev.filter((g) => g.id !== id));
+    const res = await goalRepo.delete(id);
+    if (res.error) {
+      setGoals(before);
+      return;
+    }
+    onDataChanged?.();
   };
 
+  /**
+   * Spostamento di un obiettivo fra le colonne del Kanban.
+   *
+   * Prima si scriveva sul database, poi si rileggeva tutto: mezzo secondo di
+   * spinner a ogni trascinamento. Adesso la lista cambia sul momento e la
+   * scrittura viaggia dietro; se fallisce, la card torna dov'era.
+   *
+   * L'unica lettura che resta e' quella dei nodi di percorso, perche'
+   * concluderne uno ne sblocca altri e la nuova frontiera la calcola
+   * l'effetto di caricamento. Avviene in silenzio, senza spinner.
+   */
   const handleGoalStatusChange = async (id: string, status: GoalStatus) => {
-    await goalRepo.changeStatus(id, status);
-    await triggerRefresh();
+    const before = goals.find((g) => g.id === id);
+    if (!before || before.status === status) return;
+
+    setGoals((prev) => prev.map((g) => (g.id === id ? applyStatus(g, status) : g)));
+
+    const res = await goalRepo.changeStatus(id, status);
+    if (res.error || !res.data) {
+      setGoals((prev) => prev.map((g) => (g.id === id ? before : g)));
+      return;
+    }
+    // La riga tornata dal database e' la verita': la si rispecchia, cosi'
+    // eventuali campi calcolati dai trigger arrivano senza una lettura in piu'.
+    const saved = res.data;
+    setGoals((prev) => prev.map((g) => (g.id === id ? saved : g)));
+
+    if (before.path_node_id) refetch(true);
+    onDataChanged?.();
   };
 
   const handleGoalProgressChange = async (id: string, progress: number) => {
-    await goalRepo.setProgress(id, progress);
-    // Optimistic local update — keeps the slider responsive without waiting
-    // for a full refetch round-trip.
+    // Il cursore si e' gia' mosso sotto il dito: la copia in memoria lo segue
+    // subito e la scrittura arriva dietro.
+    const before = goals.find((g) => g.id === id);
     setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, progress } : g)));
+    const res = await goalRepo.setProgress(id, progress);
+    if (res.error && before) {
+      setGoals((prev) => prev.map((g) => (g.id === id ? before : g)));
+    }
   };
 
   // ─── Azioni sui nodi del percorso ───────────────────
   const handlePathStart = async (goalId: string) => {
     await goalRepo.changeStatus(goalId, 'in_progress');
-    await triggerRefresh();
+    refetch(true);
+    onDataChanged?.();
   };
   const handlePathComplete = async (goalId: string) => {
     await goalRepo.changeStatus(goalId, 'completed');
-    await triggerRefresh(); // il ricalcolo sblocca i nodi successivi (animazione)
+    // Ricalcolo silenzioso: sblocca i nodi successivi (e la loro animazione)
+    // senza far sparire l'albero dietro uno spinner.
+    refetch(true);
+    onDataChanged?.();
   };
   const handlePathProgress = async (goalId: string, value: number) => {
     await goalRepo.setProgress(goalId, value);
@@ -360,19 +431,9 @@ export function PlayerView({
   const backLink = isCoach && onBack && (
     <button
       onClick={onBack}
-      className="flex items-center gap-2 text-[13px] font-medium text-gray-500 hover:text-[var(--club-blue)] mb-4 transition-colors group shrink-0"
+      className="flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground mb-4 transition-colors group shrink-0"
     >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="group-hover:-translate-x-0.5 transition-transform"
-      >
-        <polyline points="15 18 9 12 15 6" />
-      </svg>
+      <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
       {isGroup ? 'Torna ai gruppi' : 'Torna agli allievi'}
     </button>
   );
@@ -383,92 +444,153 @@ export function PlayerView({
     <GroupMembersPanel group={player} editable={isCoach} />
   ) : null;
 
+  /* ─── Testata ───────────────────────────────────────
+     Le statistiche non stanno piu' in vista: quattro numeri grossi sotto il
+     nome occupavano un terzo dello schermo del telefono per dati che si
+     guardano una volta ogni tanto. Ora c'e' una freccina, e sopra la piega
+     resta quello che serve sempre — chi e', a che livello, e le schede. */
+  /** L'avatar della testata: 48 su telefono, 56 da desktop. */
+  const avatarSize = isMobile ? 48 : 56;
+
+  const heroStats: Array<{ value: string | number; label: string; color: string }> = isGroup
+    ? [
+        { value: activeGoals, label: 'Obiettivi aperti', color: 'var(--primary)' },
+        { value: doneGoals, label: 'Conclusi', color: 'var(--success)' },
+      ]
+    : [
+        { value: activeGoals, label: 'Obiettivi', color: 'var(--primary)' },
+        { value: doneGoals, label: 'Conclusi', color: 'var(--success)' },
+        { value: totalMatches, label: 'Match', color: 'var(--foreground)' },
+        { value: `${winRate}%`, label: 'Win rate', color: 'var(--warning)' },
+      ];
+
   const heroCard = (
     <>
-    <div
-      className="rounded-2xl shadow-sm overflow-hidden mb-6 animate-slide-up relative shrink-0"
-      style={{
-        background:
-          'linear-gradient(135deg, var(--club-blue-dark) 0%, var(--club-blue) 100%)',
-      }}
-    >
-      <div className="p-5 sm:p-6">
-        <div className="flex items-start gap-4">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shrink-0 ring-1 ring-white/15">
-            {isGroup ? (
-              <div className="w-full h-full flex items-center justify-center bg-white/10">
-                <Users size={28} strokeWidth={2.2} className="text-white/90" />
-              </div>
-            ) : (
-              <AvatarDisplay
-                photoUrl={player.photo_url}
-                fullName={player.full_name}
-                size={64}
-                className="ring-0 shadow-none w-full h-full"
-              />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2
-              className="text-xl sm:text-2xl font-bold text-white tracking-[-0.02em] truncate"
-              style={{ fontFamily: 'var(--font-display)' }}
+      {/* Niente `layout` di motion su questa card: ha gia' la classe
+          `animate-slide-up`, che e' un'animazione CSS di `transform`. Due
+          sistemi che scrivono la stessa proprieta' sullo stesso nodo si
+          annullano a vicenda e la testata entrava a scatti. L'apertura delle
+          statistiche si anima da sola, qui sotto. */}
+      <div className="card p-4 sm:p-5 mb-5 shrink-0 animate-slide-up">
+        <div className="flex items-center gap-3.5">
+          {/* L'avatar decide da solo la propria misura (stile in linea): il
+              contenitore deve chiedere ESATTAMENTE quella, altrimenti la foto
+              deborda e viene ritagliata. Prima il riquadro era 48px e la foto
+              56: mancava un ottavo di faccia su ogni lato. */}
+          {isGroup ? (
+            <div
+              className="flex items-center justify-center bg-primary-soft text-primary shrink-0"
+              style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize * 0.28 }}
             >
+              <Users size={avatarSize * 0.45} strokeWidth={2.2} />
+            </div>
+          ) : (
+            <AvatarDisplay
+              photoUrl={player.photo_url}
+              fullName={player.full_name}
+              size={avatarSize}
+            />
+          )}
+
+          <div className="flex-1 min-w-0">
+            <h2 className="text-[17px] sm:text-[20px] font-bold tracking-[-0.025em] truncate">
               {player.full_name}
             </h2>
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
               {isGroup ? (
-                <DarkBadge accent="#FCA5A5">Gruppo di lezione</DarkBadge>
+                <Badge color="var(--cat-mente)" bg="var(--cat-mente-soft)">
+                  Gruppo di lezione
+                </Badge>
               ) : (
                 <>
-              {ageCategory && <DarkBadge accent="#60A5FA">{ageCategory}</DarkBadge>}
-              {classified ? (
-                <DarkBadge accent="#FCA5A5">FIT: {displayRanking}</DarkBadge>
-              ) : (
-                <>
-                  <DarkBadge accent="#FCD34D">{displayLevel}</DarkBadge>
-                  <DarkBadge accent="rgba(255,255,255,0.55)">Non classificato</DarkBadge>
-                </>
-              )}
+                  {ageCategory && (
+                    <Badge color="var(--primary)" bg="var(--primary-soft)">
+                      {ageCategory}
+                    </Badge>
+                  )}
+                  {classified ? (
+                    <Badge color="var(--success)" bg="var(--success-soft)">
+                      FIT {displayRanking}
+                    </Badge>
+                  ) : (
+                    <>
+                      <Badge color="var(--warning)" bg="var(--warning-soft)">
+                        {displayLevel}
+                      </Badge>
+                      <Badge>Non classificato</Badge>
+                    </>
+                  )}
                 </>
               )}
             </div>
           </div>
-          {mode === 'self' && onEditProfile && (
-            <button
-              onClick={onEditProfile}
-              className="text-[12px] font-semibold text-white/80 hover:text-white px-3 py-1.5 rounded-lg border border-white/20 hover:border-white/40 hover:bg-white/5 transition-colors shrink-0"
-            >
-              Modifica
-            </button>
-          )}
-          {isCoach && player.is_fictitious && (
-            <button
-              onClick={() => setDeleteDialogOpen(true)}
-              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-red-200 hover:text-white px-3 py-1.5 rounded-lg border border-red-300/30 hover:border-red-300/60 hover:bg-red-500/15 transition-colors shrink-0"
-              title={isGroup ? 'Elimina gruppo' : 'Elimina allievo gestito'}
-            >
-              <Trash2 size={14} strokeWidth={2.2} />
-              Elimina
-            </button>
-          )}
+
+          <div className="flex items-center gap-0.5 shrink-0">
+            {mode === 'self' && onEditProfile && (
+              <IconButton
+                label="Modifica profilo"
+                onClick={onEditProfile}
+                icon={<Pencil size={15} />}
+              />
+            )}
+            {isCoach && player.is_fictitious && (
+              <IconButton
+                label={isGroup ? 'Elimina gruppo' : 'Elimina allievo gestito'}
+                onClick={() => setDeleteDialogOpen(true)}
+                icon={<Trash2 size={15} />}
+                className="text-destructive hover:bg-destructive-soft hover:text-destructive"
+              />
+            )}
+            <IconButton
+              label={statsOpen ? 'Nascondi statistiche' : 'Mostra statistiche'}
+              onClick={() => setStatsOpen((v) => !v)}
+              aria-expanded={statsOpen}
+              icon={
+                <motion.span
+                  animate={{ rotate: statsOpen ? 180 : 0 }}
+                  transition={{ type: 'spring', stiffness: 520, damping: 32 }}
+                  className="flex"
+                >
+                  <ChevronDown size={17} />
+                </motion.span>
+              }
+            />
+          </div>
         </div>
 
-        {isGroup ? (
-          <div className="grid grid-cols-2 gap-2 mt-5 pt-5 border-t border-white/10">
-            <StatCol value={activeGoals} label="Obiettivi aperti" tone="blue" />
-            <StatCol value={doneGoals} label="Conclusi" tone="green" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-2 mt-5 pt-5 border-t border-white/10">
-            <StatCol value={activeGoals} label="Obiettivi" tone="blue" />
-            <StatCol value={wins} label="Vittorie" tone="green" />
-            <StatCol value={totalMatches} label="Match" tone="white" />
-            <StatCol value={`${winRate}%`} label="Win Rate" tone="amber" />
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {statsOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden"
+            >
+              <div
+                className={`grid gap-2 mt-4 pt-4 border-t border-border-soft ${
+                  isGroup ? 'grid-cols-2' : 'grid-cols-4'
+                }`}
+              >
+                {heroStats.map((s) => (
+                  <div key={s.label} className="text-center">
+                    <p
+                      className="text-[20px] sm:text-[22px] font-bold tracking-[-0.03em] tnum"
+                      style={{ color: s.color }}
+                    >
+                      {typeof s.value === 'number' ? <AnimatedNumber value={s.value} /> : s.value}
+                    </p>
+                    <p className="text-[10px] font-semibold text-subtle-foreground uppercase tracking-[0.08em] mt-0.5">
+                      {s.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
-    {membersPanel}
+      {membersPanel}
     </>
   );
 
@@ -543,13 +665,13 @@ export function PlayerView({
   const addMatchButton = (
     <div className="hidden sm:flex justify-end">
       <Button
-        variant="primary"
+        icon={<Plus size={15} strokeWidth={2.6} />}
         onClick={() => {
           setEditingMatch(null);
           setMatchFormOpen(true);
         }}
       >
-        + Aggiungi Match
+        Aggiungi match
       </Button>
     </div>
   );
@@ -557,13 +679,13 @@ export function PlayerView({
   const addGoalButton = (
     <div className="hidden sm:flex justify-end mb-4">
       <Button
-        variant="primary"
+        icon={<Plus size={15} strokeWidth={2.6} />}
         onClick={() => {
           setEditingGoal(null);
           setGoalFormOpen(true);
         }}
       >
-        + Nuovo obiettivo
+        Nuovo obiettivo
       </Button>
     </div>
   );
@@ -662,7 +784,7 @@ export function PlayerView({
   const percorsoContent = (
     <div className="flex flex-col min-h-full">
       {pathError && (
-        <p className="shrink-0 text-[12px] font-medium text-red-600 mb-3">{pathError}</p>
+        <p className="shrink-0 text-[12px] font-semibold text-destructive mb-3">{pathError}</p>
       )}
       {activePaths.length > 1 && (
         <div className="shrink-0 flex gap-2 mb-3 overflow-x-auto scrollbar-hidden">
@@ -670,10 +792,10 @@ export function PlayerView({
             <button
               key={ap.path.id}
               onClick={() => setSelectedPathId(ap.path.id)}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors ${
+              className={`shrink-0 px-3 py-1.5 rounded-[var(--radius-md)] text-[12px] font-semibold border transition-colors ${
                 selectedPathId === ap.path.id
-                  ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)]'
-                  : 'bg-white text-gray-500 border-gray-200'
+                  ? 'bg-primary text-[var(--primary-foreground)] border-primary'
+                  : 'bg-card text-muted-foreground border-border hover:border-[var(--border-strong)]'
               }`}
             >
               {ap.path.title}
@@ -814,25 +936,16 @@ export function PlayerView({
       {layoutContents}
 
       {tab !== 'percorso' && tab !== 'kids' && (
-        <button
+        <motion.button
           onClick={handleFab}
+          whileTap={{ scale: 0.88 }}
+          transition={{ type: 'spring', stiffness: 620, damping: 26 }}
           className="sm:hidden fab"
           aria-label={tab === 'obiettivi' ? 'Nuovo obiettivo' : 'Aggiungi match'}
           style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
         >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
+          <Plus size={22} strokeWidth={2.6} />
+        </motion.button>
       )}
 
       <GoalForm
@@ -889,48 +1002,5 @@ export function PlayerView({
         />
       )}
     </>
-  );
-}
-
-function DarkBadge({ children, accent }: { children: React.ReactNode; accent: string }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold tracking-[0.01em]"
-      style={{
-        background: 'rgba(255,255,255,0.08)',
-        color: accent,
-        border: `1px solid rgba(255,255,255,0.14)`,
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function StatCol({
-  value,
-  label,
-  tone,
-}: {
-  value: string | number;
-  label: string;
-  tone: 'blue' | 'green' | 'white' | 'amber' | 'red';
-}) {
-  const colors: Record<string, string> = {
-    blue: '#60A5FA',
-    green: '#4ADE80',
-    white: '#F3F4F6',
-    amber: '#FCD34D',
-    red: '#FCA5A5',
-  };
-  return (
-    <div className="text-center">
-      <p className="text-[22px] sm:text-2xl font-bold tracking-[-0.02em]" style={{ color: colors[tone] }}>
-        {value}
-      </p>
-      <p className="text-[10px] font-semibold text-white/55 uppercase tracking-[0.08em] mt-1">
-        {label}
-      </p>
-    </div>
   );
 }

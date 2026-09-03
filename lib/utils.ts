@@ -1,5 +1,14 @@
 // Generic UI helpers shared across the app
 
+/**
+ * Unisce classi condizionali. Volutamente minimale: non fa merge dei
+ * conflitti Tailwind (per quello servirebbe tailwind-merge), serve solo a
+ * evitare template string illeggibili pieni di ternari.
+ */
+export function cn(...parts: Array<string | false | null | undefined>): string {
+  return parts.filter(Boolean).join(' ');
+}
+
 export function timeAgo(date: Date): string {
   const sec = Math.floor((Date.now() - date.getTime()) / 1000);
   if (sec < 60) return 'ora';
