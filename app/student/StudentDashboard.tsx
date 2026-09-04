@@ -26,7 +26,7 @@ export function StudentDashboard() {
   }
 
   return (
-    <div className="h-[100dvh] sm:h-auto sm:min-h-screen flex sm:block flex-col overflow-hidden sm:overflow-visible bg-[var(--background)]">
+    <div className="h-[100svh] sm:h-auto sm:min-h-screen flex sm:block flex-col overflow-hidden sm:overflow-visible bg-[var(--background)]">
       <header
         className="shrink-0 sm:sticky sm:top-0 sm:z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80"
         style={{ paddingTop: 'var(--safe-top)' }}

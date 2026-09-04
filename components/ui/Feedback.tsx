@@ -162,7 +162,7 @@ export function SkeletonList({ rows = 3, height = 84 }: { rows?: number; height?
 
 export function LoadingScreen() {
   return (
-    <div className="flex-1 flex items-center justify-center min-h-[100dvh] bg-background">
+    <div className="flex-1 flex items-center justify-center min-h-[100svh] bg-background">
       <div className="flex flex-col items-center gap-4">
         <motion.div
           animate={{ scale: [1, 1.06, 1] }}

@@ -184,7 +184,7 @@ export function CoachMobileDashboard() {
   // Selected student detail (uses shared PlayerView)
   if (selectedStudent) {
     return (
-      <div className="fixed inset-0 flex flex-col bg-[var(--background)]">
+      <div className="fixed inset-x-0 top-0 h-[100svh] flex flex-col bg-[var(--background)]">
         <MobileHeader onLogout={signOut} />
         <main className="flex-1 min-h-0 overflow-hidden flex flex-col page-gutter-x pt-5">
           <PlayerView
@@ -202,20 +202,24 @@ export function CoachMobileDashboard() {
     );
   }
 
-  // GUSCIO ANCORATO AL VIEWPORT, non alto `100dvh`.
+  // GUSCIO FISSO ALTO `100svh`, non `100dvh` e non `inset-0`.
   //
-  // Con `100dvh` al primo caricamento restava una striscia di sfondo in fondo
-  // allo schermo, che spariva al primo scorrimento: iOS risolve `dvh` con il
-  // viewport piccolo prima che la pagina si assesti, quindi il guscio nasceva
-  // piu' corto dello schermo e sotto la barra di navigazione si vedeva il
-  // fondo pagina. `position: fixed; inset: 0` prende il viewport vero ed e'
-  // gia' giusto al primo fotogramma, senza dipendere da nessuna unita' che si
-  // aggiusta dopo.
+  // `svh` e' il viewport con le barre del browser APERTE: il piu' piccolo dei
+  // tre, e l'unico che non e' mai piu' alto di quello che si vede davvero.
+  // Con `dvh` il guscio nasceva piu' alto della parte visibile (iOS lo
+  // risolve con il viewport grande finche' la pagina non si assesta) e sotto
+  // alla barra restava una striscia di sfondo, che spariva al primo
+  // scorrimento e non tornava piu'. Con `svh` l'altezza e' gia' giusta al
+  // primo fotogramma e non cambia mai piu'.
+  //
+  // `top-0` + altezza esplicita e non `inset-0`: `bottom: 0` si misura sul
+  // viewport di LAYOUT, che e' quello grande, ed e' proprio il valore da cui
+  // stiamo scappando.
   //
   // Non introduce `transform`, quindi i figli `position: fixed` (dialoghi,
   // FAB, foglio del passo Kids) continuano a posizionarsi sul viewport.
   return (
-    <div className="fixed inset-0 flex flex-col bg-[var(--background)]">
+    <div className="fixed inset-x-0 top-0 h-[100svh] flex flex-col bg-[var(--background)]">
       <MobileHeader onLogout={signOut} />
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">

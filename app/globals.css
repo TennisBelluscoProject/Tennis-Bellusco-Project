@@ -325,8 +325,19 @@
    spariva scorrendo perche' la barra si ritirava e i due valori tornavano a
    coincidere.
 
-   `dvh` e' l'unita' che segue il viewport mentre cambia, ed e' l'unica che
-   descrive davvero "tutto lo schermo disponibile adesso".
+   Passare a `dvh` non e' bastato: `dvh` segue il viewport, ma FINCHE' LA
+   PAGINA NON SI ASSESTA iOS lo risolve con il viewport grande. Il body
+   nasceva quindi piu' alto della parte visibile, il documento diventava
+   scorrevole, e bastava quello scorrimento per far ritirare la barra del
+   browser: il vuoto in fondo si chiudeva e non tornava piu'. Il difetto
+   descritto qui sopra era rimpicciolito, non tolto.
+
+   `svh` e' il viewport con le barre APERTE, cioe' il piu' piccolo dei tre e
+   l'unico che non e' mai piu' alto di quello che si vede davvero. Il body non
+   supera mai lo schermo, il documento non scorre, e senza scorrimento la
+   barra del browser non si ritira: l'altezza resta quella dal primo
+   fotogramma all'ultimo. Per le pagine lunghe non cambia niente, e' solo un
+   pavimento: a decidere l'altezza vera e' il contenuto.
 
    Lo sfondo sta anche su html: e' l'elemento che il browser usa per dipingere
    l'area di rimbalzo quando si tira oltre il bordo. Senza, quella zona
@@ -338,7 +349,7 @@ html {
 }
 
 body {
-  min-height: 100dvh;
+  min-height: 100svh;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
@@ -605,7 +616,7 @@ input[type="date"]::-webkit-datetime-edit { padding: 0; line-height: 1.25; }
 
 .login-bg {
   position: relative;
-  min-height: 100dvh;
+  min-height: 100svh;
   background: var(--background);
   overflow: hidden;
 }

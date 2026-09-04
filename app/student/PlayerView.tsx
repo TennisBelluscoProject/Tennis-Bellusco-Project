@@ -634,8 +634,16 @@ export function PlayerView({
       onObjectivesChanged={({ keys, done, listaCambiata }) => {
         // Se si sono aperte o richiuse pagine del libretto sono nate o sparite
         // delle card: la lista va riletta per intero, un ritocco non basta.
+        //
+        // SILENZIOSA, e non e' un dettaglio: lo spinner qui sopra sostituisce
+        // il contenuto della scheda, quindi accenderlo SMONTA KidsPathSection.
+        // Al rimontaggio quel componente riparte dal suo stato iniziale, che
+        // e' la vista 'elenco' — ed e' per questo che completare un passo
+        // rispediva alla scelta del percorso. La rilettura serve, ma deve
+        // avvenire sotto: a schermo la mappa e' gia' giusta per via
+        // dell'aggiornamento ottimistico delle spunte.
         if (listaCambiata) {
-          setReloadTick((t) => t + 1);
+          refetch(true);
           return;
         }
 

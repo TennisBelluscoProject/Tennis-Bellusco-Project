@@ -44,11 +44,18 @@ const SPRING = { type: 'spring' as const, stiffness: 520, damping: 42, mass: 0.6
 
 export function BottomNav({ active, onChange, pendingCount }: Props) {
   return (
+    // La barra DIPINGE il rientro di sistema invece di lasciarlo trasparente.
+    //
+    // Prima era una pastiglia che galleggiava, con il fondo pagina tutto
+    // intorno: sotto restava sempre una striscia grigia alta quanto la barra
+    // dei gesti, e a schermo sembrava spazio sprecato. Ora e' un foglio
+    // agganciato al bordo, arrotondato solo in cima, e il rientro sta DENTRO
+    // il suo sfondo: sotto non c'e' piu' niente da vedere.
     <nav
-      className="shrink-0 px-3 pt-2"
-      style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
+      className="shrink-0 rounded-t-[26px] border-t border-border-soft bg-card px-2 pt-2"
+      style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
     >
-      <div className="flex items-center justify-between gap-1 rounded-full border border-border-soft bg-card p-1.5 shadow-[var(--shadow-lg)]">
+      <div className="flex items-center justify-between gap-1">
         {ITEMS.map(({ id, label, Icon }) => {
           const isActive = active === id;
           const showBadge = id === 'richieste' && pendingCount > 0;
