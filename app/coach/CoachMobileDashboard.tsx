@@ -184,7 +184,10 @@ export function CoachMobileDashboard() {
   // Selected student detail (uses shared PlayerView)
   if (selectedStudent) {
     return (
-      <div className="fixed inset-x-0 top-0 h-[100svh] flex flex-col bg-[var(--background)]">
+      <div
+        className="fixed inset-x-0 top-0 flex flex-col bg-[var(--background)]"
+        style={{ height: 'var(--app-h, 100svh)' }}
+      >
         <MobileHeader onLogout={signOut} />
         <main className="flex-1 min-h-0 overflow-hidden flex flex-col page-gutter-x pt-5">
           <PlayerView
@@ -202,15 +205,16 @@ export function CoachMobileDashboard() {
     );
   }
 
-  // GUSCIO FISSO ALTO `100svh`, non `100dvh` e non `inset-0`.
+  // GUSCIO FISSO ALTO `--app-h`: l'altezza VERA della parte visibile,
+  // misurata con `visualViewport` prima della prima pittura (vedi
+  // lib/viewport-script.ts).
   //
-  // `svh` e' il viewport con le barre del browser APERTE: il piu' piccolo dei
-  // tre, e l'unico che non e' mai piu' alto di quello che si vede davvero.
-  // Con `dvh` il guscio nasceva piu' alto della parte visibile (iOS lo
-  // risolve con il viewport grande finche' la pagina non si assesta) e sotto
-  // alla barra restava una striscia di sfondo, che spariva al primo
-  // scorrimento e non tornava piu'. Con `svh` l'altezza e' gia' giusta al
-  // primo fotogramma e non cambia mai piu'.
+  // Nessuna unita' CSS funzionava qui. `dvh` finche' la pagina non si assesta
+  // iOS lo risolve con il viewport grande, e il guscio nasceva piu' alto
+  // dello schermo. `svh` e' il viewport con le barre APERTE: non sfora mai,
+  // ma se le barre sono RITIRATE resta corto e sotto avanza una striscia che
+  // non si chiude piu'. `--app-h` non stima: misura, e si riscrive quando il
+  // rettangolo visibile cambia davvero.
   //
   // `top-0` + altezza esplicita e non `inset-0`: `bottom: 0` si misura sul
   // viewport di LAYOUT, che e' quello grande, ed e' proprio il valore da cui
@@ -219,7 +223,10 @@ export function CoachMobileDashboard() {
   // Non introduce `transform`, quindi i figli `position: fixed` (dialoghi,
   // FAB, foglio del passo Kids) continuano a posizionarsi sul viewport.
   return (
-    <div className="fixed inset-x-0 top-0 h-[100svh] flex flex-col bg-[var(--background)]">
+    <div
+      className="fixed inset-x-0 top-0 flex flex-col bg-[var(--background)]"
+      style={{ height: 'var(--app-h, 100svh)' }}
+    >
       <MobileHeader onLogout={signOut} />
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">

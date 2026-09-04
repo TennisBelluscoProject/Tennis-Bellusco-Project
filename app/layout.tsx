@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ToastProvider } from "@/components/ui/Toast";
 import { themeInitScript } from "@/lib/theme-script";
+import { viewportInitScript } from "@/lib/viewport-script";
 
 // Una sola famiglia per tutto: Inter, la stessa che indica il tema Cobalt
 // Steel. La gerarchia la fanno peso e crenatura, non l'alternanza di due
@@ -72,6 +73,7 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: viewportInitScript }} />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className="flex flex-col font-sans">
