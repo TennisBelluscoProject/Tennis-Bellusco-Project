@@ -184,7 +184,7 @@ export function CoachMobileDashboard() {
   // Selected student detail (uses shared PlayerView)
   if (selectedStudent) {
     return (
-      <div className="h-[100dvh] flex flex-col bg-[var(--background)]">
+      <div className="fixed inset-0 flex flex-col bg-[var(--background)]">
         <MobileHeader onLogout={signOut} />
         <main className="flex-1 min-h-0 overflow-hidden flex flex-col page-gutter-x pt-5">
           <PlayerView
@@ -202,8 +202,20 @@ export function CoachMobileDashboard() {
     );
   }
 
+  // GUSCIO ANCORATO AL VIEWPORT, non alto `100dvh`.
+  //
+  // Con `100dvh` al primo caricamento restava una striscia di sfondo in fondo
+  // allo schermo, che spariva al primo scorrimento: iOS risolve `dvh` con il
+  // viewport piccolo prima che la pagina si assesti, quindi il guscio nasceva
+  // piu' corto dello schermo e sotto la barra di navigazione si vedeva il
+  // fondo pagina. `position: fixed; inset: 0` prende il viewport vero ed e'
+  // gia' giusto al primo fotogramma, senza dipendere da nessuna unita' che si
+  // aggiusta dopo.
+  //
+  // Non introduce `transform`, quindi i figli `position: fixed` (dialoghi,
+  // FAB, foglio del passo Kids) continuano a posizionarsi sul viewport.
   return (
-    <div className="h-[100dvh] flex flex-col bg-[var(--background)]">
+    <div className="fixed inset-0 flex flex-col bg-[var(--background)]">
       <MobileHeader onLogout={signOut} />
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">

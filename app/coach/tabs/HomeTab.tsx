@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Users, Target, Trophy, CalendarDays, BellOff } from 'lucide-react';
+import { useMemo, type ReactNode } from 'react';
+import { BellOff, Target, Users } from 'lucide-react';
 import { Spinner, EmptyState } from '@/components/UI';
 import type { Goal, MatchResultRow, Profile } from '@/lib/database.types';
 import { isActiveToday, formatDateLong } from '@/lib/utils';
-import { StatPill, FilterPill } from '../components/Pills';
+import { FilterPill } from '../components/Pills';
 import { NotificationCard, type Notif } from '../components/NotificationCard';
 
 interface Props {
@@ -20,6 +20,19 @@ interface Props {
   onDismissOne: (id: string) => void;
   onDismissAll: () => void;
 }
+
+/* ═════════════════════════════════════════════════════════════════════════
+   La schermata di apertura del maestro.
+
+   Due soli numeri: quanti allievi e quanti obiettivi sono ancora aperti. Win
+   rate e match del mese erano due percentuali che nessuno guardava e che
+   rubavano meta' della prima schermata alle notifiche, che sono la ragione
+   vera per cui si apre l'app.
+
+   I due numeri stanno in UN blocco diviso a meta', non in due riquadri
+   staccati: sono la stessa lettura ("com'e' messo il gruppo adesso"), e un
+   riquadro per numero li faceva sembrare due sezioni diverse.
+   ═════════════════════════════════════════════════════════════════════════ */
 
 export function HomeTab({
   loading,
@@ -37,19 +50,6 @@ export function HomeTab({
   const activeGoals = recentGoals.filter(
     (g) => g.status !== 'completed' && students.some((s) => s.id === g.student_id)
   ).length;
-  const winRate = useMemo(() => {
-    if (allMatches.length === 0) return 0;
-    const wins = allMatches.filter((m) => m.result === 'win').length;
-    return Math.round((wins / allMatches.length) * 100);
-  }, [allMatches]);
-  const matchesThisMonth = useMemo(() => {
-    const now = new Date();
-    return allMatches.filter((m) => {
-      const d = new Date(m.match_date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-  }, [allMatches]);
-
   const activeToday = students.filter((s) => isActiveToday(studentActivity[s.id] ?? null)).length;
 
   // Notifications feed (derived from data)
@@ -93,35 +93,53 @@ export function HomeTab({
   const matchNotifsCount = notifications.filter((n) => n.kind === 'match').length;
 
   return (
-    <div className="flex flex-col h-full animate-fade-in">
-      <div className="px-4 pt-5 pb-3 shrink-0">
-        {/* Greeting */}
-        <div className="mb-5">
-          <h2
-            className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Benvenuto
-          </h2>
-          <p className="text-sm text-[var(--club-blue)] mt-1">
-            {formatDateLong(new Date())} · {activeToday} {activeToday === 1 ? 'allievo attivo' : 'allievi attivi'} oggi
-          </p>
+    <div className="flex h-full flex-col animate-fade-in">
+      <div className="shrink-0 px-4 pt-4 pb-3">
+        {/* Intestazione */}
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--subtle-foreground)]">
+          {formatDateLong(new Date())}
+        </p>
+        <h2 className="mt-1 text-[26px] font-bold leading-none tracking-[-0.03em] text-[var(--foreground)]">
+          Benvenuto
+        </h2>
+
+        {/* Riepilogo: i due numeri che contano */}
+        <div className="card mt-4 overflow-hidden">
+          <div className="flex">
+            <SummaryStat
+              icon={<Users size={15} strokeWidth={2.4} />}
+              value={totalStudents}
+              label="Allievi"
+              accent="var(--primary)"
+            />
+            <div className="w-px self-stretch bg-[var(--border-soft)]" aria-hidden />
+            <SummaryStat
+              icon={<Target size={15} strokeWidth={2.4} />}
+              value={activeGoals}
+              label="Obiettivi attivi"
+              accent="var(--cat-agonismo)"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 border-t border-[var(--border-soft)] bg-[var(--sunken)] px-4 py-2.5">
+            <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
+              <span className="animate-pulse-soft absolute inset-0 rounded-full bg-[var(--success)]" />
+              <span className="relative h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+            </span>
+            <span className="text-[12px] text-[var(--muted-foreground)]">
+              {activeToday} {activeToday === 1 ? 'allievo attivo' : 'allievi attivi'} oggi
+            </span>
+          </div>
         </div>
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <StatPill label="Allievi" value={totalStudents} icon={<Users size={16} strokeWidth={2} />} accent="var(--club-blue)" />
-          <StatPill label="Obiettivi attivi" value={activeGoals} icon={<Target size={16} strokeWidth={2} />} accent="#E65100" />
-          <StatPill label="Win Rate" value={`${winRate}%`} icon={<Trophy size={16} strokeWidth={2} />} accent="var(--success)" valueColor="var(--success)" />
-          <StatPill label="Match mese" value={matchesThisMonth} icon={<CalendarDays size={16} strokeWidth={2} />} accent="var(--club-red)" valueColor="var(--club-red)" />
-        </div>
-
-        {/* Notifications header */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Notifiche */}
+        <div className="mt-5 mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold text-gray-900 tracking-[-0.01em]">Notifiche</h3>
+            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-[var(--foreground)]">
+              Notifiche
+            </h3>
             {notifications.length > 0 && (
-              <span className="text-[10px] font-bold text-white bg-[var(--club-red)] rounded-full px-2 py-0.5">
+              <span className="rounded-full bg-[var(--destructive)] px-2 py-0.5 text-[10px] font-bold text-[var(--destructive-foreground)]">
                 {notifications.length} {notifications.length === 1 ? 'nuova' : 'nuove'}
               </span>
             )}
@@ -129,21 +147,21 @@ export function HomeTab({
           {notifications.length > 0 && (
             <button
               onClick={onDismissAll}
-              className="text-[12px] font-medium text-gray-500 hover:text-[var(--club-red)] transition-colors"
+              className="text-[12px] font-medium text-[var(--muted-foreground)] transition-colors duration-[var(--dur-base)] hover:text-[var(--destructive)]"
             >
               Cancella tutto
             </button>
           )}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1">
+        <div className="scrollbar-hidden -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
           <FilterPill active={notifFilter === 'all'} onClick={() => onNotifFilterChange('all')} label="Tutte" count={notifications.length} />
           <FilterPill active={notifFilter === 'goal'} onClick={() => onNotifFilterChange('goal')} label="Obiettivi" count={goalNotifsCount} />
           <FilterPill active={notifFilter === 'match'} onClick={() => onNotifFilterChange('match')} label="Match" count={matchNotifsCount} />
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-1 pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-4">
         {loading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : filteredNotifs.length === 0 ? (
@@ -156,6 +174,39 @@ export function HomeTab({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function SummaryStat({
+  icon,
+  value,
+  label,
+  accent,
+}: {
+  icon: ReactNode;
+  value: number;
+  label: string;
+  accent: string;
+}) {
+  return (
+    <div className="flex-1 px-4 py-3.5">
+      <span
+        className="inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)]"
+        style={{
+          backgroundColor: `color-mix(in srgb, ${accent} 12%, transparent)`,
+          color: accent,
+        }}
+        aria-hidden
+      >
+        {icon}
+      </span>
+      <p className="tnum mt-2 text-[28px] font-bold leading-none tracking-[-0.03em] text-[var(--foreground)]">
+        {value}
+      </p>
+      <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--subtle-foreground)]">
+        {label}
+      </p>
     </div>
   );
 }

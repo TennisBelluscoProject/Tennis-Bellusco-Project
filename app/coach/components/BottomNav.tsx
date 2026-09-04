@@ -1,5 +1,9 @@
 'use client';
 
+import { motion } from 'motion/react';
+import { BookOpen, House, Trophy, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
 export type CoachTabId = 'home' | 'allievi' | 'catalogo' | 'risultati' | 'richieste';
 
 interface Props {
@@ -8,107 +12,110 @@ interface Props {
   pendingCount: number;
 }
 
+const ITEMS: { id: CoachTabId; label: string; Icon: LucideIcon }[] = [
+  { id: 'home', label: 'Home', Icon: House },
+  { id: 'allievi', label: 'Allievi', Icon: Users },
+  { id: 'catalogo', label: 'Catalogo', Icon: BookOpen },
+  { id: 'risultati', label: 'Risultati', Icon: Trophy },
+  { id: 'richieste', label: 'Richieste', Icon: UserPlus },
+];
+
+/** Una sola molla per tutto: pastiglia che scorre, voci che si allargano. */
+const SPRING = { type: 'spring' as const, stiffness: 520, damping: 42, mass: 0.6 };
+
+/* ═════════════════════════════════════════════════════════════════════════
+   La barra di navigazione del maestro.
+
+   Un "dock" che galleggia sul fondo pagina invece di una fascia attaccata al
+   bordo. Solo la voce attiva porta l'etichetta: le altre restano icone, cosi'
+   cinque voci stanno larghe anche su uno schermo da 375px e la barra non
+   diventa una fila di scritte piccole.
+
+   Il movimento e' una cosa sola: la pastiglia scorre da una voce all'altra
+   (`layoutId`) mentre le voci si allargano e si stringono (`layout`). Sono due
+   animazioni della stessa passata di layout di motion, quindi partono insieme
+   e non si rincorrono.
+
+   STA NEL FLUSSO, non e' `fixed`: e' l'ultima riga della colonna alta quanto
+   il viewport (CoachMobileDashboard). Da `fixed` si ancorava al viewport di
+   layout e finiva sotto al bordo dello schermo, lasciando una striscia di
+   sfondo che spariva solo scorrendo.
+   ═════════════════════════════════════════════════════════════════════════ */
+
 export function BottomNav({ active, onChange, pendingCount }: Props) {
-  const items: { id: CoachTabId; label: string; icon: React.ReactNode }[] = [
-    { id: 'home', label: 'Home', icon: <IconHome /> },
-    { id: 'allievi', label: 'Allievi', icon: <IconUsers /> },
-    { id: 'catalogo', label: 'Catalogo', icon: <IconCatalog /> },
-    { id: 'risultati', label: 'Risultati', icon: <IconTrophy /> },
-    { id: 'richieste', label: 'Richieste', icon: <IconUserPlus /> },
-  ];
   return (
-    // In FLUSSO, non `fixed`. Da `fixed` la barra si ancorava al viewport di
-    // layout (quello grande), mentre la shell e' alta `100dvh` (il viewport
-    // visibile, senza la barra retrattile del browser): la nav finiva nascosta
-    // dietro la barra di sistema e sotto al contenuto si vedeva una striscia di
-    // sfondo che spariva scorrendo, quando la barra del browser si ritraeva e i
-    // due viewport tornavano a coincidere. Da ultimo figlio della colonna, la
-    // nav sta sempre in fondo alla shell e il rientro di sistema lo mette lei.
     <nav
-      className="shrink-0 bg-white/98 backdrop-blur-lg border-t border-gray-100"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="shrink-0 px-3 pt-2"
+      style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
     >
-      <div className="flex items-center justify-around px-1 pt-2 pb-1.5">
-        {items.map((it) => {
-          const isActive = active === it.id;
+      <div className="flex items-center justify-between gap-1 rounded-full border border-border-soft bg-card p-1.5 shadow-[var(--shadow-lg)]">
+        {ITEMS.map(({ id, label, Icon }) => {
+          const isActive = active === id;
+          const showBadge = id === 'richieste' && pendingCount > 0;
+
           return (
-            <button
-              key={it.id}
-              onClick={() => onChange(it.id)}
-              className={`relative flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors ${
-                isActive ? 'text-[var(--club-blue)]' : 'text-gray-400'
-              }`}
-            >
-              <div className="relative">
-                {it.icon}
-                {it.id === 'richieste' && pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--club-red)] text-white text-[9px] font-bold flex items-center justify-center">
-                    {pendingCount}
-                  </span>
-                )}
-              </div>
-              <span
-                className={`text-[10px] font-semibold tracking-tight ${
-                  isActive ? 'text-[var(--club-blue)]' : 'text-gray-400'
-                }`}
-              >
-                {it.label}
-              </span>
-              {isActive && (
-                <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-6 h-[2.5px] rounded-full bg-[var(--club-blue)]" />
+            <motion.button
+              key={id}
+              layout
+              transition={SPRING}
+              onClick={() => onChange(id)}
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
+              // Il padding si stringe sotto i 360px: con "Richieste" aperta
+              // (l'etichetta piu' lunga) cinque voci non ci stavano su uno
+              // schermo da 320, e il dock andava in overflow.
+              className={cn(
+                'relative flex h-10 items-center justify-center rounded-full',
+                isActive ? 'px-3 min-[360px]:px-3.5' : 'px-2 min-[360px]:px-3'
               )}
-            </button>
+            >
+              {isActive && (
+                <motion.span
+                  layoutId="coach-nav-pill"
+                  transition={SPRING}
+                  className="absolute inset-0 rounded-full bg-[var(--primary)]"
+                  style={{ boxShadow: 'var(--shadow-primary)' }}
+                />
+              )}
+
+              <span
+                className="relative z-10 flex items-center gap-1.5"
+                style={{ color: isActive ? 'var(--primary-foreground)' : 'var(--muted-foreground)' }}
+              >
+                <span className="relative flex">
+                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                  {showBadge && (
+                    <span
+                      className={cn(
+                        'absolute -right-1.5 -top-1.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums',
+                        isActive
+                          ? 'bg-[var(--primary-foreground)] text-[var(--primary)]'
+                          : 'bg-[var(--destructive)] text-[var(--destructive-foreground)]'
+                      )}
+                    >
+                      {pendingCount}
+                    </span>
+                  )}
+                </span>
+
+                {/* Solo l'etichetta attiva. Sparisce smontandosi: la larghezza
+                    del bottone la riassorbe `layout`, quindi non serve
+                    un'uscita animata che terrebbe la voce larga a meta' strada. */}
+                {isActive && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                    className="whitespace-nowrap text-[13px] font-semibold tracking-[-0.01em]"
+                  >
+                    {label}
+                  </motion.span>
+                )}
+              </span>
+            </motion.button>
           );
         })}
       </div>
     </nav>
-  );
-}
-
-function IconHome() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12l9-9 9 9" />
-      <path d="M5 10v10h14V10" />
-    </svg>
-  );
-}
-function IconUsers() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 00-3-3.87" />
-      <path d="M16 3.13a4 4 0 010 7.75" />
-    </svg>
-  );
-}
-function IconTrophy() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4z" />
-      <path d="M17 4h3v3a3 3 0 01-3 3" />
-      <path d="M7 4H4v3a3 3 0 003 3" />
-    </svg>
-  );
-}
-function IconCatalog() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-      <line x1="9" y1="7" x2="16" y2="7" />
-      <line x1="9" y1="11" x2="14" y2="11" />
-    </svg>
-  );
-}
-function IconUserPlus() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-      <circle cx="8.5" cy="7" r="4" />
-      <line x1="20" y1="8" x2="20" y2="14" />
-      <line x1="23" y1="11" x2="17" y2="11" />
-    </svg>
   );
 }

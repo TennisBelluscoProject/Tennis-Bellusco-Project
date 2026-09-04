@@ -1,24 +1,6 @@
 'use client';
 
-interface StatPillProps {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  accent: string;
-  valueColor?: string;
-}
-
-export function StatPill({ label, value, icon, accent, valueColor }: StatPillProps) {
-  return (
-    <div className="card stat-card p-3.5" style={{ '--stat-accent': accent } as React.CSSProperties}>
-      <div className="w-7 h-7 rounded-lg flex items-center justify-center mb-2" style={{ backgroundColor: `${accent}1A`, color: accent }}>
-        {icon}
-      </div>
-      <p className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: valueColor ?? 'var(--foreground)' }}>{value}</p>
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-0.5">{label}</p>
-    </div>
-  );
-}
+import { cn } from '@/lib/utils';
 
 interface FilterPillProps {
   active: boolean;
@@ -27,20 +9,36 @@ interface FilterPillProps {
   count: number;
 }
 
+/**
+ * Pastiglia di filtro.
+ *
+ * `shrink-0`: vive dentro una riga che scorre in orizzontale, e senza di
+ * questo le pastiglie si schiacciavano invece di uscire dal bordo.
+ */
 export function FilterPill({ active, onClick, label, count }: FilterPillProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[13px] font-semibold transition-all ${
+      aria-pressed={active}
+      className={cn(
+        'flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5',
+        'text-[13px] font-semibold transition-colors duration-[var(--dur-base)]',
         active
-          ? 'bg-white text-[var(--club-blue)] border-[var(--club-blue)]'
-          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-      }`}
+          ? 'border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]'
+          : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)]'
+      )}
     >
       <span>{label}</span>
-      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-        active ? 'bg-[var(--club-blue)] text-white' : 'bg-gray-100 text-gray-500'
-      }`}>{count}</span>
+      <span
+        className={cn(
+          'tnum rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',
+          active
+            ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+            : 'bg-[var(--secondary)] text-[var(--muted-foreground)]'
+        )}
+      >
+        {count}
+      </span>
     </button>
   );
 }
