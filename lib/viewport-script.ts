@@ -33,10 +33,38 @@ export const viewportInitScript = `
     var root = document.documentElement;
     var vv = window.visualViewport;
 
+    // Installata sulla schermata Home non c'e' nessuna barra retrattile: le
+    // varie misure possono discordare (su iOS in standalone
+    // \`visualViewport.height\` sa restare sotto lo schermo vero), ma nessuna
+    // puo' essere TROPPO alta, perche' non c'e' niente dietro cui nascondersi.
+    // Li' la piu' grande e' quella giusta. In scheda invece vale il contrario:
+    // la piu' grande includerebbe l'area dietro la barra del browser, quindi
+    // ci si fida solo di \`visualViewport\`.
+    function standalone() {
+      try {
+        return (
+          window.matchMedia('(display-mode: standalone)').matches ||
+          window.matchMedia('(display-mode: fullscreen)').matches ||
+          window.navigator.standalone === true
+        );
+      } catch (e) {
+        return false;
+      }
+    }
+
     function scrive() {
       var a = document.activeElement;
       if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return;
-      var h = vv ? vv.height : window.innerHeight;
+      var h;
+      if (standalone()) {
+        h = Math.max(
+          vv ? vv.height : 0,
+          window.innerHeight || 0,
+          document.documentElement.clientHeight || 0
+        );
+      } else {
+        h = vv ? vv.height : window.innerHeight;
+      }
       if (!h) return;
       root.style.setProperty('--app-h', Math.round(h) + 'px');
     }

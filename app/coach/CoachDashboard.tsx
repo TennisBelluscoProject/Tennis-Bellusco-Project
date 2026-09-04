@@ -9,6 +9,7 @@ import { Header } from '@/components/Header';
 import { Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog, Button } from '@/components/UI';
 import type { Profile, MatchResultRow } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
+import { cn } from '@/lib/utils';
 import { MatchCard } from '@/components/MatchCard';
 import { CoachNotesForm } from '@/components/CoachNotesForm';
 import { CoachMobileDashboard } from './CoachMobileDashboard';
@@ -319,9 +320,9 @@ function CoachDesktopDashboard() {
                       onClick={() => setCatalogView(v)}
                       className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border transition-colors"
                       style={{
-                        background: isActive ? activeColor : '#FFFFFF',
-                        borderColor: isActive ? activeColor : '#E5E7EB',
-                        color: isActive ? '#FFFFFF' : '#6B7280',
+                        background: isActive ? activeColor : 'var(--card)',
+                        borderColor: isActive ? activeColor : 'var(--border)',
+                        color: isActive ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
                       }}
                     >
                       {label}
@@ -336,15 +337,15 @@ function CoachDesktopDashboard() {
           )}
 
           {activeTab === 'richieste' && (
-            <div className="mt-4 card p-4 flex items-start gap-3 bg-blue-50/40 border-blue-100">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B3A5C" strokeWidth="2" className="shrink-0 mt-0.5">
+            <div className="mt-4 card p-4 flex items-start gap-3 bg-[var(--primary-soft)] border-[var(--primary-border)]">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5 text-[var(--primary)]">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="16" x2="12" y2="12" />
                 <line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
               <div>
                 <p className="text-sm font-semibold text-[var(--club-blue)]">Approvazioni allievi</p>
-                <p className="text-[12px] text-gray-600 leading-relaxed mt-0.5">
+                <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed mt-0.5">
                   Gli allievi si registrano in autonomia e attendono qui la tua approvazione. Una volta approvati potranno accedere alla loro dashboard.
                 </p>
               </div>
@@ -536,7 +537,7 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 min-w-0">
-            <h3 className="text-sm font-bold text-gray-900 truncate tracking-[-0.01em]">{student.full_name}</h3>
+            <h3 className="text-sm font-bold text-[var(--foreground)] truncate tracking-[-0.01em]">{student.full_name}</h3>
             {student.is_fictitious && (
               <UserCog
                 size={13}
@@ -553,32 +554,32 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
             {!cardClassified && <Badge>{displayLevel}</Badge>}
           </div>
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2" className="shrink-0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-[var(--border-strong)]">
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </div>
 
       <div className="flex items-center gap-1.5 mb-3 pl-0.5">
-        <span className="text-[11px] text-gray-400 font-medium">Classifica FIT:</span>
+        <span className="text-[11px] text-[var(--subtle-foreground)] font-medium">Classifica FIT:</span>
         <span className="text-[11px] font-bold text-[var(--club-red)]">{cardClassified ? displayRanking : 'Non classificato'}</span>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 text-center pt-3 border-t border-gray-100">
+      <div className="grid grid-cols-4 gap-2 text-center pt-3 border-t border-[var(--border-soft)]">
         <div>
-          <p className="text-sm font-bold text-[var(--club-blue)]">{stats.goals}</p>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Obiettivi</p>
+          <p className="tnum text-sm font-bold text-[var(--primary)]">{stats.goals}</p>
+          <p className="text-[10px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">Obiettivi</p>
         </div>
         <div>
-          <p className="text-sm font-bold text-[var(--success)]">{stats.completed}</p>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Completati</p>
+          <p className="tnum text-sm font-bold text-[var(--success)]">{stats.completed}</p>
+          <p className="text-[10px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">Completati</p>
         </div>
         <div>
-          <p className="text-sm font-bold text-gray-700">{stats.matches}</p>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Match</p>
+          <p className="text-sm font-bold text-[var(--foreground)]">{stats.matches}</p>
+          <p className="text-[10px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">Match</p>
         </div>
         <div>
-          <p className="text-sm font-bold text-[var(--club-red)]">{stats.wins}</p>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Vittorie</p>
+          <p className="tnum text-sm font-bold text-[var(--cat-agonismo)]">{stats.wins}</p>
+          <p className="text-[10px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">Vittorie</p>
         </div>
       </div>
     </div>
@@ -588,59 +589,86 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
 // Club Overview Panel
 const IT_MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 
+/* ═════════════════════════════════════════════════════════════════════════
+   Panoramica del club.
+
+   Era un pannello blu notte con un gradiente e quattro pastelli (viola, rosa,
+   ciano, giallo) scritti a mano: restava scuro anche a tema chiaro, quindi
+   galleggiava sopra la pagina come un pezzo di un'altra applicazione, e a
+   tema scuro spariva dentro il fondo.
+
+   Ora e' una card come tutte le altre e i suoi colori escono dalla palette,
+   quindi segue il tema da sola. E' anche lo stesso linguaggio del riepilogo
+   sul telefono — pastiglia dell'icona, numero grande, etichetta maiuscoletta
+   — cosi' le due schermate si leggono allo stesso modo.
+   ═════════════════════════════════════════════════════════════════════════ */
+
 function ClubOverview({ stats }: { stats: ClubStats | null }) {
   const now = new Date();
   const monthLabel = `${IT_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
 
-  return (
-    <div className="relative overflow-hidden rounded-3xl mb-6 px-7 py-6 text-white shadow-[var(--shadow-md)]"
-      style={{ background: 'linear-gradient(135deg, #1B3A5C 0%, #122840 100%)' }}>
-      <div aria-hidden className="pointer-events-none absolute -right-20 -top-20 w-72 h-72 rounded-full bg-white/[0.03]" />
-      <div aria-hidden className="pointer-events-none absolute right-10 -bottom-24 w-56 h-56 rounded-full bg-white/[0.025]" />
+  const voci = [
+    {
+      icon: <UsersIcon />,
+      accent: 'var(--primary)',
+      label: 'Allievi attivi',
+      value: stats ? String(stats.studentsTotal) : '—',
+      delta: stats ? formatDelta(stats.studentsMonth) : '',
+    },
+    {
+      icon: <TargetIcon />,
+      accent: 'var(--cat-agonismo)',
+      label: 'Obiettivi totali',
+      value: stats ? String(stats.goalsTotal) : '—',
+      delta: stats ? formatDelta(stats.goalsMonth) : '',
+    },
+    {
+      icon: <RacketIcon />,
+      accent: 'var(--info)',
+      label: 'Match totali',
+      value: stats ? String(stats.matchesTotal) : '—',
+      delta: stats ? formatDelta(stats.matchesMonth) : '',
+    },
+    {
+      icon: <TrophyIcon />,
+      accent: 'var(--success)',
+      label: 'Win rate generale',
+      value: stats ? `${stats.winRate}%` : '—',
+      delta: stats ? formatDelta(stats.winRateDelta, '%') : '',
+    },
+  ];
 
-      <div className="relative flex items-start justify-between gap-4 mb-5">
+  return (
+    <div className="card mb-6 overflow-hidden">
+      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
         <div>
-          <p className="text-[11px] font-bold tracking-[0.18em] text-white/95">PANORAMICA CLUB</p>
-          <p className="text-[12px] text-white/55 mt-1">Dati aggregati · {monthLabel}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--subtle-foreground)]">
+            Panoramica club
+          </p>
+          <p className="mt-1 text-[12.5px] text-[var(--muted-foreground)]">
+            Dati aggregati · {monthLabel}
+          </p>
         </div>
-        <span className="text-[10px] font-bold tracking-[0.15em] text-emerald-400 border border-emerald-400/40 rounded-full px-2.5 py-1">
-          NUOVO
+        <span className="shrink-0 rounded-full border border-[var(--success)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--success)]">
+          Nuovo
         </span>
       </div>
 
-      <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-5">
-        <OverviewStat
-          icon={<UsersIcon />}
-          iconBg="rgba(167, 139, 250, 0.18)"
-          iconColor="#C4B5FD"
-          label="Allievi attivi"
-          value={stats ? String(stats.studentsTotal) : '—'}
-          delta={stats ? formatDelta(stats.studentsMonth) : ''}
-        />
-        <OverviewStat
-          icon={<TargetIcon />}
-          iconBg="rgba(244, 114, 182, 0.18)"
-          iconColor="#F9A8D4"
-          label="Obiettivi totali"
-          value={stats ? String(stats.goalsTotal) : '—'}
-          delta={stats ? formatDelta(stats.goalsMonth) : ''}
-        />
-        <OverviewStat
-          icon={<RacketIcon />}
-          iconBg="rgba(34, 211, 238, 0.18)"
-          iconColor="#67E8F9"
-          label="Match totali"
-          value={stats ? String(stats.matchesTotal) : '—'}
-          delta={stats ? formatDelta(stats.matchesMonth) : ''}
-        />
-        <OverviewStat
-          icon={<TrophyIcon />}
-          iconBg="rgba(250, 204, 21, 0.18)"
-          iconColor="#FDE68A"
-          label="Win rate generale"
-          value={stats ? `${stats.winRate}%` : '—'}
-          delta={stats ? formatDelta(stats.winRateDelta, '%') : ''}
-        />
+      {/* I separatori sono sui figli, non `divide-x`: cosi' la riga puo'
+          andare a capo sotto i 1024px senza lasciare un filetto sospeso. */}
+      <div className="grid grid-cols-2 border-t border-[var(--border-soft)] lg:grid-cols-4">
+        {voci.map((v, i) => (
+          <OverviewStat
+            key={v.label}
+            {...v}
+            className={cn(
+              i % 2 === 1 && 'border-l border-[var(--border-soft)]',
+              i >= 2 && 'border-t border-[var(--border-soft)]',
+              'lg:border-t-0',
+              i > 0 && 'lg:border-l'
+            )}
+          />
+        ))}
       </div>
     </div>
   );
@@ -653,21 +681,47 @@ function formatDelta(n: number, suffix = '') {
 }
 
 function OverviewStat({
-  icon, iconBg, iconColor, label, value, delta,
-}: { icon: React.ReactNode; iconBg: string; iconColor: string; label: string; value: string; delta: string }) {
+  icon, accent, label, value, delta, className,
+}: {
+  icon: React.ReactNode;
+  accent: string;
+  label: string;
+  value: string;
+  delta: string;
+  className?: string;
+}) {
   const isPositive = delta.startsWith('↑');
   const isNeutral = delta.startsWith('±');
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-          style={{ background: iconBg, color: iconColor }}>
+    <div className={cn('px-6 py-5', className)}>
+      <div className="mb-2.5 flex items-center gap-2">
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)]"
+          style={{
+            background: `color-mix(in srgb, ${accent} 12%, transparent)`,
+            color: accent,
+          }}
+          aria-hidden
+        >
           {icon}
         </span>
-        <span className="text-[10.5px] font-semibold tracking-[0.14em] text-white/70 uppercase">{label}</span>
+        <span className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--subtle-foreground)]">
+          {label}
+        </span>
       </div>
-      <p className="text-[32px] leading-none font-bold tracking-[-0.02em] mb-2">{value}</p>
-      <p className={`text-[12px] font-medium ${isPositive ? 'text-emerald-400' : isNeutral ? 'text-white/50' : 'text-rose-400'}`}>
+      <p className="tnum mb-1.5 text-[32px] font-bold leading-none tracking-[-0.03em] text-[var(--foreground)]">
+        {value}
+      </p>
+      <p
+        className="text-[12px] font-medium"
+        style={{
+          color: isPositive
+            ? 'var(--success)'
+            : isNeutral
+              ? 'var(--subtle-foreground)'
+              : 'var(--destructive)',
+        }}
+      >
         {delta}
       </p>
     </div>

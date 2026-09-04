@@ -126,41 +126,48 @@
 }
 
 .dark {
+  /* CONTRASTI MISURATI, non scelti a occhio.
+     Prima la card (#18181A) stava a dL* 1.94 dallo sfondo (#141416): sotto la
+     soglia in cui l'occhio distingue due grigi, quindi le card non avevano
+     ne' stacco ne' bordo e la pagina sembrava una macchia sola. Ora lo
+     scalino e' dL* 5.74, i bordi sono a dL* 12 e 21, e ogni testo sta sopra
+     4.5:1 sulla propria superficie (il primario e' stato schiarito apposta:
+     sulla card piu' chiara sarebbe sceso a 4.48:1). */
   color-scheme: dark;
 
-  --background: #141416;
-  --background-alt: #0E0E10;
-  --foreground: #FFFFFF;
-  --card: #18181A;
-  --card-foreground: #FFFFFF;
-  --sunken: #101012;
-  --popover: #1C1C1F;
-  --popover-foreground: #FFFFFF;
+  --background: #101013;
+  --background-alt: #0A0A0D;
+  --foreground: #F2F3F5;
+  --card: #1C1C22;
+  --card-foreground: #F2F3F5;
+  --sunken: #16161A;
+  --popover: #232329;
+  --popover-foreground: #F2F3F5;
   --overlay: rgba(0, 0, 0, 0.62);
 
-  --primary: #5479F5;
+  --primary: #6D8DF7;
   --primary-foreground: #FFFFFF;
-  --primary-hover: #6A8AF7;
-  --primary-active: #7E9AF9;
-  --primary-soft: rgba(84, 121, 245, 0.16);
-  --primary-soft-hover: rgba(84, 121, 245, 0.26);
-  --primary-border: rgba(84, 121, 245, 0.38);
+  --primary-hover: #8AA3F9;
+  --primary-active: #A3B6FB;
+  --primary-soft: rgba(109, 141, 247, 0.18);
+  --primary-soft-hover: rgba(109, 141, 247, 0.28);
+  --primary-border: rgba(109, 141, 247, 0.42);
 
-  --secondary: #212124;
-  --secondary-foreground: #FFFFFF;
-  --secondary-hover: #2A2A2E;
-  --muted: #1E1E21;
-  --muted-foreground: #9A9EA8;
-  --subtle-foreground: #71757A;
-  --accent: #1B1D24;
-  --accent-foreground: #5479F5;
+  --secondary: #2A2A32;
+  --secondary-foreground: #F2F3F5;
+  --secondary-hover: #33333C;
+  --muted: #24242B;
+  --muted-foreground: #A8ADB8;
+  --subtle-foreground: #878D99;
+  --accent: #212430;
+  --accent-foreground: #6D8DF7;
 
-  --border: #26262A;
-  --border-soft: #1F1F23;
-  --border-strong: #35353B;
-  --input: #26262A;
-  --input-bg: #1C1C1F;
-  --ring: #5479F5;
+  --border: #35353F;
+  --border-soft: #2B2B33;
+  --border-strong: #4A4A56;
+  --input: #35353F;
+  --input-bg: #232329;
+  --ring: #6D8DF7;
 
   --destructive: #F5566B;
   --destructive-foreground: #FFFFFF;
@@ -177,8 +184,8 @@
 
   --cat-tecnica: #F5686D;
   --cat-tecnica-soft: rgba(245, 104, 109, 0.16);
-  --cat-tattica: #5479F5;
-  --cat-tattica-soft: rgba(84, 121, 245, 0.16);
+  --cat-tattica: #6D8DF7;
+  --cat-tattica-soft: rgba(109, 141, 247, 0.18);
   --cat-fisico: #34D3A6;
   --cat-fisico-soft: rgba(52, 211, 166, 0.16);
   --cat-mente: #A48CFF;
@@ -188,12 +195,12 @@
 
   --status-planned: #9A9EA8;
   --status-planned-soft: rgba(154, 158, 168, 0.14);
-  --status-progress: #5479F5;
-  --status-progress-soft: rgba(84, 121, 245, 0.16);
+  --status-progress: #6D8DF7;
+  --status-progress-soft: rgba(109, 141, 247, 0.18);
   --status-completed: #34D3A6;
   --status-completed-soft: rgba(52, 211, 166, 0.16);
 
-  --chart-1: #5479F5;
+  --chart-1: #6D8DF7;
   --chart-2: #34D3A6;
   --chart-3: #4FC0F5;
   --chart-4: #F0B23C;
@@ -204,7 +211,7 @@
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.50), 0 2px 4px rgba(0, 0, 0, 0.30);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.58), 0 4px 10px rgba(0, 0, 0, 0.35);
   --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.66), 0 8px 18px rgba(0, 0, 0, 0.40);
-  --shadow-primary: 0 6px 20px rgba(84, 121, 245, 0.36);
+  --shadow-primary: 0 6px 20px rgba(109, 141, 247, 0.36);
   --shadow-drag: 0 18px 40px rgba(0, 0, 0, 0.60), 0 4px 10px rgba(0, 0, 0, 0.40);
 
   --club-blue-dark: #7E9AF9;
