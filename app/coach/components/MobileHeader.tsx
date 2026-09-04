@@ -9,7 +9,14 @@ interface Props {
 export function MobileHeader({ onLogout }: Props) {
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80">
+      {/* `viewportFit: cover` + barra di stato traslucida (layout.tsx) fanno
+          arrivare il contenuto fin sotto l'orologio di sistema. Il rientro in
+          alto lo mette la barra, primo elemento della pagina, con la stessa
+          `--safe-top` che usa l'header condiviso. */}
+      <header
+        className="sticky top-0 z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80"
+        style={{ paddingTop: 'var(--safe-top)' }}
+      >
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <Image

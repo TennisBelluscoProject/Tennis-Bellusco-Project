@@ -639,7 +639,20 @@ function MobilePanel({ width, children }: { width: number; children: ReactNode }
   return (
     <motion.div
       layoutScroll
-      style={{ width }}
+      style={{
+        width,
+        // Il nastro e' largo tre schermi e viene promosso a livello proprio per
+        // lo scorrimento (willChange sul genitore). Un solo pannello pero' e'
+        // visibile alla volta: `content-visibility: auto` fa saltare al browser
+        // il disegno e il layout dei pannelli fuori campo, cosi' il livello da
+        // comporre a ogni fotogramma del gesto resta grande quanto una schermata
+        // invece che tre. Le due misure del box sono esplicite (`width` e
+        // `h-full`), quindi il pannello non collassa mentre e' saltato e il
+        // nastro tiene la sua larghezza. `contain-intrinsic-size` da' comunque
+        // al browser la stima giusta per l'altezza del contenuto.
+        contentVisibility: 'auto',
+        containIntrinsicSize: `${width}px 100vh`,
+      }}
       className="shrink-0 h-full overflow-y-auto overscroll-contain scrollbar-hidden pb-24"
     >
       {children}

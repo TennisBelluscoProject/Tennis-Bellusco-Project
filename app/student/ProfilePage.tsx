@@ -27,7 +27,10 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <header className="sticky top-0 z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80">
+      <header
+        className="sticky top-0 z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80"
+        style={{ paddingTop: 'var(--safe-top)' }}
+      >
         <div className="px-4 py-3 flex items-center justify-between">
           <button
             onClick={onBack}

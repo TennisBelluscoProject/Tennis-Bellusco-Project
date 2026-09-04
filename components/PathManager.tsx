@@ -26,9 +26,10 @@ interface Props {
 
 export function PathManager({ coachId }: Props) {
   const isMobile = useIsMobile();
-  // Su mobile la dashboard maestro ha una BottomNav fissa: lasciamo spazio in
-  // fondo cosi' il footer dell'editor e la coda della lista non ci finiscano sotto.
-  const mobilePad = isMobile ? 'pb-[calc(4.5rem+env(safe-area-inset-bottom))]' : '';
+  // Su mobile la BottomNav della dashboard maestro sta ora nel flusso (occupa
+  // la sua riga in fondo alla shell), quindi non serve piu' compensarne
+  // l'altezza: basta un filo di respiro sotto l'ultima riga della lista.
+  const mobilePad = isMobile ? 'pb-4' : '';
   const [paths, setPaths] = useState<Path[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'list' | 'editor'>('list');

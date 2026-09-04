@@ -17,8 +17,15 @@ export function BottomNav({ active, onChange, pendingCount }: Props) {
     { id: 'richieste', label: 'Richieste', icon: <IconUserPlus /> },
   ];
   return (
+    // In FLUSSO, non `fixed`. Da `fixed` la barra si ancorava al viewport di
+    // layout (quello grande), mentre la shell e' alta `100dvh` (il viewport
+    // visibile, senza la barra retrattile del browser): la nav finiva nascosta
+    // dietro la barra di sistema e sotto al contenuto si vedeva una striscia di
+    // sfondo che spariva scorrendo, quando la barra del browser si ritraeva e i
+    // due viewport tornavano a coincidere. Da ultimo figlio della colonna, la
+    // nav sta sempre in fondo alla shell e il rientro di sistema lo mette lei.
     <nav
-      className="fixed bottom-0 inset-x-0 z-30 bg-white/98 backdrop-blur-lg border-t border-gray-100"
+      className="shrink-0 bg-white/98 backdrop-blur-lg border-t border-gray-100"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-center justify-around px-1 pt-2 pb-1.5">
