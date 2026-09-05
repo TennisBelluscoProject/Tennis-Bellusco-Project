@@ -684,18 +684,20 @@ export function PlayerView({
     </div>
   );
 
-  const addGoalButton = (
-    <div className="hidden sm:flex justify-end mb-4">
-      <Button
-        icon={<Plus size={15} strokeWidth={2.6} />}
-        onClick={() => {
-          setEditingGoal(null);
-          setGoalFormOpen(true);
-        }}
-      >
-        Nuovo obiettivo
-      </Button>
-    </div>
+  // Va DENTRO la bacheca, in fondo alla riga dei filtri (vedi il prop
+  // `toolbarAction` di KanbanBoard). Prima stava qui sopra, in una riga tutta
+  // sua allineata a destra, e il menu delle categorie restava spaiato sotto a
+  // sinistra: due comandi della stessa barra su due piani diversi.
+  const newGoalButton = (
+    <Button
+      icon={<Plus size={15} strokeWidth={2.6} />}
+      onClick={() => {
+        setEditingGoal(null);
+        setGoalFormOpen(true);
+      }}
+    >
+      Nuovo obiettivo
+    </Button>
   );
 
   const goalsContent =
@@ -733,6 +735,7 @@ export function PlayerView({
         onDelete={handleDeleteGoal}
         onStatusChange={handleGoalStatusChange}
         onProgressChange={handleGoalProgressChange}
+        toolbarAction={newGoalButton}
       />
     );
 
@@ -927,7 +930,6 @@ export function PlayerView({
       {heroCard}
       {tabsBar}
       <div className="mt-5">
-        {addGoalButton}
         {loading ? (
           <div className="flex justify-center py-12">
             <Spinner />

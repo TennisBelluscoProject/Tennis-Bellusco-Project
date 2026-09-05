@@ -251,7 +251,43 @@
      ovunque senza condizioni. */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Altezza del guscio a tutto schermo (vedi `body` piu' sotto e i guscî di
+     CoachMobileDashboard / StudentDashboard).
+
+     IN SCHEDA la riscrive lo script in <head> con la misura vera del
+     rettangolo visibile (lib/viewport-script.ts): li' la barra del browser si
+     ritrae e nessuna unita' CSS segue bene quel movimento. Questo valore e' il
+     ripiego per quando quello script non gira — `svh` e' il viewport con le
+     barre aperte, l'unico statico che non sfora. */
+  --app-h: 100svh;
 }
+
+/* APP INSTALLATA SULLA SCHERMATA HOME: qui il valore giusto e' una unita' CSS,
+   e lo script NON scrive niente (vedi lib/viewport-script.ts).
+
+   In standalone non c'e' nessuna barra retrattile: il viewport e' lo schermo,
+   punto. Misurarlo in JavaScript era il difetto, non la cura — al lancio, prima
+   che iOS applichi `viewport-fit=cover` e la barra di stato traslucida, tutte
+   le misure disponibili riportano una quarantina di punti in meno dello schermo
+   vero. Il guscio nasceva percio' piu' corto e sotto alla barra di navigazione
+   restava una striscia di sfondo, che si chiudeva solo al primo `resize` — un
+   evento che iOS in quel passaggio non manda. Una unita' CSS invece il motore
+   la ri-risolve da sola quando il rettangolo cambia, senza aspettare eventi.
+
+   `vh` e non `dvh`: in standalone valgono lo stesso (non c'e' niente che si
+   ritrae) e `vh` lo capiscono anche i telefoni vecchi, dove `dvh` sarebbe una
+   dichiarazione non valida e l'altezza sparirebbe del tutto.
+
+   Due selettori perche' due segnali: il media query e' quello standard,
+   l'attributo lo mette lo script leggendo anche `navigator.standalone` — su
+   iOS il media query ha tardato anni ad arrivare e su qualche versione ancora
+   non risponde. */
+@media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) {
+  :root { --app-h: 100vh; }
+}
+
+html[data-standalone] { --app-h: 100vh; }
 
 @media (min-width: 640px) {
   :root { --page-gutter: 1.5rem; }
@@ -339,11 +375,13 @@
    browser: il vuoto in fondo si chiudeva e non tornava piu'. Il difetto
    descritto qui sopra era rimpicciolito, non tolto.
 
-   `--app-h` e' l'altezza VERA della parte visibile, misurata con
-   `visualViewport` da uno script in <head> prima della prima pittura (vedi
-   lib/viewport-script.ts). Non e' mai piu' alta dello schermo, quindi il
-   documento non scorre da solo; e non e' nemmeno piu' CORTA, quindi non
+   `--app-h` e' l'altezza VERA della parte visibile. In scheda la misura uno
+   script in <head> con `visualViewport`, prima della prima pittura (vedi
+   lib/viewport-script.ts): non e' mai piu' alta dello schermo, quindi il
+   documento non scorre da solo, e non e' nemmeno piu' CORTA, quindi non
    avanza la striscia fissa che lasciava `svh` quando le barre sono ritirate.
+   Da app installata invece non si misura niente ed e' una unita' CSS: la
+   definizione sta piu' su, insieme al perche'.
 
    `svh` resta come ripiego per il caso in cui lo script non giri: e' il
    viewport con le barre aperte, l'unico valore statico che non sfora.

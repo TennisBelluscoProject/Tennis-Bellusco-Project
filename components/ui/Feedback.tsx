@@ -206,10 +206,22 @@ export function EmptyState({ icon, title, message, action, compact }: EmptyState
         compact ? 'py-10' : 'py-16'
       )}
     >
+      {/* L'ICONA E BASTA, senza il riquadro dietro.
+
+          Prima stava dentro un quadrato grigio arrotondato di 64px. Quel
+          quadrato non diceva niente: non e' un pulsante, non e' un avatar, non
+          si puo' premere — era solo una macchia che rubava l'occhio all'icona
+          che doveva contenere, e che nei molti stati vuoti dell'app si
+          ripeteva identica come un francobollo appiccicato sopra ogni pagina.
+
+          Resta il segno che conta: il tratto dell'icona, nel grigio dei testi
+          secondari, cosi' che icona, titolo e messaggio si leggano come una
+          cosa sola invece che come un oggetto piu' due righe. Il respiro che
+          dava il riquadro lo da' adesso il margine. */}
       <div
         className={cn(
-          'rounded-[var(--radius-xl)] bg-muted text-subtle-foreground flex items-center justify-center mb-4',
-          compact ? 'w-12 h-12' : 'w-16 h-16'
+          'flex items-center justify-center text-subtle-foreground',
+          compact ? 'mb-3' : 'mb-4'
         )}
       >
         {icon}

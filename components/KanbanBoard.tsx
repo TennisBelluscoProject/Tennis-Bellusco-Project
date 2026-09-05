@@ -100,6 +100,18 @@ export interface KanbanBoardProps {
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: GoalStatus) => void;
   onProgressChange: (id: string, progress: number) => void;
+  /**
+   * Azione principale della sezione (su desktop: "Nuovo obiettivo").
+   *
+   * Arriva da fuori invece di stare qui perche' e' chi ci mette la bacheca a
+   * sapere cosa vuol dire "nuovo" — ma va DISEGNATA qui, in fondo alla riga
+   * dei filtri. Messa sopra dal chiamante si prendeva una riga tutta sua e
+   * lasciava il menu delle categorie spaiato sotto, allineato a sinistra: due
+   * comandi della stessa barra su due piani diversi.
+   *
+   * Su telefono non si usa: li' l'azione e' il pulsante tondo che galleggia.
+   */
+  toolbarAction?: ReactNode;
 }
 
 export function KanbanBoard({
@@ -108,6 +120,7 @@ export function KanbanBoard({
   onDelete,
   onStatusChange,
   onProgressChange,
+  toolbarAction,
 }: KanbanBoardProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -204,6 +217,7 @@ export function KanbanBoard({
           categoryFilter={categoryFilter}
           onCategoryFilter={setCategoryFilter}
           onMove={move}
+          toolbarAction={toolbarAction}
           {...shared}
         />
       )}
@@ -339,10 +353,12 @@ function DesktopBoard({
   categoryFilter,
   onCategoryFilter,
   onMove,
+  toolbarAction,
 }: BoardShared & {
   categoryFilter: GoalCategory | '';
   onCategoryFilter: (c: GoalCategory | '') => void;
   onMove: (goal: Goal, to: GoalStatus) => void;
+  toolbarAction?: ReactNode;
 }) {
   const [dragged, setDragged] = useState<Goal | null>(null);
 
@@ -384,6 +400,9 @@ function DesktopBoard({
       onDragEnd={handleEnd}
       onDragCancel={() => setDragged(null)}
     >
+      {/* Una sola riga di comandi: filtro a sinistra, azione a destra.
+          `ml-auto` invece di `justify-between` perche' in mezzo ci puo' stare
+          il conteggio, e deve restare attaccato al filtro che lo produce. */}
       <div className="mb-4 flex items-center gap-3">
         <Select
           value={categoryFilter}
@@ -396,6 +415,7 @@ function DesktopBoard({
             {all.length} obiettivi
           </span>
         )}
+        {toolbarAction && <div className="ml-auto shrink-0">{toolbarAction}</div>}
       </div>
 
       <div className="flex gap-4 flex-1 min-h-0">

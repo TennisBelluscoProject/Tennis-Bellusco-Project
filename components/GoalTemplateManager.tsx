@@ -23,6 +23,22 @@ import {
 type CategoryFilter = '' | GoalCategory;
 type LevelFilter = '' | PlayerLevel;
 
+/**
+ * Quanti template si disegnano per volta.
+ *
+ * Il catalogo e' l'unica lista dell'app che cresce senza un tetto naturale —
+ * un template per ogni obiettivo di ogni livello — e finiva a schermo TUTTO
+ * INSIEME: centinaia di card, ognuna con la sua animazione di comparsa e i
+ * suoi due pulsanti. Aprire "Catalogo" costava percio' un singolo lungo
+ * blocco di layout, e il tocco sulla voce della barra sembrava non rispondere.
+ *
+ * La lettura dal database resta una sola, completa: e' quella che permette a
+ * ricerca e filtri di pescare in TUTTO il catalogo e non solo in cio' che si
+ * vede. A pesare non erano i dati, erano i nodi. Quindi si impagina il
+ * disegno, non la query.
+ */
+const PAGE = 20;
+
 // Hook: state + handlers
 
 export function useGoalTemplates(coachId: string) {
@@ -37,6 +53,9 @@ export function useGoalTemplates(coachId: string) {
   const [confirmDelete, setConfirmDelete] = useState<GoalTemplate | null>(null);
 
   const [reloadTick, setReloadTick] = useState(0);
+
+  /** Quante card sono attualmente disegnate. Cresce con "Carica altri". */
+  const [visibleCount, setVisibleCount] = useState(PAGE);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +85,16 @@ export function useGoalTemplates(coachId: string) {
     });
   }, [templates, categoryFilter, levelFilter, search]);
 
+  // Cambiare filtro o ricerca vuol dire un'altra lista: si riparte dalla prima
+  // pagina, altrimenti una ricerca fatta dopo aver premuto "Carica altri" un
+  // paio di volte nascerebbe gia' lunga.
+  useEffect(() => {
+    setVisibleCount(PAGE);
+  }, [categoryFilter, levelFilter, search, reloadTick]);
+
+  const paged = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = filtered.length > paged.length;
+
   const handleSave = async (data: Partial<GoalTemplate>) => {
     if (editing) {
       await templateRepo.update(editing.id, data);
@@ -83,6 +112,10 @@ export function useGoalTemplates(coachId: string) {
   return {
     templates,
     filtered,
+    /** La fetta di `filtered` da disegnare adesso. */
+    paged,
+    hasMore,
+    showMore: () => setVisibleCount((n) => n + PAGE),
     loading,
     categoryFilter,
     setCategoryFilter,
@@ -232,26 +265,45 @@ export function GoalTemplatesList({ ctx, isMobile }: ListProps) {
           }
         />
       ) : (
-        <div
-          className={
-            isMobile
-              ? 'flex flex-col gap-2.5'
-              : 'grid grid-cols-2 lg:grid-cols-3 gap-3 stagger-children'
-          }
-        >
-          {ctx.filtered.map((t) => (
-            <CoachTemplateCard
-              key={t.id}
-              template={t}
-              compact={isMobile}
-              onEdit={() => {
-                ctx.setEditing(t);
-                ctx.setFormOpen(true);
-              }}
-              onDelete={() => ctx.setConfirmDelete(t)}
-            />
-          ))}
-        </div>
+        <>
+          <div
+            className={
+              isMobile
+                ? 'flex flex-col gap-2.5'
+                : 'grid grid-cols-2 lg:grid-cols-3 gap-3 stagger-children'
+            }
+          >
+            {ctx.paged.map((t) => (
+              <CoachTemplateCard
+                key={t.id}
+                template={t}
+                compact={isMobile}
+                onEdit={() => {
+                  ctx.setEditing(t);
+                  ctx.setFormOpen(true);
+                }}
+                onDelete={() => ctx.setConfirmDelete(t)}
+              />
+            ))}
+          </div>
+
+          {/* Quanto si sta vedendo e quanto resta: senza questa riga la lista
+              tagliata a venti sembrerebbe la lista intera. Compare solo quando
+              c'e' davvero qualcosa fuori dalla prima pagina — su un catalogo
+              corto sarebbe rumore. */}
+          {ctx.filtered.length > PAGE && (
+            <div className="flex flex-col items-center gap-2 pt-5">
+              <p className="text-[12px] text-gray-500 tnum">
+                {ctx.paged.length} di {ctx.filtered.length}
+              </p>
+              {ctx.hasMore && (
+                <Button variant="secondary" onClick={ctx.showMore}>
+                  Carica altri ({Math.min(PAGE, ctx.filtered.length - ctx.paged.length)})
+                </Button>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {/* FAB */}
