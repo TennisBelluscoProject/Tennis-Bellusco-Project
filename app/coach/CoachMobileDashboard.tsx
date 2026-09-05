@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConfirmDialog } from '@/components/UI';
@@ -18,6 +18,28 @@ import { groupRepo } from '@/lib/repositories';
 import { PlayerView } from '../student/PlayerView';
 
 const DISMISSED_KEY = 'tcb-dismissed-notifs-v1';
+
+/**
+ * Le notifiche gia' scartate, rilette dal disco del browser.
+ *
+ * Si controlla che sia davvero un elenco di stringhe: se il valore fosse
+ * rimasto a meta' (scrittura interrotta, quota esaurita) `JSON.parse` non
+ * sempre fallisce, e un oggetto qualunque dato in pasto a `new Set()`
+ * produrrebbe un insieme di caratteri invece che di identificativi — con
+ * l'effetto di far ricomparire tutto senza che nessuno se ne accorga.
+ */
+function leggiScartate(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return new Set();
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((v): v is string => typeof v === 'string'));
+  } catch {
+    return new Set();
+  }
+}
 
 export function CoachMobileDashboard() {
   const { user, signOut } = useAuth();
@@ -38,15 +60,7 @@ export function CoachMobileDashboard() {
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
   const [notifFilter, setNotifFilter] = useState<'all' | 'goal' | 'match'>('all');
 
-  const [dismissed, setDismissed] = useState<Set<string>>(() => {
-    if (typeof window === 'undefined') return new Set();
-    try {
-      const raw = localStorage.getItem(DISMISSED_KEY);
-      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-    } catch {
-      return new Set();
-    }
-  });
+  const [dismissed, setDismissed] = useState<Set<string>>(leggiScartate);
 
   const [selectedStudent, setSelectedStudent] = useState<Profile | null>(null);
   const [confirmReject, setConfirmReject] = useState<Profile | null>(null);
@@ -54,12 +68,41 @@ export function CoachMobileDashboard() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
 
-  const persistDismissed = (s: Set<string>) => {
-    setDismissed(s);
+  /**
+   * L'elenco vero delle notifiche scartate, sempre aggiornato.
+   *
+   * Serve un ref accanto allo stato perche' lo stato, dentro un gestore di
+   * eventi, e' quello del render in cui il gestore e' stato creato. Vedi
+   * `scarta` qui sotto per il difetto che questo evita.
+   */
+  const scartateRef = useRef(dismissed);
+
+  /**
+   * Segna come scartate una o piu' notifiche.
+   *
+   * PRIMA SI PERDEVANO DELLE CANCELLAZIONI. Il codice era
+   * `persistDismissed(new Set([...dismissed, id]))`: l'insieme di partenza
+   * era quello catturato al render, non quello corrente. Scartando due
+   * notifiche di seguito abbastanza in fretta — cioe' prima che React avesse
+   * ridisegnato — la seconda partiva dall'elenco di prima della prima, e
+   * quella di mezzo spariva dall'insieme. Il guaio e' che l'insieme
+   * incompleto veniva anche SCRITTO su disco, quindi la notifica tornava a
+   * galla al caricamento successivo e ci restava.
+   *
+   * Partendo dal ref, ogni chiamata vede sempre l'elenco completo, anche se
+   * arrivano tutte nello stesso istante.
+   */
+  const scarta = useCallback((ids: string[]) => {
+    const next = new Set(scartateRef.current);
+    for (const id of ids) next.add(id);
+    scartateRef.current = next;
+    setDismissed(next);
     try {
-      localStorage.setItem(DISMISSED_KEY, JSON.stringify([...s]));
-    } catch {}
-  };
+      localStorage.setItem(DISMISSED_KEY, JSON.stringify([...next]));
+    } catch {
+      /* spazio esaurito o modalita' privata: vale per questa sessione */
+    }
+  }, []);
 
   const [reloadTick, setReloadTick] = useState(0);
   const fetchAll = useCallback(() => setReloadTick((t) => t + 1), []);
@@ -240,12 +283,12 @@ export function CoachMobileDashboard() {
             notifFilter={notifFilter}
             onNotifFilterChange={setNotifFilter}
             dismissed={dismissed}
-            onDismissOne={(id) => persistDismissed(new Set([...dismissed, id]))}
+            onDismissOne={(id) => scarta([id])}
             onDismissAll={() => {
               const ids: string[] = [];
               for (const g of recentGoals) if (g.status === 'completed' && g.completed_at) ids.push(`goal:${g.id}`);
               for (const m of allMatches) ids.push(`match:${m.id}`);
-              persistDismissed(new Set([...dismissed, ...ids]));
+              scarta(ids);
             }}
           />
         )}
