@@ -6,6 +6,7 @@ import { Spinner, EmptyState } from '@/components/UI';
 import type { Goal, MatchResultRow, Profile } from '@/lib/database.types';
 import { isActiveToday, formatDateLong } from '@/lib/utils';
 import { FilterPill } from '../components/Pills';
+import { AnimatedList } from '@/components/ui/AnimatedList';
 import { NotificationCard, type Notif } from '../components/NotificationCard';
 
 interface Props {
@@ -62,7 +63,7 @@ export function HomeTab({
           id: `goal:${g.id}`,
           kind: 'goal',
           studentName,
-          title: 'OBIETTIVO COMPLETATO',
+          title: 'Obiettivo completato',
           subtitle: g.title,
           date: new Date(g.completed_at),
         });
@@ -77,7 +78,7 @@ export function HomeTab({
         id: `match:${m.id}`,
         kind: 'match',
         studentName,
-        title: 'MATCH AGGIUNTO',
+        title: 'Nuovo match',
         subtitle: `${opponent}${score} (${outcome})`,
         date: new Date(m.created_at),
       });
@@ -161,18 +162,27 @@ export function HomeTab({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-4">
-        {loading ? (
-          <div className="flex justify-center py-12"><Spinner /></div>
-        ) : filteredNotifs.length === 0 ? (
-          <EmptyState icon={<BellOff size={40} strokeWidth={1.5} />} title="Nessuna notifica" message="Le attività degli allievi appariranno qui." />
-        ) : (
-          <div className="flex flex-col gap-2.5">
-            {filteredNotifs.map((n) => (
-              <NotificationCard key={n.id} notif={n} onDismiss={() => onDismissOne(n.id)} />
-            ))}
-          </div>
-        )}
+      <div className="relative min-h-0 flex-1">
+        <div className="scrollbar-hidden h-full overflow-y-auto px-4 pt-1 pb-6">
+          {loading ? (
+            <div className="flex justify-center py-12"><Spinner /></div>
+          ) : filteredNotifs.length === 0 ? (
+            <EmptyState icon={<BellOff size={40} strokeWidth={1.5} />} title="Nessuna notifica" message="Le attività degli allievi appariranno qui." />
+          ) : (
+            <AnimatedList>
+              {filteredNotifs.map((n) => (
+                <NotificationCard key={n.id} notif={n} onDismiss={() => onDismissOne(n.id)} />
+              ))}
+            </AnimatedList>
+          )}
+        </div>
+
+        {/* La sfumatura in fondo dice che l'elenco continua: senza, l'ultima
+            card visibile sembra l'ultima e basta. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[var(--background)] to-transparent"
+        />
       </div>
     </div>
   );
