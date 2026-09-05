@@ -402,7 +402,7 @@ function CoachDesktopDashboard() {
               </div>
             ) : (
               <div className="h-[70vh]">
-                <KidsPathCatalog onOpenStudent={setSelectedStudent} />
+                <KidsPathCatalog coachId={user?.id ?? ''} />
               </div>
             )
           )}

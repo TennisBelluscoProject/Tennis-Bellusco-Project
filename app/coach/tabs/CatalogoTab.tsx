@@ -7,7 +7,6 @@ import { KidsPathCatalog } from '@/components/kids/KidsPathCatalog';
 import { SectionSwitcher } from '@/components/UI';
 import { KIDS_PATHS } from '@/lib/constants';
 import { KIDS_PROGRAMS } from '@/lib/kids/curriculum';
-import type { Profile } from '@/lib/database.types';
 
 type CatalogView = 'obiettivi' | 'percorsi' | 'kids';
 
@@ -19,11 +18,9 @@ const VIEW_LABELS: Record<CatalogView, string> = {
 
 interface Props {
   coachId: string;
-  /** Apre la scheda di un allievo dalla lista progressi dei Percorsi Kids. */
-  onOpenStudent?: (student: Profile) => void;
 }
 
-export function CatalogoTab({ coachId, onOpenStudent }: Props) {
+export function CatalogoTab({ coachId }: Props) {
   const [view, setView] = useState<CatalogView>('obiettivi');
 
   const views: CatalogView[] = KIDS_PATHS
@@ -54,8 +51,11 @@ export function CatalogoTab({ coachId, onOpenStudent }: Props) {
             <PathManager coachId={coachId} />
           </div>
         ) : (
-          <div className="h-full px-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
-            <KidsPathCatalog onOpenStudent={onOpenStudent} />
+          // Niente rientro in fondo: la BottomNav sta NEL FLUSSO (e' l'ultima
+          // riga della colonna alta quanto il viewport), quindi compensarne
+          // l'altezza qui lasciava solo una fascia grigia sotto la mappa.
+          <div className="h-full px-4">
+            <KidsPathCatalog coachId={coachId} />
           </div>
         )}
       </div>

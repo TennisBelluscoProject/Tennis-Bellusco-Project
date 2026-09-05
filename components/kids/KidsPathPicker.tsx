@@ -27,6 +27,13 @@
  *   allievo: da qui il bollino, e il fatto che i non assegnati restino
  *   visibilmente spenti anche per lui.
  *
+ * LA SCHEDA — la fascia illustrata non e' decorazione: e' il gradiente VERO
+ * del mondo (worlds.ts), la stessa luce che si vede in cima alla mappa e la
+ * mascotte allo stadio cucciolo. Chi la guarda sta gia' vedendo un pezzo del
+ * posto in cui sta per entrare. La stessa grammatica la usa la card del
+ * catalogo maestro (KidsPathCatalog), cosi' le due schermate sembrano lo
+ * stesso prodotto.
+ *
  * Componente PRESENTAZIONALE: riceve lo stato, notifica le intenzioni.
  */
 
@@ -57,11 +64,11 @@ type Stato =
  */
 const DESCRIZIONI: Record<string, string> = {
   DELFINO:
-    'I primi passi: prendere confidenza con racchetta, palla e campo, imparare a mandarla di la\u0027 dalla rete e a giocare i primi scambi.',
+    "I primi passi: prendere confidenza con racchetta, palla e campo, imparare a mandarla di la' dalla rete e a giocare i primi scambi.",
   CERBIATTO:
     'Si alza il livello: colpire in movimento, le prime rotazioni, la risposta al servizio e le scelte tattiche vere.',
   COCCODRILLO:
-    'Il passo verso l\u0027agonismo: ritmo, anticipo e costruzione del punto, fino al campo regolamentare.',
+    "Il passo verso l'agonismo: ritmo, anticipo e costruzione del punto, fino al campo regolamentare.",
 };
 
 interface Props {
@@ -116,7 +123,7 @@ export function KidsPathPicker({
     // del traguardo) e sotto la quale un rientro in piu' sembrerebbe un
     // ritaglio sbagliato del fondale.
     <div
-      className="flex flex-col gap-3.5"
+      className="flex flex-col gap-4"
       style={{ paddingBottom: 'calc(1.5rem + var(--safe-bottom))' }}
     >
       {KIDS_LEVEL_ORDER.map((level, i) => {
@@ -135,10 +142,16 @@ export function KidsPathPicker({
         return (
           <article
             key={level}
-            className="rounded-[var(--radius-xl)] overflow-hidden bg-card"
+            className="group rounded-[var(--radius-2xl)] overflow-hidden bg-card transition-shadow duration-300"
             style={{
-              border: `1.5px solid ${stato === 'attivo' ? c.accent : 'var(--border)'}`,
-              boxShadow: stato === 'attivo' ? `0 6px 20px ${c.accent}26` : 'var(--shadow-xs)',
+              // Il percorso attivo e' l'unico con il bordo colorato e l'alone
+              // del suo mondo: gli altri due restano fogli neutri, cosi' la
+              // pagina ha un solo centro di gravita'.
+              border: `1.5px solid ${stato === 'attivo' ? `${c.accent}80` : 'var(--border-soft)'}`,
+              boxShadow:
+                stato === 'attivo'
+                  ? `0 14px 34px ${c.accent}26, var(--shadow-sm)`
+                  : 'var(--shadow-sm)',
             }}
           >
             <button
@@ -153,50 +166,99 @@ export function KidsPathPicker({
               <div
                 className="relative overflow-hidden"
                 style={{
-                  height: 116,
+                  height: 132,
                   background: `linear-gradient(118deg, ${world.gradient[1]}, ${world.gradient[4]})`,
                   filter: chiuso ? 'grayscale(0.85)' : undefined,
                 }}
               >
-                <Image
-                  src={`/percorsi/${program.slug}/cucciolo.png`}
-                  alt=""
-                  width={112}
-                  height={112}
-                  sizes="112px"
-                  className="absolute object-contain"
+                {/* Il sole del mondo, lo stesso che sta in cima alla mappa. */}
+                <span
+                  aria-hidden
+                  className="absolute pointer-events-none rounded-full"
                   style={{
-                    right: 12,
-                    bottom: -4,
-                    width: 104,
-                    height: 104,
-                    opacity: chiuso ? 0.5 : 1,
+                    right: -50,
+                    top: -66,
+                    width: 220,
+                    height: 220,
+                    background: `radial-gradient(circle, ${world.sunStart}8C 0%, ${world.sunStart}20 46%, transparent 72%)`,
+                  }}
+                />
+                {/* Orizzonte: un'ellisse chiara appena accennata sul fondo,
+                    che stacca la mascotte dal gradiente piatto. */}
+                <span
+                  aria-hidden
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: '-12%',
+                    right: '-12%',
+                    bottom: -74,
+                    height: 132,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.10)',
+                  }}
+                />
+                {/* Velo scuro in basso: tiene leggibile il testo su ogni mondo. */}
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 bottom-0 pointer-events-none"
+                  style={{
+                    height: 72,
+                    background: 'linear-gradient(to top, rgba(9,16,24,0.36), transparent)',
                   }}
                 />
 
-                <div className="absolute left-4 top-3.5 right-[120px]">
+                <Image
+                  src={`/percorsi/${program.slug}/cucciolo.png`}
+                  alt=""
+                  width={124}
+                  height={124}
+                  sizes="124px"
+                  className="absolute object-contain transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+                  style={{
+                    right: 10,
+                    bottom: -4,
+                    width: 116,
+                    height: 116,
+                    opacity: chiuso ? 0.5 : 1,
+                    filter: 'drop-shadow(0 8px 16px rgba(9,16,24,0.38))',
+                  }}
+                />
+
+                <div className="absolute left-4 top-3.5 right-[126px]">
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="text-[9.5px] font-extrabold uppercase tracking-[0.14em] text-white/75">
+                    <span className="text-[9.5px] font-extrabold uppercase tracking-[0.16em] text-white/70">
                       Percorso {i + 1}
                     </span>
                     {stato === 'attivo' && (
                       <span
-                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-[0.08em] text-white"
-                        style={{ background: c.accent }}
+                        className="inline-flex items-center px-1.5 py-0.5 rounded-[5px] text-[9px] font-extrabold uppercase tracking-[0.08em] text-white"
+                        style={{
+                          background: c.accent,
+                          boxShadow: `0 2px 8px ${c.accent}80`,
+                        }}
                       >
                         Attivo
                       </span>
                     )}
                     {stato === 'concluso' && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-[0.08em] text-white bg-white/25">
+                      <span
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-extrabold uppercase tracking-[0.08em] text-white"
+                        style={{
+                          background: 'rgba(255,255,255,0.22)',
+                          backdropFilter: 'blur(3px)',
+                        }}
+                      >
                         <Check size={9} strokeWidth={3.4} />
                         Concluso
                       </span>
                     )}
                   </span>
                   <h3
-                    className="text-[22px] font-extrabold leading-tight text-white mt-1"
-                    style={{ fontFamily: 'var(--font-display)', textShadow: '0 2px 8px rgba(9,16,24,0.3)' }}
+                    className="text-[23px] font-extrabold leading-tight text-white mt-1"
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      textShadow: '0 2px 10px rgba(9,16,24,0.38)',
+                    }}
                   >
                     {program.name}
                   </h3>
@@ -220,30 +282,39 @@ export function KidsPathPicker({
                 )}
               </div>
 
-              <div className="px-4 pt-3 pb-3.5">
+              <div className="px-4 pt-3.5 pb-4">
                 <p className="text-[12.5px] text-muted-foreground leading-relaxed">
                   {DESCRIZIONI[level]}
                 </p>
 
-                <div className="flex items-center justify-between gap-3 mt-3">
-                  <span className="text-[11px] font-semibold text-subtle-foreground">
-                    {passi} passi &middot; {program.stages.length} tappe
-                  </span>
+                {/* I numeri del percorso: due cifre grandi invece di una riga
+                    di testo minuto. E' l'unica misura che si puo' dare prima
+                    di entrare, quindi tanto vale che si legga da lontano. */}
+                <div className="flex items-center gap-4 mt-3.5">
+                  <Numero valore={passi} etichetta="passi" colore={chiuso ? undefined : c.accent} />
+                  <span aria-hidden className="w-px h-6 bg-[var(--border-soft)]" />
+                  <Numero
+                    valore={program.stages.length}
+                    etichetta="tappe"
+                    colore={chiuso ? undefined : c.accent}
+                  />
 
-                  {apribile ? (
-                    <span
-                      className="inline-flex items-center gap-1 text-[12.5px] font-bold shrink-0"
-                      style={{ color: c.accent }}
-                    >
-                      {stato === 'attivo' ? 'Continua' : 'Guarda'}
-                      <ArrowRight size={14} strokeWidth={2.8} />
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-[11.5px] text-subtle-foreground leading-snug shrink-0 text-right">
-                      <Lock size={12} strokeWidth={2.6} className="shrink-0" />
-                      {precedente ? `Si apre concludendo ${precedente}` : 'Non ancora disponibile'}
-                    </span>
-                  )}
+                  <span className="ml-auto shrink-0">
+                    {apribile ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-[12.5px] font-bold transition-transform duration-200 group-hover:translate-x-0.5"
+                        style={{ color: c.accent }}
+                      >
+                        {stato === 'attivo' ? 'Continua' : 'Guarda'}
+                        <ArrowRight size={14} strokeWidth={2.8} />
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-[11.5px] text-subtle-foreground leading-snug text-right">
+                        <Lock size={12} strokeWidth={2.6} className="shrink-0" />
+                        {precedente ? `Si apre concludendo ${precedente}` : 'Non ancora disponibile'}
+                      </span>
+                    )}
+                  </span>
                 </div>
               </div>
             </button>
@@ -251,9 +322,7 @@ export function KidsPathPicker({
             {/* Comandi del maestro: dentro la scheda del percorso su cui
                 agiscono, non in una barra separata sopra la mappa. */}
             {isCoach && (
-              <div
-                className="px-4 py-3 flex items-center gap-2 flex-wrap border-t border-border-soft bg-muted"
-              >
+              <div className="px-4 py-3 flex items-center gap-2 flex-wrap border-t border-border-soft bg-[var(--sunken)]">
                 {stato === 'attivo' ? (
                   <>
                     <span className="flex-1 min-w-[130px] text-[11.5px] text-muted-foreground leading-snug">
@@ -272,14 +341,14 @@ export function KidsPathPicker({
                 ) : (
                   <>
                     <span className="flex-1 min-w-[130px] text-[11.5px] text-subtle-foreground leading-snug">
-                      {stato === 'concluso' ? 'Gia\u0027 concluso' : 'Non assegnato'}
+                      {stato === 'concluso' ? "Gia' concluso" : 'Non assegnato'}
                     </span>
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => onActivate(level)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white transition-opacity disabled:opacity-50"
-                      style={{ background: c.accent }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] text-[12px] font-semibold text-white transition-opacity disabled:opacity-50"
+                      style={{ background: c.accent, boxShadow: `0 4px 12px ${c.accent}45` }}
                     >
                       <PlayCircle size={14} strokeWidth={2.4} />
                       {active ? 'Assegna questo' : 'Attiva'}
@@ -292,5 +361,30 @@ export function KidsPathPicker({
         );
       })}
     </div>
+  );
+}
+
+/** Una cifra grande con la sua etichetta sotto. */
+function Numero({
+  valore,
+  etichetta,
+  colore,
+}: {
+  valore: number;
+  etichetta: string;
+  colore?: string;
+}) {
+  return (
+    <span className="flex flex-col leading-none">
+      <b
+        className="text-[16px] font-extrabold tabular-nums tracking-[-0.02em]"
+        style={{ color: colore ?? 'var(--subtle-foreground)', fontFamily: 'var(--font-display)' }}
+      >
+        {valore}
+      </b>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-subtle-foreground mt-1">
+        {etichetta}
+      </span>
+    </span>
   );
 }

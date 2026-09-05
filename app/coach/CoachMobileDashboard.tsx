@@ -268,7 +268,7 @@ export function CoachMobileDashboard() {
         )}
 
         {tab === 'catalogo' && (
-          <CatalogoTab coachId={user?.id ?? ''} onOpenStudent={setSelectedStudent} />
+          <CatalogoTab coachId={user?.id ?? ''} />
         )}
 
         {tab === 'risultati' && (
