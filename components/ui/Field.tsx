@@ -349,16 +349,35 @@ export function Switch({
 export function Slider({
   value,
   onChange,
+  onCommit,
   color = 'var(--primary)',
   step = 5,
   label,
 }: {
   value: number;
   onChange: (v: number) => void;
+  /**
+   * Chiamata quando il gesto FINISCE: dito o mouse sollevati, tasto freccia
+   * rilasciato. Serve a distinguere il valore che si sta ancora scegliendo da
+   * quello scelto.
+   *
+   * `onChange` scatta a ogni scatto del cursore, quindi non e' il posto dove
+   * scrivere sul database: trascinando da zero a cento partirebbero venti
+   * richieste in fila, che possono anche tornare in ordine sparso. `onCommit`
+   * scatta una volta sola, alla fine del gesto — che e' anche il momento in
+   * cui, per chi guarda, "ha spostato il cursore".
+   */
+  onCommit?: (v: number) => void;
   color?: string;
   step?: number;
   label?: string;
 }) {
+  // `pointerup` arriva sull'input anche se il dito finisce lontano: durante il
+  // trascinamento il browser gli assegna la cattura del puntatore. `keyup`
+  // copre le frecce della tastiera.
+  const commit = (e: { currentTarget: HTMLInputElement }) =>
+    onCommit?.(Number(e.currentTarget.value));
+
   return (
     <div className="flex flex-col gap-2">
       {label && (
@@ -376,6 +395,8 @@ export function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        onPointerUp={onCommit ? commit : undefined}
+        onKeyUp={onCommit ? commit : undefined}
         className="tcb-slider w-full"
         style={{ ['--slider-color' as string]: color, ['--slider-pct' as string]: `${value}%` }}
       />

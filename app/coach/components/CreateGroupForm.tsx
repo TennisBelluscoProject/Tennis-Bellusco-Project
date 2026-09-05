@@ -116,9 +116,9 @@ function CreateGroupFormBody({
   return (
     <Modal open onClose={onClose} title="Nuovo gruppo">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-        <div className="bg-red-50/50 border border-red-100 rounded-xl px-4 py-3 flex items-start gap-2.5">
-          <Users size={16} strokeWidth={2.2} className="shrink-0 mt-0.5 text-[var(--club-red)]" />
-          <p className="text-[12px] text-gray-700 leading-relaxed">
+        <div className="alert alert-info">
+          <Users size={16} strokeWidth={2.2} className="shrink-0 mt-0.5" />
+          <p className="text-[12px] leading-relaxed">
             Un gruppo funziona come un allievo: potrai assegnargli obiettivi,
             percorsi e i 12 passi. Metti l&apos;orario nel nome, cos&igrave; lo
             riconosci al volo (es. <b>U12 Lun/Mer 17:00</b>).
@@ -135,7 +135,7 @@ function CreateGroupFormBody({
 
         {/* ── Partecipanti gia' a sistema ── */}
         <div className="flex flex-col gap-2">
-          <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+          <label className="text-[13px] font-semibold text-foreground tracking-[-0.01em]">
             Partecipanti
             {totalPicked > 0 && (
               <span className="ml-1.5 text-[11px] font-bold text-[var(--club-blue)]">
@@ -146,13 +146,13 @@ function CreateGroupFormBody({
 
           <SearchBar value={search} onChange={setSearch} placeholder="Cerca allievo..." />
 
-          <div className="max-h-[30vh] overflow-y-auto flex flex-col gap-1 border border-gray-100 rounded-xl p-1.5">
+          <div className="max-h-[30vh] overflow-y-auto flex flex-col gap-1 border border-[var(--border-soft)] rounded-xl p-1.5">
             {loadingStudents ? (
               <div className="flex justify-center py-6">
                 <Spinner />
               </div>
             ) : filtered.length === 0 ? (
-              <p className="text-[13px] text-gray-400 text-center py-5">
+              <p className="text-[13px] text-[var(--subtle-foreground)] text-center py-5">
                 Nessun allievo trovato.
               </p>
             ) : (
@@ -164,14 +164,14 @@ function CreateGroupFormBody({
                     type="button"
                     onClick={() => togglePicked(s.id)}
                     className={`shrink-0 flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors ${
-                      on ? 'bg-[var(--club-blue)]/8' : 'hover:bg-gray-50'
+                      on ? 'bg-[var(--club-blue)]/8' : 'hover:bg-muted'
                     }`}
                   >
                     <span
                       className={`w-[18px] h-[18px] rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
                         on
                           ? 'bg-[var(--club-blue)] border-[var(--club-blue)]'
-                          : 'border-gray-300'
+                          : 'border-[var(--border-strong)]'
                       }`}
                     >
                       {on && (
@@ -180,7 +180,7 @@ function CreateGroupFormBody({
                         </svg>
                       )}
                     </span>
-                    <span className="text-[13px] font-medium text-gray-800 truncate">
+                    <span className="text-[13px] font-medium text-foreground truncate">
                       {s.full_name}
                     </span>
                   </button>
@@ -192,9 +192,9 @@ function CreateGroupFormBody({
 
         {/* ── Partecipanti senza profilo ── */}
         <div className="flex flex-col gap-2">
-          <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+          <label className="text-[13px] font-semibold text-foreground tracking-[-0.01em]">
             Aggiungi un nome
-            <span className="ml-1.5 text-[11px] font-normal text-gray-400">
+            <span className="ml-1.5 text-[11px] font-normal text-[var(--subtle-foreground)]">
               per chi non ha ancora un profilo
             </span>
           </label>
@@ -210,12 +210,12 @@ function CreateGroupFormBody({
                 }
               }}
               placeholder="es. Luca B."
-              className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200"
+              className="flex-1 px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm text-foreground placeholder:text-[var(--subtle-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200"
             />
             <button
               type="button"
               onClick={addFreeName}
-              className="shrink-0 px-3 rounded-xl border border-gray-200 text-gray-500 hover:border-[var(--club-blue)] hover:text-[var(--club-blue)] transition-colors"
+              className="shrink-0 px-3 rounded-xl border border-border text-muted-foreground hover:border-[var(--club-blue)] hover:text-[var(--club-blue)] transition-colors"
               aria-label="Aggiungi nome"
             >
               <Plus size={18} strokeWidth={2.4} />
@@ -227,13 +227,13 @@ function CreateGroupFormBody({
               {freeNames.map((n) => (
                 <span
                   key={n}
-                  className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg bg-gray-100 text-[12px] font-semibold text-gray-700"
+                  className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg bg-secondary text-[12px] font-semibold text-foreground"
                 >
                   {n}
                   <button
                     type="button"
                     onClick={() => setFreeNames((prev) => prev.filter((x) => x !== n))}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    className="text-[var(--subtle-foreground)] hover:text-destructive transition-colors"
                     aria-label={`Rimuovi ${n}`}
                   >
                     <X size={13} strokeWidth={2.6} />
@@ -245,7 +245,7 @@ function CreateGroupFormBody({
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100">
+          <div className="bg-destructive-soft text-destructive text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--destructive)_24%,transparent)]">
             {error}
           </div>
         )}

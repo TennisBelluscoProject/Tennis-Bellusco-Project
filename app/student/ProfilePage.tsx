@@ -8,6 +8,7 @@ import { Button } from '@/components/UI';
 import { AvatarUpload } from '@/components/AvatarUpload';
 import type { Profile } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
+import { FitRankingSelect } from '@/components/FitRankingSelect';
 
 interface ProfilePageProps {
   onBack: () => void;
@@ -28,13 +29,13 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <header
-        className="sticky top-0 z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80"
+        className="sticky top-0 z-30 glass border-b border-border"
         style={{ paddingTop: 'var(--safe-top)' }}
       >
         <div className="px-4 py-3 flex items-center justify-between">
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-gray-500 hover:text-[var(--club-blue)] transition-colors"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-[var(--club-blue)] transition-colors"
             aria-label="Indietro"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -66,7 +67,7 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
             }}
           />
           <h2
-            className="text-xl font-bold text-gray-900 tracking-[-0.02em] mt-4"
+            className="text-xl font-bold text-foreground tracking-[-0.02em] mt-4"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             {profile.full_name}
@@ -82,7 +83,7 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
                 FIT {displayRanking}
               </span>
             ) : (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold bg-orange-50 text-orange-700">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[var(--warning-soft)] text-[var(--warning)]">
                 {displayLevel}
               </span>
             )}
@@ -123,7 +124,7 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
 
         <button
           onClick={signOut}
-          className="w-full py-3.5 rounded-2xl bg-[var(--club-red-light)] text-[var(--club-red)] font-bold text-[15px] hover:bg-red-100 transition-colors"
+          className="w-full py-3.5 rounded-2xl bg-[var(--club-red-light)] text-[var(--club-red)] font-bold text-[15px] hover:bg-destructive-soft transition-colors"
         >
           Esci dall&apos;account
         </button>
@@ -182,14 +183,14 @@ function ProfileRow({
   hint?: string;
 }) {
   const Inner = (
-    <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-white border border-gray-100 rounded-2xl transition-colors hover:border-gray-200">
+    <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-card border border-[var(--border-soft)] rounded-2xl transition-colors hover:border-border">
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
-        <p className="text-[15px] font-bold text-gray-900 mt-0.5 truncate">{value}</p>
-        {hint && <p className="text-[11px] text-gray-400 mt-0.5">{hint}</p>}
+        <p className="text-[11px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">{label}</p>
+        <p className="text-[15px] font-bold text-foreground mt-0.5 truncate">{value}</p>
+        {hint && <p className="text-[11px] text-[var(--subtle-foreground)] mt-0.5">{hint}</p>}
       </div>
       {!readOnly && (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-[var(--subtle-foreground)]">
           <polyline points="9 18 15 12 9 6" />
         </svg>
       )}
@@ -215,9 +216,9 @@ function ModalShell({ title, children, onClose }: ModalShellProps) {
   return (
     <div className="dialog-backdrop" onClick={onClose}>
       <div className="dialog-content animate-slide-up" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 tracking-[-0.01em]">{title}</h3>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors">
+        <div className="flex items-center justify-between p-5 border-b border-[var(--border-soft)]">
+          <h3 className="text-lg font-bold text-foreground tracking-[-0.01em]">{title}</h3>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-secondary rounded-lg transition-colors">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -231,7 +232,7 @@ function ModalShell({ title, children, onClose }: ModalShellProps) {
 
 function ErrorBox({ message }: { message: string }) {
   return (
-    <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100">
+    <div className="bg-destructive-soft text-destructive text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--destructive)_24%,transparent)]">
       {message}
     </div>
   );
@@ -255,14 +256,12 @@ function ClassificaFields({
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        <label className="text-[13px] font-semibold text-gray-700">Classifica FIT</label>
-        <input
-          type="text"
+        <label className="text-[13px] font-semibold text-foreground">Classifica FIT</label>
+        <FitRankingSelect
           value={unranked ? '' : ranking}
-          onChange={(e) => setRanking(e.target.value)}
-          placeholder={unranked ? 'Non classificato' : 'es. 3.5'}
+          onChange={setRanking}
           disabled={unranked}
-          className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[var(--club-blue)] disabled:bg-gray-50 disabled:text-gray-400"
+          className="px-3.5 py-2.5 rounded-xl border border-border bg-[var(--input-bg)] text-sm text-foreground focus:outline-none focus:border-[var(--club-blue)] disabled:bg-muted disabled:text-[var(--subtle-foreground)]"
         />
       </div>
       <label className="flex items-center gap-2.5 cursor-pointer select-none -mt-1">
@@ -270,13 +269,13 @@ function ClassificaFields({
           type="checkbox"
           checked={unranked}
           onChange={(e) => setUnranked(e.target.checked)}
-          className="w-4 h-4 rounded border-gray-300 text-[var(--club-blue)] focus:ring-[var(--club-blue)]"
+          className="w-4 h-4 rounded border-[var(--border-strong)] text-[var(--club-blue)] focus:ring-[var(--club-blue)]"
         />
-        <span className="text-[13px] text-gray-600">Non sono classificato FIT</span>
+        <span className="text-[13px] text-muted-foreground">Non sono classificato FIT</span>
       </label>
       {unranked && (
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-semibold text-gray-700">Livello tecnico</label>
+          <label className="text-[13px] font-semibold text-foreground">Livello tecnico</label>
           <div className="grid grid-cols-3 gap-2">
             {(['DELFINO', 'CERBIATTO', 'COCCODRILLO'] as const).map((opt) => {
               const active = level === opt;
@@ -288,7 +287,7 @@ function ClassificaFields({
                   className={`py-2 rounded-xl border text-[13px] font-semibold transition-all ${
                     active
                       ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)] shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                      : 'bg-card text-muted-foreground border-border hover:border-[var(--border-strong)]'
                   }`}
                 >
                   {opt}
@@ -355,14 +354,14 @@ function EditAllModal({ profile, onClose, onSaved }: { profile: Profile; onClose
           setLevel={setLevel}
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-semibold text-gray-700">Data di nascita</label>
+          <label className="text-[13px] font-semibold text-foreground">Data di nascita</label>
           <input
             type="date"
             value={birthDate ?? ''}
             onChange={(e) => setBirthDate(e.target.value)}
             min="1900-01-01"
             max={new Date().toISOString().slice(0, 10)}
-            className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[var(--club-blue)]"
+            className="px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:border-[var(--club-blue)]"
           />
         </div>
         {error && <ErrorBox message={error} />}
@@ -463,7 +462,7 @@ function EditBirthModal({ profile, onClose, onSaved }: { profile: Profile; onClo
           onChange={(e) => setBirthDate(e.target.value)}
           min="1900-01-01"
           max={new Date().toISOString().slice(0, 10)}
-          className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[var(--club-blue)]"
+          className="px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:border-[var(--club-blue)]"
         />
         {error && <ErrorBox message={error} />}
         <div className="flex gap-3 justify-end mt-1">
@@ -514,20 +513,20 @@ function EditPasswordModal({ onClose, email }: { onClose: () => void; email: str
     <ModalShell title="Cambia password" onClose={onClose}>
       <div className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-semibold text-gray-700">Password attuale</label>
-          <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[var(--club-blue)]" />
+          <label className="text-[13px] font-semibold text-foreground">Password attuale</label>
+          <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} className="px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:border-[var(--club-blue)]" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-semibold text-gray-700">Nuova password</label>
-          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[var(--club-blue)]" placeholder="Minimo 6 caratteri" />
+          <label className="text-[13px] font-semibold text-foreground">Nuova password</label>
+          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} className="px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:border-[var(--club-blue)]" placeholder="Minimo 6 caratteri" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-semibold text-gray-700">Conferma nuova password</label>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[var(--club-blue)]" />
+          <label className="text-[13px] font-semibold text-foreground">Conferma nuova password</label>
+          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:border-[var(--club-blue)]" />
         </div>
         {error && <ErrorBox message={error} />}
         {success && (
-          <div className="bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100">
+          <div className="bg-success-soft text-success text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--success)_24%,transparent)]">
             {success}
           </div>
         )}

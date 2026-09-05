@@ -18,12 +18,23 @@
   color-scheme: light;
 
   /* ─── Superfici ─── */
-  --background: #F5F5F9;
-  --background-alt: #EFEFF5;
+  /* CONTRASTO FRA PAGINA E CARD.
+
+     Il fondo stava a #F5F5F9, cioe' a un passo dal bianco delle card: la
+     differenza di luminosita' era di circa 3 punti su cento, sotto la soglia
+     in cui l'occhio separa due superfici. Il risultato era una pagina piatta,
+     in cui le card non galleggiavano su niente e i bordi facevano tutto il
+     lavoro da soli. Ora lo scalino e' circa il doppio: le card si staccano da
+     sole, senza dover caricare bordi e ombre.
+
+     Il tema scuro non e' toccato: li' lo scalino card/fondo era gia' stato
+     misurato (vedi il blocco `.dark`). */
+  --background: #EBECF2;
+  --background-alt: #E2E3EB;
   --foreground: #141416;
   --card: #FFFFFF;
   --card-foreground: #141416;
-  --sunken: #EDEDF3;
+  --sunken: #E5E6EE;
   --popover: #FFFFFF;
   --popover-foreground: #141416;
   --overlay: rgba(20, 20, 22, 0.32);
@@ -528,15 +539,28 @@ input[type="date"]::-webkit-datetime-edit { padding: 0; line-height: 1.25; }
   border-radius: var(--radius-xl);
 }
 
-/* Vetro: sfondo semitrasparente SENZA sfocatura.
+/* Superficie delle barre appiccicate: tinta di card, ma OPACA.
 
-   `backdrop-filter` su una barra appiccicata in alto costringe il browser a
-   rileggere e risfocare tutto quello che le scorre sotto a ogni fotogramma.
-   Su telefono e' una delle cause piu' comuni di tremolio durante lo
-   scorrimento, e qui in cambio dava pochissimo: sotto la barra passa quasi
-   sempre fondo pieno. */
+   `backdrop-filter` resta escluso, e per una buona ragione: su una barra
+   incollata in alto obbliga il browser a rileggere e risfocare tutto quello
+   che le scorre sotto a ogni fotogramma, ed e' una delle cause piu' comuni di
+   tremolio durante lo scorrimento sul telefono.
+
+   Quello che era sbagliato e' il resto della coppia. La barra restava
+   semitrasparente (8% di trasparenza) partendo dal presupposto che sotto le
+   passasse "quasi sempre fondo pieno": vero nelle liste corte, falso nel
+   Catalogo, dove sotto scorre una griglia di card. Senza sfocatura, una
+   superficie semitrasparente non e' vetro — e' solo una superficie che lascia
+   passare. Il titolo di ogni card che entrava sotto la barra si vedeva in
+   grigio chiaro attraverso il marchio del club.
+
+   Il mezzo termine giusto e' mescolare con lo SFONDO invece che con il nulla:
+   la barra conserva lo stesso peso visivo di prima — un filo piu' chiara
+   della pagina, non un blocco pieno di card — ma e' opaca, quindi non lascia
+   passare niente. Dove sotto c'e' davvero fondo pieno il risultato e'
+   identico a prima, pixel per pixel. */
 .glass {
-  background: color-mix(in srgb, var(--card) 92%, transparent);
+  background: color-mix(in srgb, var(--card) 92%, var(--background));
 }
 
 /* Filo di luce sul bordo superiore — da' spessore alle card scure senza
@@ -626,6 +650,57 @@ input[type="date"]::-webkit-datetime-edit { padding: 0; line-height: 1.25; }
   background: var(--destructive-soft);
   color: var(--destructive);
   border: 1px solid color-mix(in srgb, var(--destructive) 22%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RIQUADRI DI AVVISO
+
+   Lo stesso riquadro — errore, esito positivo, nota informativa — era
+   riscritto a mano in una decina di schermate, sempre con la stessa terna di
+   classi Tailwind (`bg-red-50 text-red-700 border-red-100`). Tre difetti in
+   uno: la tinta chiara non aveva controparte scura, quindi al buio restava un
+   rettangolo acceso con dentro testo quasi nero; le sfumature divergevano da
+   una schermata all'altra (red-50 qui, red-50/60 li'); e una correzione
+   andava fatta dieci volte.
+
+   Ora la forma sta qui e il colore arriva dalla semantica, come per le
+   pastiglie del risultato qui sopra: `color-mix` costruisce il bordo dal
+   colore di stato, cosi' i due temi restano allineati per costruzione.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.alert-error {
+  background: var(--destructive-soft);
+  color: var(--destructive);
+  border-color: color-mix(in srgb, var(--destructive) 24%, transparent);
+}
+
+.alert-success {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 24%, transparent);
+}
+
+.alert-info {
+  background: var(--info-soft);
+  color: var(--info);
+  border-color: color-mix(in srgb, var(--info) 24%, transparent);
+}
+
+.alert-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 24%, transparent);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

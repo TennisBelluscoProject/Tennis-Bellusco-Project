@@ -57,7 +57,7 @@ export function KidsPathCatalog({ coachId }: Props) {
         sfogliarlo e per attivarlo ai tuoi allievi.
       </p>
 
-      <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-1 pt-2 pb-4 -mx-1">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
           {KIDS_PROGRAM_LIST.map((p, i) => (
             <ProgramCard
@@ -108,7 +108,7 @@ function ProgramCard({
         boxShadow: 'var(--shadow-sm)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = `0 18px 40px ${c.accent}2E, var(--shadow-sm)`;
+        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
         e.currentTarget.style.borderColor = `${c.accent}66`;
       }}
       onMouseLeave={(e) => {
@@ -144,6 +144,19 @@ function ProgramCard({
           style={{
             height: 66,
             background: 'linear-gradient(to top, rgba(9,16,24,0.34), transparent)',
+          }}
+        />
+        {/* Velo a sinistra, gemello di quello in basso. Il gradiente del
+            mondo parte dal suo colore piu' CHIARO, e proprio sopra quella
+            meta' ci va il nome del percorso in bianco: su Delfino finiva su
+            azzurro pallido. Scurisce solo il lato del testo e lascia il
+            colore del mondo intatto dove si vede la mascotte. */}
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 pointer-events-none"
+          style={{
+            width: '68%',
+            background: 'linear-gradient(to right, rgba(9,16,24,0.42), transparent)',
           }}
         />
 
@@ -184,7 +197,7 @@ function ProgramCard({
 
       {/* Corpo */}
       <div className="flex-1 flex flex-col px-4 pt-3.5 pb-3.5">
-        <p className="text-[12.5px] text-muted-foreground leading-relaxed line-clamp-3">
+        <p className="text-[12.5px] text-muted-foreground leading-relaxed">
           {program.intro}
         </p>
 
@@ -319,12 +332,6 @@ function KidsProgramDetail({
       >
         {view === 'passi' ? (
           <>
-            <div
-              className="rounded-[var(--radius-lg)] px-4 py-3 mb-4 text-[12px] leading-relaxed"
-              style={{ background: program.colors.soft, color: program.colors.accentDark }}
-            >
-              {program.intro}
-            </div>
             <KidsPathMap state={preview} onOpenStep={setOpenStep} detail={schedaPasso} />
           </>
         ) : (

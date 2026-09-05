@@ -26,7 +26,7 @@ export function StudentRow({ student, dot, stats, lastActivity, onClick }: Props
       <AvatarDisplay photoUrl={student.photo_url} fullName={student.full_name} size={48} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
-          <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{student.full_name}</h3>
+          <h3 className="text-[15px] font-bold text-foreground tracking-[-0.01em] truncate">{student.full_name}</h3>
           {student.is_fictitious && (
             <UserCog
               size={13}
@@ -46,7 +46,7 @@ export function StudentRow({ student, dot, stats, lastActivity, onClick }: Props
             <Badge>{displayLevel}</Badge>
           )}
         </div>
-        <p className="text-[11px] text-gray-500 mt-1">
+        <p className="text-[11px] text-muted-foreground mt-1">
           {stats.matches} match
           {stats.matches > 0 && (
             <>
@@ -57,7 +57,7 @@ export function StudentRow({ student, dot, stats, lastActivity, onClick }: Props
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
         <span className="w-2 h-2 rounded-full" style={{ background: dot.bg }} title={dot.label} />
-        <span className="text-[10px] text-gray-400">
+        <span className="text-[10px] text-[var(--subtle-foreground)]">
           {lastActivity ? timeAgo(lastActivity) : '—'}
         </span>
       </div>

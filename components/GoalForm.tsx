@@ -148,7 +148,7 @@ export function GoalForm({ open, onClose, onSave, goal, isCoach, playerLevel }: 
     <Modal open={open} onClose={onClose} title={modalTitle}>
       {step === 'choice' && !goal ? (
         <div className="flex flex-col gap-3">
-          <p className="text-[13px] text-gray-500 -mt-1">
+          <p className="text-[13px] text-muted-foreground -mt-1">
             Come vuoi creare il nuovo obiettivo?
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -234,7 +234,7 @@ export function GoalForm({ open, onClose, onSave, goal, isCoach, playerLevel }: 
 
           {status === 'in_progress' && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-gray-700">Progresso: {progress}%</label>
+              <label className="text-sm font-medium text-foreground">Progresso: {progress}%</label>
               <input
                 type="range"
                 min="0"
@@ -256,7 +256,7 @@ export function GoalForm({ open, onClose, onSave, goal, isCoach, playerLevel }: 
             />
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex gap-3 justify-end pt-2">
             <Button variant="ghost" onClick={onClose}>
@@ -283,14 +283,14 @@ function ChoiceCard({ icon, title, description, onClick }: ChoiceCardProps) {
   return (
     <button
       onClick={onClick}
-      className="text-left bg-white border border-gray-200 rounded-2xl p-4 min-h-[88px] flex items-start gap-3 hover:border-[var(--club-blue)] hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200"
+      className="text-left bg-card border border-border rounded-2xl p-4 min-h-[88px] flex items-start gap-3 hover:border-[var(--club-blue)] hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200"
     >
       <div className="w-11 h-11 rounded-xl bg-[var(--club-blue-light)] flex items-center justify-center text-[var(--club-blue)] shrink-0">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-gray-900 tracking-[-0.01em]">{title}</p>
-        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{description}</p>
+        <p className="text-sm font-bold text-foreground tracking-[-0.01em]">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
       </div>
     </button>
   );

@@ -76,11 +76,11 @@ export function GoalTemplatePicker({
     // Altezza fissa: il dialog non cambia in base al numero di template
     <div className="flex flex-col h-[65dvh] min-h-[420px] max-h-[560px] gap-3">
       {/* Header (sticky): back link, filtri, ricerca */}
-      <div className="shrink-0 flex flex-col gap-3 pb-2 border-b border-gray-100">
+      <div className="shrink-0 flex flex-col gap-3 pb-2 border-b border-[var(--border-soft)]">
         <div className="flex items-center justify-between">
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-500 hover:text-[var(--club-blue)] transition-colors group -ml-1 px-1 py-1 rounded-lg"
+            className="flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-[var(--club-blue)] transition-colors group -ml-1 px-1 py-1 rounded-lg"
           >
             <svg
               width="16"
@@ -120,7 +120,7 @@ export function GoalTemplatePicker({
                 className={`shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
                   isActive
                     ? 'bg-[var(--club-blue)] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-secondary text-muted-foreground hover:bg-[var(--secondary-hover)]'
                 }`}
               >
                 {p.icon && <CategoryIcon name={p.icon} size={14} strokeWidth={2} />}
@@ -145,7 +145,7 @@ export function GoalTemplatePicker({
                 className={`shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
                   isActive
                     ? 'bg-[var(--club-red)] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-secondary text-muted-foreground hover:bg-[var(--secondary-hover)]'
                 }`}
               >
                 {p.label}
@@ -199,17 +199,17 @@ function TemplateCard({ template, compact, onClick }: TemplateCardProps) {
     return (
       <button
         onClick={onClick}
-        className="text-left bg-white rounded-xl border border-gray-100 px-3 py-2.5 active:scale-[0.98] active:bg-gray-50 transition-all duration-150 flex flex-col gap-1.5"
+        className="text-left bg-card rounded-xl border border-[var(--border-soft)] px-3 py-2.5 active:scale-[0.98] active:bg-muted transition-all duration-150 flex flex-col gap-1.5"
       >
         <div className="flex items-center gap-2">
           <Badge color={cat.color} bg={cat.bg}>
             <CategoryIcon name={cat.icon} size={12} /> {cat.label}
           </Badge>
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+          <span className="text-[10px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">
             {template.level}
           </span>
         </div>
-        <p className="text-sm font-bold text-gray-900 line-clamp-2 tracking-[-0.01em]">
+        <p className="text-sm font-bold text-foreground tracking-[-0.01em]">
           {template.title}
         </p>
       </button>
@@ -219,7 +219,7 @@ function TemplateCard({ template, compact, onClick }: TemplateCardProps) {
   return (
     <button
       onClick={onClick}
-      className="text-left bg-gray-50/80 rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3.5 cursor-pointer flex flex-col gap-1.5"
+      className="text-left bg-muted rounded-xl border border-[var(--border-soft)] hover:border-border hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3.5 cursor-pointer flex flex-col gap-1.5"
     >
       <div className="flex items-center gap-2 flex-wrap">
         <Badge color={cat.color} bg={cat.bg}>
@@ -227,9 +227,9 @@ function TemplateCard({ template, compact, onClick }: TemplateCardProps) {
         </Badge>
         <Badge>{template.level}</Badge>
       </div>
-      <p className="text-sm font-bold text-gray-900 tracking-[-0.01em]">{template.title}</p>
+      <p className="text-sm font-bold text-foreground tracking-[-0.01em]">{template.title}</p>
       {template.description && (
-        <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{template.description}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">{template.description}</p>
       )}
     </button>
   );

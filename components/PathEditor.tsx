@@ -271,17 +271,17 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="shrink-0 flex items-center justify-between pb-3 border-b border-gray-100">
+      <div className="shrink-0 flex items-center justify-between pb-3 border-b border-[var(--border-soft)]">
         <button
           onClick={onClose}
-          className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-500 hover:text-[var(--club-blue)] transition-colors group -ml-1 px-1 py-1 rounded-lg"
+          className="flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-[var(--club-blue)] transition-colors group -ml-1 px-1 py-1 rounded-lg"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:-translate-x-0.5 transition-transform">
             <polyline points="15 18 9 12 15 6" />
           </svg>
           Indietro
         </button>
-        <span className="text-[13px] font-bold text-gray-900">
+        <span className="text-[13px] font-bold text-foreground">
           {path ? 'Modifica percorso' : 'Nuovo percorso'}
         </span>
       </div>
@@ -315,7 +315,7 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
 
           {/* Avviso ciclo (possibile solo su dati pre-esistenti) */}
           {!acyclic && (
-            <div className="flex items-start gap-2.5 text-[12px] leading-relaxed text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
+            <div className="flex items-start gap-2.5 text-[12px] leading-relaxed text-destructive bg-destructive-soft border border-[color-mix(in_srgb,var(--destructive)_24%,transparent)] rounded-xl px-3 py-2.5">
               <svg className="shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                 <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
@@ -329,7 +329,7 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
           )}
 
           {nodes.length === 0 && (
-            <p className="text-[12px] text-gray-400">Nessuna tappa. Aggiungine una dal catalogo o personalizzata.</p>
+            <p className="text-[12px] text-[var(--subtle-foreground)]">Nessuna tappa. Aggiungine una dal catalogo o personalizzata.</p>
           )}
 
           {nodes.map((n) => {
@@ -340,8 +340,10 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
             return (
               <div
                 key={n.id}
-                className={`rounded-xl border bg-white p-3 transition-colors ${
-                  inCycle ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-200'
+                className={`rounded-xl border bg-card p-3 transition-colors ${
+                  inCycle
+                    ? 'border-[var(--destructive)] ring-2 ring-[color-mix(in_srgb,var(--destructive)_25%,transparent)]'
+                    : 'border-border'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -351,21 +353,21 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
                         <CategoryIcon name={cat.icon} size={11} /> {cat.label}
                       </Badge>
                       {acyclic && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold text-gray-400 bg-gray-100">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold text-[var(--subtle-foreground)] bg-secondary">
                           Livello {(topo.layer[n.id] ?? 0) + 1}
                         </span>
                       )}
                       {inCycle && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold text-red-600 bg-red-50">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold text-destructive bg-destructive-soft">
                           Nel giro chiuso
                         </span>
                       )}
                     </div>
-                    <p className="text-[13px] font-bold text-gray-900 mt-1 leading-snug">{n.title}</p>
+                    <p className="text-[13px] font-bold text-foreground mt-1 leading-snug">{n.title}</p>
                   </div>
                   <button
                     onClick={() => removeNode(n.id)}
-                    className="shrink-0 text-gray-300 hover:text-red-500 transition-colors p-1"
+                    className="shrink-0 text-[var(--subtle-foreground)] hover:text-destructive transition-colors p-1"
                     aria-label="Rimuovi tappa"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -375,7 +377,7 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
                 </div>
                 {others.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                    <p className="text-[10px] font-bold text-[var(--subtle-foreground)] uppercase tracking-wider mb-1.5">
                       Da completare prima di questa tappa
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -387,7 +389,7 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
                             <span
                               key={o.id}
                               title={`"${o.title}" dipende gia' da questa tappa: sceglierla come prerequisito creerebbe un giro chiuso.`}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-dashed border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed select-none"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-dashed border-border bg-muted text-[var(--subtle-foreground)] cursor-not-allowed select-none"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                                 <rect x="3" y="11" width="18" height="11" rx="2" />
@@ -405,7 +407,7 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${
                               sel
                                 ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)]'
-                                : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+                                : 'bg-muted text-muted-foreground border-border hover:border-[var(--border-strong)]'
                             }`}
                           >
                             {sel && '✓ '}
@@ -421,9 +423,9 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
           })}
 
           {/* Aggiungi tappa */}
-          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/60 p-3 flex flex-col gap-2.5">
+          <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-muted p-3 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-[12px] font-bold text-gray-700">Aggiungi tappa</span>
+              <span className="text-[12px] font-bold text-foreground">Aggiungi tappa</span>
               <button onClick={() => setShowCatalog(true)} className="text-[12px] font-semibold text-[var(--club-blue)] hover:underline">
                 Dal catalogo →
               </button>
@@ -453,9 +455,9 @@ export function PathEditor({ coachId, path, onClose, onSaved }: PathEditorProps)
       </div>
 
       {/* Footer azioni */}
-      <div className="shrink-0 pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
+      <div className="shrink-0 pt-3 border-t border-[var(--border-soft)] flex items-center justify-between gap-3">
         {error ? (
-          <p className="text-[12px] font-medium text-red-600 flex-1">{error}</p>
+          <p className="text-[12px] font-medium text-destructive flex-1">{error}</p>
         ) : (
           <span className="flex-1" />
         )}
@@ -479,7 +481,7 @@ function SectionTitle({ step, label }: { step: number; label: string }) {
       >
         {step}
       </span>
-      <span className="text-[13px] font-bold text-gray-900">{label}</span>
+      <span className="text-[13px] font-bold text-foreground">{label}</span>
     </div>
   );
 }

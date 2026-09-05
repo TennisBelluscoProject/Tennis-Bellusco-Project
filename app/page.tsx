@@ -21,16 +21,16 @@ function ProfileNotFound({ userId }: { userId: string }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-md w-full text-center">
-        <div className="w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center mx-auto mb-4">
+      <div className="bg-card rounded-2xl border border-[var(--border-soft)] shadow-sm p-8 max-w-md w-full text-center">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--warning-soft)] flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">⚠️</span>
         </div>
-        <h2 className="text-lg font-bold text-gray-900 mb-2">Profilo non trovato</h2>
-        <p className="text-sm text-gray-600 mb-6">
+        <h2 className="text-lg font-bold text-foreground mb-2">Profilo non trovato</h2>
+        <p className="text-sm text-muted-foreground mb-6">
           Il tuo account è stato creato ma il profilo non è stato caricato.
           Prova a ricaricare, oppure contatta il maestro.
         </p>
-        <p className="text-xs text-gray-400 mb-4">ID: {userId}</p>
+        <p className="text-xs text-[var(--subtle-foreground)] mb-4">ID: {userId}</p>
         <div className="flex gap-3 justify-center">
           <button
             onClick={handleRetry}
@@ -65,35 +65,35 @@ function PendingApprovalScreen({ rejected }: { rejected: boolean }) {
       <div className="w-full max-w-[440px] relative z-10">
         <div className="card p-8 text-center animate-slide-up">
           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 ${
-            rejected ? 'bg-red-50' : 'bg-amber-50'
+            rejected ? 'bg-destructive-soft' : 'bg-[var(--warning-soft)]'
           }`}>
             {rejected ? (
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--destructive)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="15" y1="9" x2="9" y2="15" />
                 <line x1="9" y1="9" x2="15" y2="15" />
               </svg>
             ) : (
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
             )}
           </div>
 
-          <h2 className="text-xl font-bold text-gray-900 mb-2 tracking-[-0.02em]" style={{ fontFamily: 'var(--font-display)' }}>
+          <h2 className="text-xl font-bold text-foreground mb-2 tracking-[-0.02em]" style={{ fontFamily: 'var(--font-display)' }}>
             {rejected ? 'Registrazione rifiutata' : 'In attesa di approvazione'}
           </h2>
-          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+          <p className="text-sm text-muted-foreground leading-relaxed mb-6">
             {rejected
               ? 'La tua richiesta di registrazione è stata rifiutata dal maestro. Per chiarimenti contatta direttamente il club.'
               : 'La tua email è stata verificata. Ora il tuo account è in attesa di approvazione da parte del maestro: riceverai accesso non appena verrai approvato.'}
           </p>
 
           {profile?.email && (
-            <div className="bg-gray-50 rounded-xl p-4 mb-5 text-left">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email registrata</p>
-              <p className="text-sm font-medium text-gray-800 break-all">{profile.email}</p>
+            <div className="bg-muted rounded-xl p-4 mb-5 text-left">
+              <p className="text-[11px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider mb-1">Email registrata</p>
+              <p className="text-sm font-medium text-foreground break-all">{profile.email}</p>
             </div>
           )}
 

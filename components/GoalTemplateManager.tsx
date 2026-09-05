@@ -7,6 +7,7 @@ import type { GoalCategory, GoalTemplate, PlayerLevel } from '@/lib/database.typ
 import { CATEGORY_CONFIG, LEVELS } from '@/lib/constants';
 import { useIsMobile } from '@/lib/hooks';
 import { CategoryIcon } from './CategoryIcon';
+import { ClampedText } from './ui/ClampedText';
 import {
   Badge,
   Button,
@@ -160,12 +161,12 @@ export function GoalTemplatesHeader({ ctx, isMobile }: HeaderProps) {
     <>
       <div>
         <h2
-          className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
+          className="text-2xl font-bold text-foreground tracking-[-0.02em]"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Catalogo Obiettivi
         </h2>
-        <p className="text-[12px] text-gray-500 mt-0.5">
+        <p className="text-[12px] text-muted-foreground mt-0.5">
           {ctx.templates.length} {ctx.templates.length === 1 ? 'template' : 'template'} disponibili
         </p>
       </div>
@@ -185,7 +186,7 @@ export function GoalTemplatesHeader({ ctx, isMobile }: HeaderProps) {
                 className={`shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
                   isActive
                     ? 'bg-[var(--club-blue)] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-secondary text-muted-foreground hover:bg-[var(--secondary-hover)]'
                 }`}
               >
                 {p.icon && <CategoryIcon name={p.icon} size={14} strokeWidth={2} />}
@@ -209,7 +210,7 @@ export function GoalTemplatesHeader({ ctx, isMobile }: HeaderProps) {
                 className={`shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
                   isActive
                     ? 'bg-[var(--club-red)] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-secondary text-muted-foreground hover:bg-[var(--secondary-hover)]'
                 }`}
               >
                 {p.label}
@@ -293,7 +294,7 @@ export function GoalTemplatesList({ ctx, isMobile }: ListProps) {
               corto sarebbe rumore. */}
           {ctx.filtered.length > PAGE && (
             <div className="flex flex-col items-center gap-2 pt-5">
-              <p className="text-[12px] text-gray-500 tnum">
+              <p className="text-[12px] text-muted-foreground tnum">
                 {ctx.paged.length} di {ctx.filtered.length}
               </p>
               {ctx.hasMore && (
@@ -369,7 +370,7 @@ export function GoalTemplateManager({ coachId }: GoalTemplateManagerProps) {
   if (isMobile) {
     return (
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <div className="px-4 pt-4 pb-3 flex flex-col gap-3 shrink-0 border-b border-gray-100">
+        <div className="px-4 pt-4 pb-3 flex flex-col gap-3 shrink-0 border-b border-[var(--border-soft)]">
           <GoalTemplatesHeader ctx={ctx} isMobile />
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-32">
@@ -403,8 +404,8 @@ function CoachTemplateCard({ template, compact, onEdit, onDelete }: CoachTemplat
 
   return (
     <div
-      className={`bg-white rounded-xl border border-gray-100 ${
-        compact ? 'p-3' : 'p-4 hover:shadow-md hover:border-gray-200 transition-all duration-200'
+      className={`bg-card rounded-xl border border-[var(--border-soft)] ${
+        compact ? 'p-3' : 'p-4 hover:shadow-md hover:border-border transition-all duration-200'
       } animate-fade-in flex flex-col gap-2`}
     >
       <div className="flex items-center gap-2 flex-wrap">
@@ -413,15 +414,17 @@ function CoachTemplateCard({ template, compact, onEdit, onDelete }: CoachTemplat
         </Badge>
         <Badge>{template.level}</Badge>
       </div>
-      <p className="text-sm font-bold text-gray-900 tracking-[-0.01em]">{template.title}</p>
+      <p className="text-sm font-bold text-foreground tracking-[-0.01em]">{template.title}</p>
       {template.description && (
-        <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{template.description}</p>
+        <ClampedText lines={2} className="text-xs text-muted-foreground leading-relaxed">
+          {template.description}
+        </ClampedText>
       )}
 
-      <div className="flex items-center justify-end gap-0.5 pt-2 mt-1 border-t border-gray-50">
+      <div className="flex items-center justify-end gap-0.5 pt-2 mt-1 border-t border-[var(--border-soft)]">
         <button
           onClick={onEdit}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200 min-w-[44px] flex items-center justify-center"
+          className="p-2 text-[var(--subtle-foreground)] hover:text-foreground hover:bg-secondary rounded-lg transition-all duration-200 min-w-[44px] flex items-center justify-center"
           title="Modifica"
         >
           <svg
@@ -429,7 +432,7 @@ function CoachTemplateCard({ template, compact, onEdit, onDelete }: CoachTemplat
             height="15"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#6B7280"
+            stroke="currentColor"
             strokeWidth="2"
           >
             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -438,7 +441,7 @@ function CoachTemplateCard({ template, compact, onEdit, onDelete }: CoachTemplat
         </button>
         <button
           onClick={onDelete}
-          className="p-2 hover:bg-red-50 rounded-lg transition-all duration-200 min-w-[44px] flex items-center justify-center"
+          className="p-2 text-destructive hover:bg-destructive-soft rounded-lg transition-all duration-200 min-w-[44px] flex items-center justify-center"
           title="Elimina"
         >
           <svg
@@ -446,7 +449,7 @@ function CoachTemplateCard({ template, compact, onEdit, onDelete }: CoachTemplat
             height="15"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#EF4444"
+            stroke="currentColor"
             strokeWidth="2"
           >
             <polyline points="3 6 5 6 21 6" />
@@ -558,10 +561,10 @@ function TemplateForm({ open, template, onClose, onSave }: TemplateFormProps) {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
-        <div className="flex gap-3 justify-end pt-3 mt-2 border-t border-gray-100">
+        <div className="flex gap-3 justify-end pt-3 mt-2 border-t border-[var(--border-soft)]">
           <Button variant="ghost" onClick={onClose}>
             Annulla
           </Button>

@@ -54,6 +54,34 @@ export const RESULT_LABELS: Record<MatchResult, string> = {
 
 export const LEVELS = ['DELFINO', 'CERBIATTO', 'COCCODRILLO'] as const;
 
+/**
+ * Le classifiche ufficiali FIT, dalla piu' bassa alla piu' alta.
+ *
+ * Prima qui si scriveva a mano in un campo di testo libero, e infatti nel
+ * database convivono valori validi, valori inventati e refusi: la classifica
+ * decide la categoria d'eta' mostrata e chi conta come "classificato"
+ * (`isClassified`), quindi un "4,3" con la virgola o un "4.7" che non esiste
+ * si portano dietro dei conti sbagliati.
+ *
+ * `4.NC` non compare: quel caso e' gia' coperto dalla casella "Non
+ * classificato FIT", che scrive `Non classificato` — il valore che tutto il
+ * resto dell'app si aspetta.
+ */
+export const FIT_RANKING_GROUPS: { categoria: string; valori: string[] }[] = [
+  { categoria: 'Quarta categoria', valori: ['4.6', '4.5', '4.4', '4.3', '4.2', '4.1'] },
+  { categoria: 'Terza categoria', valori: ['3.5', '3.4', '3.3', '3.2', '3.1'] },
+  { categoria: 'Seconda categoria', valori: ['2.8', '2.7', '2.6', '2.5', '2.4', '2.3', '2.2', '2.1'] },
+  { categoria: 'Prima categoria', valori: ['1.1'] },
+];
+
+/** Le stesse classifiche in un elenco piatto, per i controlli di validita'. */
+export const FIT_RANKINGS: string[] = FIT_RANKING_GROUPS.flatMap((g) => g.valori);
+
+/** Vero se la stringa e' una classifica FIT che esiste davvero. */
+export function isValidFitRanking(v: string | null | undefined): boolean {
+  return !!v && FIT_RANKINGS.includes(v.trim());
+}
+
 // Feature flag — mostra la tab "Il mio percorso" (anteprima Iterazione A, su
 // dati di esempio). Impostare a `false` per nasconderla agli utenti reali
 // finche' l'Iterazione B (attivazione + materializzazione) non e' completa.

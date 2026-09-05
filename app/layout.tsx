@@ -29,11 +29,17 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  // La barra di sistema segue il tema: due valori, uno per preferenza.
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F5F5F9" },
-    { media: "(prefers-color-scheme: dark)", color: "#141416" },
-  ],
+  // NIENTE `themeColor` qui.
+  //
+  // I due valori per `prefers-color-scheme` rispondevano alla preferenza di
+  // SISTEMA, mentre il tema dell'app lo decide la classe `.dark`, che nasce
+  // dalla scelta SALVATA (vedi lib/theme-script.ts). Chi teneva il telefono
+  // in chiaro e l'app in scuro si ritrovava percio' la barra di sistema
+  // bianca sopra un'app nera — e viceversa. Il valore scuro, per giunta, era
+  // rimasto al vecchio `#141416`, che non e' piu' lo sfondo di nessun tema.
+  //
+  // Ora la tinta la scrive chi conosce il tema davvero applicato: lo script
+  // in <head> alla prima pittura e ThemeProvider a ogni cambio.
 };
 
 export const metadata: Metadata = {

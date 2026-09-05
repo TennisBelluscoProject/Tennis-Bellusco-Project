@@ -119,30 +119,30 @@ export function GroupMembersPanel({ group, editable }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-gray-50/70 transition-colors"
+        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-muted transition-colors"
       >
         <UserRound size={16} strokeWidth={2.2} className="text-[var(--club-red)] shrink-0" />
-        <span className="text-[13px] font-bold text-gray-800">Partecipanti</span>
-        <span className="text-[12px] font-semibold text-gray-400">
+        <span className="text-[13px] font-bold text-foreground">Partecipanti</span>
+        <span className="text-[12px] font-semibold text-[var(--subtle-foreground)]">
           {loading ? '—' : members.length}
         </span>
         <ChevronDown
           size={16}
           strokeWidth={2.2}
-          className={`ml-auto text-gray-300 transition-transform duration-200 ${
+          className={`ml-auto text-[var(--subtle-foreground)] transition-transform duration-200 ${
             open ? 'rotate-180' : ''
           }`}
         />
       </button>
 
       {open && (
-        <div className="px-4 pb-4 border-t border-gray-100 pt-3 flex flex-col gap-3">
+        <div className="px-4 pb-4 border-t border-[var(--border-soft)] pt-3 flex flex-col gap-3">
           {loading ? (
             <div className="flex justify-center py-4">
               <Spinner />
             </div>
           ) : members.length === 0 ? (
-            <p className="text-[12.5px] text-gray-400 leading-relaxed">
+            <p className="text-[12.5px] text-[var(--subtle-foreground)] leading-relaxed">
               Nessun partecipante. Il gruppo funziona lo stesso — gli obiettivi
               sono del gruppo, non dei singoli — ma l&apos;elenco aiuta a
               ricordare chi c&apos;&egrave;.
@@ -157,7 +157,7 @@ export function GroupMembersPanel({ group, editable }: Props) {
                   } ${
                     m.studentId
                       ? 'bg-[var(--club-blue)]/8 text-[var(--club-blue)]'
-                      : 'bg-gray-100 text-gray-600'
+                      : 'bg-secondary text-muted-foreground'
                   }`}
                   title={m.studentId ? 'Allievo a sistema' : 'Nome libero'}
                 >
@@ -167,7 +167,7 @@ export function GroupMembersPanel({ group, editable }: Props) {
                       type="button"
                       onClick={() => handleRemove(m.id)}
                       disabled={busy}
-                      className="opacity-45 hover:opacity-100 hover:text-red-500 transition-all disabled:opacity-25"
+                      className="opacity-45 hover:opacity-100 hover:text-destructive transition-all disabled:opacity-25"
                       aria-label={`Rimuovi ${m.name}`}
                     >
                       <X size={13} strokeWidth={2.6} />
@@ -207,7 +207,7 @@ export function GroupMembersPanel({ group, editable }: Props) {
                       }}
                       placeholder="Cerca un allievo, oppure scrivi un nome nuovo"
                       autoFocus
-                      className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 bg-white text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all"
+                      className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-border bg-card text-[13px] text-foreground placeholder:text-[var(--subtle-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all"
                     />
                     <button
                       type="button"
@@ -218,7 +218,7 @@ export function GroupMembersPanel({ group, editable }: Props) {
                           ? 'Questo allievo e\u0027 gia\u0027 in elenco qui sotto: aggiungilo da li\u0027 per collegarlo al suo profilo'
                           : 'Aggiungi come nome libero'
                       }
-                      className="shrink-0 px-3 rounded-lg border border-gray-200 text-gray-500 hover:border-[var(--club-blue)] hover:text-[var(--club-blue)] transition-colors disabled:opacity-40"
+                      className="shrink-0 px-3 rounded-lg border border-border text-muted-foreground hover:border-[var(--club-blue)] hover:text-[var(--club-blue)] transition-colors disabled:opacity-40"
                       aria-label="Aggiungi nome"
                     >
                       <Plus size={16} strokeWidth={2.4} />
@@ -226,21 +226,21 @@ export function GroupMembersPanel({ group, editable }: Props) {
                   </div>
 
                   {selectable.length > 0 ? (
-                    <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-100 p-1">
+                    <div className="max-h-56 overflow-y-auto rounded-lg border border-[var(--border-soft)] p-1">
                       {selectable.map((s) => (
                         <button
                           key={s.id}
                           type="button"
                           onClick={() => handleAddStudent(s.id)}
                           disabled={busy}
-                          className="block w-full text-left px-2.5 py-2 rounded-md text-[12.5px] leading-5 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40 truncate"
+                          className="block w-full text-left px-2.5 py-2 rounded-md text-[12.5px] leading-5 text-foreground hover:bg-muted transition-colors disabled:opacity-40 truncate"
                         >
                           {s.full_name}
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[12px] text-gray-400 leading-relaxed">
+                    <p className="text-[12px] text-[var(--subtle-foreground)] leading-relaxed">
                       {query
                         ? 'Nessun allievo con questo nome. Premi + per aggiungerlo come nome libero.'
                         : 'Tutti gli allievi sono gia\u0027 nel gruppo.'}
@@ -253,7 +253,7 @@ export function GroupMembersPanel({ group, editable }: Props) {
                       setAdding(false);
                       setFreeName('');
                     }}
-                    className="self-start text-[12px] font-medium text-gray-400 hover:text-gray-600"
+                    className="self-start text-[12px] font-medium text-[var(--subtle-foreground)] hover:text-muted-foreground"
                   >
                     Chiudi
                   </button>
@@ -262,7 +262,7 @@ export function GroupMembersPanel({ group, editable }: Props) {
             </>
           )}
 
-          {error && <p className="text-[12px] font-medium text-red-600">{error}</p>}
+          {error && <p className="text-[12px] font-medium text-destructive">{error}</p>}
         </div>
       )}
     </div>

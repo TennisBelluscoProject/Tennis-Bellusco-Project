@@ -43,20 +43,6 @@ export interface MascotTier {
   aura: string;
   /** Ombra colorata proiettata dalla piastra. */
   shadow: string;
-  /**
-   * Quanto ingrandire l'immagine RISPETTO al riquadro che la ospita.
-   *
-   * Il riquadro della mascotte e' QUADRATO e usa `object-contain`: un animale
-   * disteso (il coccodrillo cucciolo e' 2.5:1) tocca i bordi in larghezza e
-   * spreca meta' dell'altezza, quindi a parita' di riquadro "pesa" a occhio
-   * molto meno di uno alto come il cerbiatto. Normalizzare il file non basta:
-   * dentro la tela quadrata il soggetto non puo' crescere oltre il lato.
-   *
-   * Questo fattore lascia l'immagine DEBORDARE dal riquadro, senza toccare la
-   * geometria della mappa (il riquadro resta della sua dimensione e continua a
-   * dettare posizione, ombra a terra ed etichetta). 1 = nessuna correzione.
-   */
-  fit?: number;
 }
 
 export interface WorldConfig {
@@ -147,7 +133,6 @@ export const WORLDS: Record<PlayerLevel, WorldConfig> = {
         plate: 'radial-gradient(circle, #DBEAFE, #BAE6FD)',
         aura: '#7DD3FC',
         shadow: 'rgba(56, 189, 248, 0.45)',
-        fit: 1.15,
       },
       {
         id: 'ragazzo',
@@ -156,7 +141,6 @@ export const WORLDS: Record<PlayerLevel, WorldConfig> = {
         plate: 'radial-gradient(circle, #38BDF8, #0284C7)',
         aura: '#0EA5E9',
         shadow: 'rgba(14, 165, 233, 0.55)',
-        fit: 1.25,
       },
       {
         id: 'adulto',
@@ -165,7 +149,6 @@ export const WORLDS: Record<PlayerLevel, WorldConfig> = {
         plate: 'radial-gradient(circle, #0C4A6E, #082F49)',
         aura: '#FCD34D',
         shadow: 'rgba(245, 185, 33, 0.6)',
-        fit: 1.12,
       },
     ],
   },
@@ -260,9 +243,6 @@ export const WORLDS: Record<PlayerLevel, WorldConfig> = {
         plate: 'radial-gradient(circle, #BEF264, #84CC16)',
         aura: '#A3E635',
         shadow: 'rgba(132, 204, 22, 0.4)',
-        // Il piu' disteso dei nove (2.5:1): anche riscalato al massimo che la
-        // tela consente resta il piu' basso, quindi qui recupera il resto.
-        fit: 1.55,
       },
       {
         id: 'ragazzo',
@@ -271,7 +251,6 @@ export const WORLDS: Record<PlayerLevel, WorldConfig> = {
         plate: 'radial-gradient(circle, #4D7C0F, #365314)',
         aura: '#65A30D',
         shadow: 'rgba(101, 163, 13, 0.55)',
-        fit: 1.2,
       },
       {
         id: 'adulto',
@@ -280,7 +259,6 @@ export const WORLDS: Record<PlayerLevel, WorldConfig> = {
         plate: 'radial-gradient(circle, #1A2E05, #0C0A09)',
         aura: '#EF4444',
         shadow: 'rgba(239, 68, 68, 0.55)',
-        fit: 1.2,
       },
     ],
   },

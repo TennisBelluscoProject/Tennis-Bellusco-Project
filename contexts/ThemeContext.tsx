@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { THEME_STORAGE_KEY } from '@/lib/theme-script';
+import { THEME_STORAGE_KEY, syncThemeColorMeta } from '@/lib/theme-script';
 
 export type Theme = 'light' | 'dark';
 
@@ -96,6 +96,7 @@ function applyTheme(next: Theme) {
 
   root.classList.toggle('dark', next === 'dark');
   root.style.colorScheme = next;
+  syncThemeColorMeta(next);
 
   // Forza un reflow: garantisce che il browser applichi i nuovi colori
   // mentre le transizioni sono ancora spente.

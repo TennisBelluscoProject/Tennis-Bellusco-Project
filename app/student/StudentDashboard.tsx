@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/lib/hooks';
 import { Spinner } from '@/components/UI';
+import { AnimatedThemeToggler } from '@/components/ui/AnimatedThemeToggler';
 import { PlayerView } from './PlayerView';
 import { ProfilePage } from './ProfilePage';
 
@@ -39,7 +40,7 @@ export function StudentDashboard() {
       style={isMobile ? { height: 'var(--app-h, 100svh)' } : undefined}
     >
       <header
-        className="shrink-0 sm:sticky sm:top-0 sm:z-30 bg-white/98 backdrop-blur-lg border-b border-gray-100/80"
+        className="shrink-0 sm:sticky sm:top-0 sm:z-30 glass border-b border-border"
         style={{ paddingTop: 'var(--safe-top)' }}
       >
         <div className="max-w-7xl mx-auto page-gutter-x">
@@ -54,6 +55,15 @@ export function StudentDashboard() {
                 className="object-contain"
               />
             </div>
+
+            {/* L'interruttore chiaro/scuro mancava solo qui.
+
+                Ce l'hanno la barra del maestro da scrivania (components/Header)
+                e quella da telefono (app/coach/components/MobileHeader): la
+                scheda dell'allievo era l'unica schermata da cui il tema non si
+                poteva cambiare, e per un allievo e' proprio l'unica barra che
+                vede — quindi di fatto il tema scuro non era raggiungibile. */}
+            <AnimatedThemeToggler size={36} />
           </div>
         </div>
       </header>

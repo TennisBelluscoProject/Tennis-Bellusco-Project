@@ -105,16 +105,16 @@ export function DeleteFictitiousStudentDialog({ open, student, onClose, onDelete
         aria-modal="true"
         aria-labelledby="delete-fictitious-title"
       >
-        <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
-          <AlertTriangle size={24} strokeWidth={2} color="#EF4444" />
+        <div className="w-12 h-12 rounded-2xl bg-destructive-soft flex items-center justify-center mb-4">
+          <AlertTriangle size={24} strokeWidth={2} color="var(--destructive)" />
         </div>
 
-        <h3 id="delete-fictitious-title" className="text-lg font-bold text-gray-900 mb-1.5">
+        <h3 id="delete-fictitious-title" className="text-lg font-bold text-foreground mb-1.5">
           Eliminare definitivamente {soggetto}?
         </h3>
-        <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+        <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
           Stai per cancellare {isGroup ? 'il gruppo' : 'il profilo gestito di'}{' '}
-          <span className="font-semibold text-gray-700">{student.full_name}</span>.{' '}
+          <span className="font-semibold text-foreground">{student.full_name}</span>.{' '}
           {isGroup
             ? 'Verranno rimossi i suoi obiettivi, i percorsi attivati e l\u2019elenco dei partecipanti. Gli allievi che ne facevano parte NON vengono toccati.'
             : 'Verranno rimossi anche tutti i suoi obiettivi, risultati e dati associati.'}{' '}
@@ -122,10 +122,10 @@ export function DeleteFictitiousStudentDialog({ open, student, onClose, onDelete
           <span className="font-semibold text-[var(--club-red)]"> irreversibile</span>.
         </p>
 
-        <div className="bg-red-50/60 border border-red-100 rounded-xl px-4 py-3 mb-4">
-          <p className="text-[12px] text-red-800 leading-relaxed">
+        <div className="alert alert-error mb-4">
+          <p className="text-[12px] leading-relaxed">
             Per confermare, scrivi qui sotto:{' '}
-            <code className="font-mono font-semibold bg-white/70 px-1.5 py-0.5 rounded text-[11.5px] text-red-900">
+            <code className="font-mono font-semibold bg-[var(--card)] px-1.5 py-0.5 rounded text-[11.5px]">
               cancella {student.full_name}
             </code>
           </p>
@@ -142,11 +142,11 @@ export function DeleteFictitiousStudentDialog({ open, student, onClose, onDelete
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/15 focus:border-red-400 transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-400 mb-4"
+          className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-[var(--input-bg)] text-sm text-foreground placeholder:text-[var(--subtle-foreground)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--destructive)_25%,transparent)] focus:border-[var(--destructive)] transition-all duration-200 disabled:bg-muted disabled:text-[var(--subtle-foreground)] mb-4"
         />
 
         {error && (
-          <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100 mb-4">
+          <div className="bg-destructive-soft text-destructive text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--destructive)_24%,transparent)] mb-4">
             {error}
           </div>
         )}

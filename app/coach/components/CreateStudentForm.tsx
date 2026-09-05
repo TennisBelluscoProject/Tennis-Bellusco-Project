@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button, Input, Modal } from '@/components/UI';
 import type { Profile } from '@/lib/database.types';
+import { FitRankingSelect } from '@/components/FitRankingSelect';
 
 interface Props {
   open: boolean;
@@ -95,13 +96,13 @@ function CreateStudentFormBody({
   return (
     <Modal open={true} onClose={onClose} title="Aggiungi allievo">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-        <div className="bg-blue-50/60 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-2.5">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B3A5C" strokeWidth="2" className="shrink-0 mt-0.5">
+        <div className="alert alert-info">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="16" x2="12" y2="12" />
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
-          <p className="text-[12px] text-[var(--club-blue)] leading-relaxed">
+          <p className="text-[12px] leading-relaxed">
             Crea un profilo per un allievo che non ha email/password (es. minore di 10 anni).
             Potrai aggiungere obiettivi e risultati come per gli altri allievi.
           </p>
@@ -113,7 +114,7 @@ function CreateStudentFormBody({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+          <label className="text-[13px] font-semibold text-foreground tracking-[-0.01em]">
             Data di nascita
           </label>
           <input
@@ -122,21 +123,19 @@ function CreateStudentFormBody({
             onChange={(e) => setBirthDate(e.target.value)}
             min="1900-01-01"
             max={new Date().toISOString().slice(0, 10)}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm text-foreground placeholder:text-[var(--subtle-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+          <label className="text-[13px] font-semibold text-foreground tracking-[-0.01em]">
             Classifica FIT<span className="text-[var(--club-red)] ml-0.5">*</span>
           </label>
-          <input
-            type="text"
+          <FitRankingSelect
             value={unranked ? '' : ranking}
-            onChange={(e) => setRanking(e.target.value)}
-            placeholder={unranked ? 'Non classificato' : 'es. 3.5'}
+            onChange={setRanking}
             disabled={unranked}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-400"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-[var(--input-bg)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200 disabled:bg-muted disabled:text-[var(--subtle-foreground)]"
           />
         </div>
 
@@ -145,14 +144,14 @@ function CreateStudentFormBody({
             type="checkbox"
             checked={unranked}
             onChange={(e) => setUnranked(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-[var(--club-blue)] focus:ring-[var(--club-blue)]"
+            className="w-4 h-4 rounded border-[var(--border-strong)] text-[var(--club-blue)] focus:ring-[var(--club-blue)]"
           />
-          <span className="text-[13px] text-gray-600">Non classificato FIT</span>
+          <span className="text-[13px] text-muted-foreground">Non classificato FIT</span>
         </label>
 
         {unranked && (
           <div className="flex flex-col gap-1.5 -mt-1">
-            <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+            <label className="text-[13px] font-semibold text-foreground tracking-[-0.01em]">
               Livello tecnico<span className="text-[var(--club-red)] ml-0.5">*</span>
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -166,7 +165,7 @@ function CreateStudentFormBody({
                     className={`py-2 rounded-xl border text-[13px] font-semibold transition-all ${
                       active
                         ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)] shadow-sm'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                        : 'bg-card text-muted-foreground border-border hover:border-[var(--border-strong)]'
                     }`}
                   >
                     {opt}
@@ -178,7 +177,7 @@ function CreateStudentFormBody({
         )}
 
         {error && (
-          <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100 flex items-start gap-2.5">
+          <div className="bg-destructive-soft text-destructive text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--destructive)_24%,transparent)] flex items-start gap-2.5">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5">
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />

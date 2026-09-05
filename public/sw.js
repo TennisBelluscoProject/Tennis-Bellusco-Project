@@ -55,16 +55,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: cache-first
-  if (
-    url.pathname.startsWith('/_next/static/') ||
-    url.pathname.startsWith('/icons/') ||
-    url.pathname.endsWith('.css') ||
-    url.pathname.endsWith('.js') ||
-    url.pathname.endsWith('.png') ||
-    url.pathname.endsWith('.svg') ||
-    url.pathname.endsWith('.woff2')
-  ) {
+  // ─── File con impronta nel nome: prima la cache, e basta ───
+  //
+  // Tutto cio' che sta sotto /_next/static/ ha l'hash del contenuto nel nome:
+  // un file con quel nome non cambiera' MAI. Servirlo dalla cache senza
+  // nemmeno chiedere alla rete e' corretto per definizione, e una versione
+  // nuova arriva con un nome nuovo.
+  if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
@@ -75,6 +72,48 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         });
+      })
+    );
+    return;
+  }
+
+  // ─── File dal nome FISSO: si serve la copia, ma intanto si riscarica ───
+  //
+  // Loghi, icone, immagini dei percorsi: il nome non cambia quando cambia il
+  // contenuto. Con la sola cache-first di prima, la prima copia scaricata
+  // restava quella per SEMPRE — si poteva sostituire la mascotte di un mondo
+  // o il logo del club e chi aveva gia' aperto l'app una volta continuava a
+  // vedere la vecchia, senza modo di forzare l'aggiornamento se non
+  // svuotando i dati del sito.
+  //
+  // "Stale-while-revalidate": la risposta e' immediata come prima (nessuna
+  // attesa di rete), ma in sottofondo si rilegge dalla rete e si aggiorna la
+  // copia, cosi' al caricamento successivo compare la versione nuova.
+  if (
+    url.origin === self.location.origin &&
+    (url.pathname.startsWith('/icons/') ||
+      url.pathname.startsWith('/percorsi/') ||
+      url.pathname.endsWith('.css') ||
+      url.pathname.endsWith('.js') ||
+      url.pathname.endsWith('.png') ||
+      url.pathname.endsWith('.svg') ||
+      url.pathname.endsWith('.woff2'))
+  ) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        const fresh = fetch(event.request)
+          .then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+            return response;
+          })
+          // Offline: se avevamo una copia va bene lo stesso, il `|| fresh`
+          // qui sotto non viene nemmeno valutato.
+          .catch(() => cached);
+
+        return cached || fresh;
       })
     );
     return;

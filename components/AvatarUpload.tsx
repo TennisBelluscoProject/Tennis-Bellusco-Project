@@ -193,7 +193,7 @@ export function AvatarUpload({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className="text-[13px] font-semibold text-gray-500 hover:text-[var(--club-blue)] transition-colors disabled:opacity-50"
+        className="text-[13px] font-semibold text-muted-foreground hover:text-[var(--club-blue)] transition-colors disabled:opacity-50"
       >
         {uploading ? 'Caricamento...' : 'Modifica foto profilo'}
       </button>

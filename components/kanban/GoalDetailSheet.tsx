@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, CalendarDays, Check, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, Pencil, RotateCcw, Trash2, X } from 'lucide-react';
 import type { Goal, GoalStatus } from '@/lib/database.types';
 import { CATEGORY_CONFIG, STATUS_CONFIG, withAlpha } from '@/lib/constants';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { Dialog, ConfirmDialog } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
+import { Button, IconButton } from '@/components/ui/Button';
 import { Slider } from '@/components/ui/Field';
 import { describeDeadline, deadlineColor, nextStatus, prevStatus } from './goal-utils';
 
@@ -43,7 +43,9 @@ export function GoalDetailSheet({
 }: GoalDetailSheetProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Il cursore si muove sotto il dito e scrive sul database solo quando lo si
-  // lascia: mandare una richiesta a ogni pixel lo farebbe scattare.
+  // lascia: mandare una richiesta a ogni scatto lo farebbe singhiozzare, e le
+  // risposte potrebbero anche tornare in ordine sparso. Da qui la copia
+  // locale, che segue il dito senza aspettare nessuno.
   const [draftProgress, setDraftProgress] = useState(0);
 
   useEffect(() => {
@@ -65,22 +67,40 @@ export function GoalDetailSheet({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} size="md">
-        <div className="pt-1">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="badge" style={{ color: cat.color, backgroundColor: cat.bg }}>
-              <CategoryIcon name={cat.icon} size={11} />
-              {cat.label}
-            </span>
-            <span
-              className="badge"
-              style={{ color: STATUS_CONFIG[goal.status].color, backgroundColor: STATUS_CONFIG[goal.status].soft }}
-            >
-              {STATUS_CONFIG[goal.status].labelIt}
-            </span>
-            {goal.kids_objective_key && (
-              <span className="badge bg-[var(--secondary)] text-muted-foreground">12 passi</span>
-            )}
+      {/* `hideClose`: la X la mette questo foglio, non il Dialog.
+
+          Il Dialog disegna la propria X in una fascia sua, in cima. Qui pero'
+          non c'e' nessun titolo da metterle accanto, quindi quella fascia
+          restava una riga vuota con una X appesa a destra, e le pastiglie
+          della categoria cominciavano solo sotto: due righe per una sola
+          informazione, e la X che non sembrava appartenere a niente. Messa in
+          fondo alla riga delle pastiglie occupa spazio gia' speso e si allinea
+          a qualcosa. */}
+      <Dialog open={open} onClose={onClose} size="md" hideClose>
+        <div className="pt-4">
+          <div className="flex items-start gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+              <span className="badge" style={{ color: cat.color, backgroundColor: cat.bg }}>
+                <CategoryIcon name={cat.icon} size={11} />
+                {cat.label}
+              </span>
+              <span
+                className="badge"
+                style={{ color: STATUS_CONFIG[goal.status].color, backgroundColor: STATUS_CONFIG[goal.status].soft }}
+              >
+                {STATUS_CONFIG[goal.status].labelIt}
+              </span>
+              {goal.kids_objective_key && (
+                <span className="badge bg-[var(--secondary)] text-muted-foreground">12 passi</span>
+              )}
+            </div>
+            <IconButton
+              label="Chiudi"
+              size={30}
+              onClick={onClose}
+              icon={<X size={16} />}
+              className="-mr-1 -mt-1 shrink-0"
+            />
           </div>
 
           <h2 className="text-[19px] font-bold tracking-[-0.025em] leading-snug">{goal.title}</h2>
@@ -108,23 +128,28 @@ export function GoalDetailSheet({
 
           {goal.status === 'in_progress' && (
             <div className="mt-5 p-3.5 rounded-[var(--radius-lg)] bg-muted">
+              {/* Nessun pulsante di conferma: il valore si salva da se'
+                  appena si lascia il cursore.
+
+                  Il pulsante compariva solo dopo aver mosso il cursore, cioe'
+                  spuntava sotto al dito proprio mentre si stava guardando
+                  altrove, e spostava il resto del foglio verso il basso. Ma
+                  soprattutto chiedeva di confermare una cosa che non ha
+                  bisogno di conferma: la percentuale e' gia' visibile mentre
+                  si sceglie, non c'e' niente da rileggere prima di accettarla,
+                  e il ripensamento e' semplicemente rimuovere il cursore.
+
+                  `onCommit` scatta alla fine del gesto e non a ogni scatto:
+                  una sola scrittura per spostamento (vedi Slider). */}
               <Slider
                 label="A che punto sei"
                 value={draftProgress}
                 color={cat.color}
                 onChange={setDraftProgress}
+                onCommit={(v) => {
+                  if (v !== goal.progress) onProgressChange(goal.id, v);
+                }}
               />
-              {draftProgress !== goal.progress && (
-                <div className="flex justify-end mt-2.5">
-                  <Button
-                    size="sm"
-                    onClick={() => onProgressChange(goal.id, draftProgress)}
-                    icon={<Check size={14} strokeWidth={3} />}
-                  >
-                    Salva progresso
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
@@ -146,10 +171,24 @@ export function GoalDetailSheet({
           )}
 
           {/* Spostamenti: prima quello in avanti, che e' il gesto di ogni
-              giorno; il ritorno indietro sta accanto ma piu' spento. */}
-          <div className="flex flex-wrap gap-2 mt-6">
+              giorno; il ritorno indietro sta accanto ma piu' spento.
+
+              I due pulsanti occupano tutta la riga, in parti uguali. Prima
+              erano larghi quanto la loro etichetta e appoggiati a sinistra:
+              siccome le etichette cambiano con lo stato dell'obiettivo
+              ("Riapri" e' corto, "Torna in In programma" e' lungo), la coppia
+              finiva ogni volta a una larghezza diversa e lasciava un vuoto
+              irregolare sulla destra del foglio. Nessun altro dialogo dell'app
+              fa cosi': quello della tappa (components/PathTreeView.tsx) usa da
+              sempre `block`.
+
+              In colonna sotto i 640px, perche' li' il foglio e' stretto e due
+              etichette lunghe affiancate si ridurrebbero a due francobolli
+              proprio dove si tocca col pollice. */}
+          <div className="flex flex-col sm:flex-row gap-2 mt-6">
             {next && (
               <Button
+                className="sm:flex-1"
                 variant={next === 'completed' ? 'success' : 'primary'}
                 onClick={() => move(next)}
                 icon={
@@ -165,6 +204,7 @@ export function GoalDetailSheet({
             )}
             {back && (
               <Button
+                className="sm:flex-1"
                 variant="outline"
                 onClick={() => move(back)}
                 icon={<RotateCcw size={14} strokeWidth={2.4} />}

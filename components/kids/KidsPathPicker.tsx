@@ -144,14 +144,18 @@ export function KidsPathPicker({
             key={level}
             className="group rounded-[var(--radius-2xl)] overflow-hidden bg-card transition-shadow duration-300"
             style={{
-              // Il percorso attivo e' l'unico con il bordo colorato e l'alone
-              // del suo mondo: gli altri due restano fogli neutri, cosi' la
-              // pagina ha un solo centro di gravita'.
+              // Il percorso attivo e' l'unico con il bordo colorato: gli altri
+              // due restano fogli neutri, cosi' la pagina ha un solo centro di
+              // gravita'.
+              //
+              // L'alone tinto che stava qui e' stato tolto. Usciva dalla
+              // scheda di trentaquattro punti, e la scheda vive dentro un
+              // contenitore di scorrimento che ritaglia sul proprio padding
+              // box: sul bordo destro l'alone si troncava in una riga dritta.
+              // Il bordo colorato e il bollino ATTIVO dicono gia' qual e' il
+              // percorso in corso, e restano dentro la sagoma.
               border: `1.5px solid ${stato === 'attivo' ? `${c.accent}80` : 'var(--border-soft)'}`,
-              boxShadow:
-                stato === 'attivo'
-                  ? `0 14px 34px ${c.accent}26, var(--shadow-sm)`
-                  : 'var(--shadow-sm)',
+              boxShadow: stato === 'attivo' ? 'var(--shadow-md)' : 'var(--shadow-sm)',
             }}
           >
             <button
@@ -204,6 +208,19 @@ export function KidsPathPicker({
                   style={{
                     height: 72,
                     background: 'linear-gradient(to top, rgba(9,16,24,0.36), transparent)',
+                  }}
+                />
+                {/* Velo a sinistra, gemello di quello in basso. Qui la fascia
+                    e' molto piu' LARGA che alta, quindi il colore chiaro da
+                    cui parte il gradiente del mondo occupa tutta la meta' in
+                    cui stanno nome e sottotitolo: il bianco su bianco-azzurro
+                    era il punto meno leggibile della pagina. */}
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 pointer-events-none"
+                  style={{
+                    width: '62%',
+                    background: 'linear-gradient(to right, rgba(9,16,24,0.44), transparent)',
                   }}
                 />
 

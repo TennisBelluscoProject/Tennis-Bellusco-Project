@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Button, Input } from '@/components/UI';
+import { FitRankingSelect } from '@/components/FitRankingSelect';
 
 type Mode = 'login' | 'register' | 'verify-email' | 'forgot';
 
@@ -190,23 +191,23 @@ export function LoginPage() {
           />
           <div className="flex justify-center mt-3 mb-4 gap-1">
             <div className="w-8 h-[3px] rounded-full bg-[var(--club-red)]" />
-            <div className="w-8 h-[3px] rounded-full bg-gray-200" />
+            <div className="w-8 h-[3px] rounded-full bg-[var(--secondary-hover)]" />
             <div className="w-8 h-[3px] rounded-full bg-[var(--club-blue)]" />
           </div>
-          <p className="text-lg font-semibold text-gray-900 tracking-[-0.01em]" style={{ fontFamily: 'var(--font-display)' }}>
+          <p className="text-lg font-semibold text-foreground tracking-[-0.01em]" style={{ fontFamily: 'var(--font-display)' }}>
             {getTitle()}
           </p>
-          <p className="text-[13px] text-gray-500 mt-1">{getSubtitle()}</p>
+          <p className="text-[13px] text-muted-foreground mt-1">{getSubtitle()}</p>
         </div>
 
         {/* Mode toggle (login / register only) */}
         {(mode === 'login' || mode === 'register') && (
-          <div className="flex gap-1 p-1 bg-gray-100/80 rounded-xl mb-5">
+          <div className="flex gap-1 p-1 bg-muted rounded-xl mb-5">
             <button
               type="button"
               onClick={() => switchMode('login')}
               className={`flex-1 text-[13px] font-semibold py-2 rounded-lg transition-all duration-200 ${
-                mode === 'login' ? 'bg-white text-[var(--club-blue)] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                mode === 'login' ? 'bg-card text-[var(--club-blue)] shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Accedi
@@ -215,7 +216,7 @@ export function LoginPage() {
               type="button"
               onClick={() => switchMode('register')}
               className={`flex-1 text-[13px] font-semibold py-2 rounded-lg transition-all duration-200 ${
-                mode === 'register' ? 'bg-white text-[var(--club-blue)] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                mode === 'register' ? 'bg-card text-[var(--club-blue)] shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Registrati
@@ -251,7 +252,7 @@ export function LoginPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+                <label className="text-[13px] font-semibold text-foreground tracking-[-0.01em]">
                   Data di nascita<span className="text-[var(--club-red)] ml-0.5">*</span>
                 </label>
                 <input
@@ -261,21 +262,19 @@ export function LoginPage() {
                   min="1900-01-01"
                   max={new Date().toISOString().slice(0, 10)}
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm text-foreground placeholder:text-[var(--subtle-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+                <label className="text-[13px] font-semibold text-foreground tracking-[-0.01em]">
                   Classifica FIT<span className="text-[var(--club-red)] ml-0.5">*</span>
                 </label>
-                <input
-                  type="text"
+                <FitRankingSelect
                   value={unranked ? '' : ranking}
-                  onChange={(e) => setRanking(e.target.value)}
-                  placeholder={unranked ? 'Non classificato' : 'es. 3.5'}
+                  onChange={setRanking}
                   disabled={unranked}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-400"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-[var(--input-bg)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200 disabled:bg-muted disabled:text-[var(--subtle-foreground)]"
                 />
               </div>
 
@@ -284,14 +283,14 @@ export function LoginPage() {
                   type="checkbox"
                   checked={unranked}
                   onChange={(e) => setUnranked(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-[var(--club-blue)] focus:ring-[var(--club-blue)]"
+                  className="w-4 h-4 rounded border-[var(--border-strong)] text-[var(--club-blue)] focus:ring-[var(--club-blue)]"
                 />
-                <span className="text-[13px] text-gray-600">Non sono classificato FIT</span>
+                <span className="text-[13px] text-muted-foreground">Non sono classificato FIT</span>
               </label>
 
               {unranked && (
                 <div className="flex flex-col gap-1.5 -mt-1">
-                  <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em]">
+                  <label className="text-[13px] font-semibold text-foreground tracking-[-0.01em]">
                     Livello tecnico<span className="text-[var(--club-red)] ml-0.5">*</span>
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -305,7 +304,7 @@ export function LoginPage() {
                           className={`py-2 rounded-xl border text-[13px] font-semibold transition-all ${
                             active
                               ? 'bg-[var(--club-blue)] text-white border-[var(--club-blue)] shadow-sm'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                              : 'bg-card text-muted-foreground border-border hover:border-[var(--border-strong)]'
                           }`}
                         >
                           {opt}
@@ -323,13 +322,13 @@ export function LoginPage() {
                 <Input label="Conferma password" type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="Ripeti la password" required />
               </div>
 
-              <div className="bg-blue-50/60 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-2.5">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B3A5C" strokeWidth="2" className="shrink-0 mt-0.5">
+              <div className="alert alert-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="16" x2="12" y2="12" />
                   <line x1="12" y1="8" x2="12.01" y2="8" />
                 </svg>
-                <p className="text-[12px] text-[var(--club-blue)] leading-relaxed">
+                <p className="text-[12px] leading-relaxed">
                   Riceverai un codice a 6 cifre via email per verificare l’account. Dopo la verifica, l’accesso sarà sbloccato dal maestro.
                 </p>
               </div>
@@ -351,13 +350,13 @@ export function LoginPage() {
                     <polyline points="22,6 12,13 2,6" />
                   </svg>
                 </div>
-                <p className="text-[13px] text-gray-600 leading-relaxed">
-                  Abbiamo inviato un codice a <strong className="text-gray-900 break-all">{email}</strong>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">
+                  Abbiamo inviato un codice a <strong className="text-foreground break-all">{email}</strong>
                 </p>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-gray-700 tracking-[-0.01em] text-center">
+                <label className="text-[13px] font-semibold text-foreground tracking-[-0.01em] text-center">
                   Codice di verifica
                 </label>
                 <input
@@ -369,7 +368,7 @@ export function LoginPage() {
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="000000"
                   required
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-center text-2xl font-bold tracking-[0.4em] text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200"
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-card text-center text-2xl font-bold tracking-[0.4em] text-foreground placeholder:text-[var(--subtle-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)]/10 focus:border-[var(--club-blue)] transition-all duration-200"
                 />
               </div>
 
@@ -384,7 +383,7 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => switchMode('register')}
-                  className="text-gray-500 hover:text-gray-700 font-medium"
+                  className="text-muted-foreground hover:text-foreground font-medium"
                 >
                   ← Indietro
                 </button>
@@ -420,7 +419,7 @@ export function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-[11px] text-gray-400 mt-6 tracking-wide">
+        <p className="text-center text-[11px] text-[var(--subtle-foreground)] mt-6 tracking-wide">
           EST. BELLUSCO · LOMBARDIA
         </p>
       </div>
@@ -430,7 +429,7 @@ export function LoginPage() {
 
 function ErrorBox({ message }: { message: string }) {
   return (
-    <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100 flex items-start gap-2.5">
+    <div className="bg-destructive-soft text-destructive text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--destructive)_24%,transparent)] flex items-start gap-2.5">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5">
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="8" x2="12" y2="12" />
@@ -443,7 +442,7 @@ function ErrorBox({ message }: { message: string }) {
 
 function SuccessBox({ message }: { message: string }) {
   return (
-    <div className="bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100 flex items-start gap-2.5">
+    <div className="bg-success-soft text-success text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--success)_24%,transparent)] flex items-start gap-2.5">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5">
         <polyline points="20 6 9 17 4 12" />
       </svg>

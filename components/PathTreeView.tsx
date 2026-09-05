@@ -39,7 +39,7 @@ import { CATEGORY_CONFIG, withAlpha } from '@/lib/constants';
 import { computePathState, type NodeId } from '@/lib/paths/topo';
 import { cn } from '@/lib/utils';
 import { Badge, ProgressBar } from './ui/Feedback';
-import { Button } from './ui/Button';
+import { Button, IconButton } from './ui/Button';
 import { Dialog } from './ui/Dialog';
 import { Slider } from './ui/Field';
 import { CategoryIcon } from './CategoryIcon';
@@ -501,11 +501,26 @@ function NodeSheet({
   const canAct = !isPreview && !!node.goalId;
 
   return (
-    <Dialog open={open} onClose={onClose} size="sm">
-      <div className="pt-1">
-        <Badge color={cat.color} bg={cat.bg}>
-          <CategoryIcon name={cat.icon} size={12} /> {cat.label}
-        </Badge>
+    // `hideClose` e la X in linea: senza titolo, la fascia del Dialog restava
+    // una riga vuota con la sola X appesa a destra e la pastiglia della
+    // categoria cominciava solo sotto. Stessa scelta fatta in
+    // components/kanban/GoalDetailSheet.tsx.
+    <Dialog open={open} onClose={onClose} size="sm" hideClose>
+      <div className="pt-4">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <Badge color={cat.color} bg={cat.bg}>
+              <CategoryIcon name={cat.icon} size={12} /> {cat.label}
+            </Badge>
+          </div>
+          <IconButton
+            label="Chiudi"
+            size={30}
+            onClick={onClose}
+            icon={<X size={16} />}
+            className="-mr-1 -mt-1 shrink-0"
+          />
+        </div>
 
         <h3 className="text-[18px] font-bold tracking-[-0.025em] mt-2.5 leading-snug">
           {node.title}
@@ -532,13 +547,21 @@ function NodeSheet({
         {visual === 'in_progress' && (
           <div className="mt-4 p-3.5 rounded-[var(--radius-lg)] bg-muted">
             {canAct ? (
+              // La scrittura sta su `onCommit`, non su `onChange`.
+              //
+              // Prima ogni scatto del cursore faceva partire un salvataggio:
+              // trascinare da zero a cento voleva dire venti richieste in
+              // fila, e siccome `handlePathProgress` aggiorna l'albero DOPO
+              // aver atteso la risposta, il cursore arrancava dietro al dito.
+              // Ora sotto il dito si muove solo la copia locale e la
+              // scrittura parte una volta sola, quando si lascia.
               <Slider
                 label="A che punto sei"
                 value={localProgress}
                 color={cat.color}
-                onChange={(v) => {
-                  setLocalProgress(v);
-                  onProgress?.(node.goalId!, v);
+                onChange={setLocalProgress}
+                onCommit={(v) => {
+                  if (v !== (node.progress ?? 0)) onProgress?.(node.goalId!, v);
                 }}
               />
             ) : (

@@ -2,8 +2,10 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   useRef,
   ReactNode,
@@ -42,9 +44,17 @@ export interface SignUpInput {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Le tracce dell'accesso servono a chi sviluppa, non a chi usa l'app: in
+ * produzione stampavano id utente, email e ruolo nella console del browser —
+ * dati personali lasciati in chiaro a chiunque apra gli strumenti, e rumore
+ * su ogni cambio di scheda. Restano attive solo fuori dalla build finale.
+ */
+const debug = process.env.NODE_ENV !== 'production';
+
 async function fetchProfile(userId: string): Promise<Profile | null> {
   try {
-    console.log('[Auth] Fetching profile for', userId);
+    if (debug) console.log('[Auth] Fetching profile for', userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -56,7 +66,7 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
       return null;
     }
 
-    console.log('[Auth] Profile loaded:', data?.email, data?.role);
+    if (debug) console.log('[Auth] Profile loaded:', data?.email, data?.role);
     return data as Profile;
   } catch (err) {
     console.error('[Auth] Profile exception:', err);
@@ -71,6 +81,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
+  // Lo stesso valore di `loading`, ma leggibile da dentro una chiusura creata
+  // una volta sola. Vedi la rete di sicurezza a 12 secondi piu' sotto.
+  const loadingRef = useRef(true);
+  const stopLoading = useCallback(() => {
+    loadingRef.current = false;
+    setLoading(false);
+  }, []);
+  const startLoading = useCallback(() => {
+    loadingRef.current = true;
+    setLoading(true);
+  }, []);
+
   useEffect(() => {
     mountedRef.current = true;
 
@@ -83,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, newSession) => {
-      console.log('[Auth] Event:', event, newSession?.user?.email ?? 'no user');
+      if (debug) console.log('[Auth] Event:', event, newSession?.user?.email ?? 'no user');
 
       if (!mountedRef.current) return;
 
@@ -91,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setProfile(null);
         setSession(null);
-        setLoading(false);
+        stopLoading();
         return;
       }
 
@@ -107,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const p = await fetchProfile(userId);
           if (mountedRef.current) {
             setProfile(p);
-            setLoading(false);
+            stopLoading();
           }
         }, 0);
         return;
@@ -117,14 +139,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setProfile(null);
       setSession(null);
-      setLoading(false);
+      stopLoading();
     });
 
-    // Safety timeout: if no auth event fires at all (very rare)
+    // Rete di sicurezza: se non arriva NESSUN evento di autenticazione.
+    //
+    // La condizione leggeva `loading` di stato. Questo effetto pero' gira una
+    // volta sola (dipendenze vuote), quindi quella chiusura resta legata al
+    // primo valore — `true` — per sempre: il ramo era percio' vero SEMPRE,
+    // anche quando l'accesso si era risolto in mezzo secondo. Risultato: a
+    // ogni sessione, dodici secondi dopo l'avvio, compariva in console un
+    // avviso di guasto che guasto non era, e si chiamava `setLoading(false)`
+    // su uno stato gia' falso. Il ref, a differenza della variabile di stato,
+    // e' sempre il valore corrente.
     const timeout = setTimeout(() => {
-      if (mountedRef.current && loading) {
-        console.warn('[Auth] Timeout: no auth event in 12s, forcing login');
-        setLoading(false);
+      if (mountedRef.current && loadingRef.current) {
+        console.warn('[Auth] Timeout: nessun evento di autenticazione in 12s');
+        stopLoading();
       }
     }, 12000);
 
@@ -133,17 +164,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeout);
       subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stopLoading]);
 
-  const signIn = async (email: string, password: string) => {
-    setLoading(true);
+  const signIn = useCallback(async (email: string, password: string) => {
+    startLoading();
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) {
-      setLoading(false);
+      stopLoading();
       // Friendlier message for unconfirmed email
       if (/email not confirmed/i.test(error.message)) {
         return {
@@ -159,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const p = await fetchProfile(data.user.id);
       if (p && p.role === 'allievo' && p.approval_status !== 'approved') {
         await supabase.auth.signOut({ scope: 'local' });
-        setLoading(false);
+        stopLoading();
         if (p.approval_status === 'rejected') {
           return {
             error:
@@ -175,9 +205,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // onAuthStateChange(SIGNED_IN) will fire and handle profile loading
     return { error: null };
-  };
+  }, [startLoading, stopLoading]);
 
-  const signUp = async (input: SignUpInput) => {
+  const signUp = useCallback(async (input: SignUpInput) => {
     const { firstName, lastName, birthDate, ranking, level, email, password } = input;
     const cleanFirst = firstName.trim();
     const cleanLast = lastName.trim();
@@ -204,9 +234,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (signUpErr) return { error: signUpErr.message };
     return { error: null };
-  };
+  }, []);
 
-  const verifySignupOtp = async (email: string, token: string) => {
+  const verifySignupOtp = useCallback(async (email: string, token: string) => {
     const { error } = await supabase.auth.verifyOtp({
       email,
       token,
@@ -214,9 +244,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (error) return { error: error.message };
     return { error: null };
-  };
+  }, []);
 
-  const resendSignupOtp = async (email: string) => {
+  const resendSignupOtp = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
@@ -226,41 +256,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (error) return { error: error.message };
     return { error: null };
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut({ scope: 'local' });
     // onAuthStateChange(SIGNED_OUT) handles cleanup
-  };
+  }, []);
 
-  const refreshProfile = async () => {
-    if (user) {
-      const p = await fetchProfile(user.id);
-      if (mountedRef.current) setProfile(p);
-    }
-  };
+  // Legata all'id e non all'oggetto utente: `TOKEN_REFRESHED` consegna un
+  // `user` nuovo di zecca con lo stesso id, e senza questo dettaglio la
+  // funzione cambierebbe identita' a ogni rinnovo del token, disfacendo la
+  // memoizzazione qui sotto.
+  const userId = user?.id ?? null;
+  const refreshProfile = useCallback(async () => {
+    if (!userId) return;
+    const p = await fetchProfile(userId);
+    if (mountedRef.current) setProfile(p);
+  }, [userId]);
 
   const isCoach = profile?.role === 'maestro';
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        session,
-        loading,
-        isCoach,
-        signIn,
-        signUp,
-        verifySignupOtp,
-        resendSignupOtp,
-        signOut,
-        refreshProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  /**
+   * L'oggetto del contesto va MEMOIZZATO.
+   *
+   * Prima era una graffa scritta in linea nella JSX: un oggetto nuovo a ogni
+   * render del provider, quindi ogni consumatore di `useAuth()` — le due
+   * dashboard, PlayerView, l'intestazione, il profilo — si ridisegnava anche
+   * quando nessuno dei valori era cambiato. E i render del provider non sono
+   * rari: supabase-js emette `TOKEN_REFRESHED` al rinnovo del token e al
+   * ritorno sulla scheda, e ognuno di quegli eventi chiama tre setState. Il
+   * risultato era che tornando sull'app dopo averla lasciata in secondo piano
+   * si ridisegnava tutto l'albero per nulla — lo scatto che si notava
+   * rientrando in una schermata.
+   */
+  const value = useMemo(
+    () => ({
+      user,
+      profile,
+      session,
+      loading,
+      isCoach,
+      signIn,
+      signUp,
+      verifySignupOtp,
+      resendSignupOtp,
+      signOut,
+      refreshProfile,
+    }),
+    [
+      user,
+      profile,
+      session,
+      loading,
+      isCoach,
+      signIn,
+      signUp,
+      verifySignupOtp,
+      resendSignupOtp,
+      signOut,
+      refreshProfile,
+    ]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

@@ -80,7 +80,7 @@ export function PathManager({ coachId }: Props) {
   return (
     <div className={`flex flex-col h-full min-h-0 ${mobilePad}`}>
       <div className="shrink-0 flex items-center justify-between mb-3">
-        <p className="text-[12px] text-gray-500">
+        <p className="text-[12px] text-muted-foreground">
           Crea percorsi a tappe e attivali per allievi o gruppi.
         </p>
         <Button
@@ -162,7 +162,7 @@ function PathCard({
   return (
     <div className="card p-4 flex flex-col gap-2 animate-fade-in">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-bold text-gray-900 tracking-[-0.01em] min-w-0">{path.title}</h3>
+        <h3 className="text-sm font-bold text-foreground tracking-[-0.01em] min-w-0">{path.title}</h3>
         <span
           className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold text-white"
           style={{ backgroundColor: 'var(--club-red)' }}
@@ -171,14 +171,14 @@ function PathCard({
         </span>
       </div>
       {path.description && (
-        <p className="text-[12px] text-gray-500 line-clamp-2 leading-relaxed">{path.description}</p>
+        <p className="text-[12px] text-muted-foreground line-clamp-2 leading-relaxed">{path.description}</p>
       )}
-      <div className="flex items-center gap-2 mt-1 pt-2 border-t border-gray-100">
+      <div className="flex items-center gap-2 mt-1 pt-2 border-t border-[var(--border-soft)]">
         <Button variant="secondary" size="sm" onClick={onActivate}>Attiva</Button>
-        <button onClick={onEdit} className="text-[12px] font-semibold text-gray-500 hover:text-[var(--club-blue)] px-2 py-1">
+        <button onClick={onEdit} className="text-[12px] font-semibold text-muted-foreground hover:text-[var(--club-blue)] px-2 py-1">
           Modifica
         </button>
-        <button onClick={onDelete} className="ml-auto text-gray-300 hover:text-red-500 transition-colors p-1" aria-label="Elimina percorso">
+        <button onClick={onDelete} className="ml-auto text-[var(--subtle-foreground)] hover:text-destructive transition-colors p-1" aria-label="Elimina percorso">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="3 6 5 6 21 6" />
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -256,17 +256,17 @@ function ActivateModal({ path, onClose }: { path: Path; onClose: () => void }) {
           {loading ? (
             <div className="flex justify-center py-8"><Spinner /></div>
           ) : filtered.length === 0 && filteredGroups.length === 0 ? (
-            <p className="text-[13px] text-gray-400 text-center py-6">Nessun risultato.</p>
+            <p className="text-[13px] text-[var(--subtle-foreground)] text-center py-6">Nessun risultato.</p>
           ) : (
             <>
             {filteredGroups.length > 0 && (
               <>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 px-1 pt-1">Gruppi</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--subtle-foreground)] px-1 pt-1">Gruppi</p>
                 {filteredGroups.map((g) => {
                   const isActive = activeIds.has(g.id);
                   return (
-                    <div key={g.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-gray-100">
-                      <span className="text-[13px] font-semibold text-gray-800 flex items-center gap-2 min-w-0">
+                    <div key={g.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-[var(--border-soft)]">
+                      <span className="text-[13px] font-semibold text-foreground flex items-center gap-2 min-w-0">
                         <span className="truncate">{g.full_name}</span>
                         {isActive && (
                           <span className="shrink-0 text-[10px] font-bold text-[var(--success)] uppercase tracking-wider">Attivo</span>
@@ -284,15 +284,15 @@ function ActivateModal({ path, onClose }: { path: Path; onClose: () => void }) {
                   );
                 })}
                 {filtered.length > 0 && (
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 px-1 pt-2">Allievi</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--subtle-foreground)] px-1 pt-2">Allievi</p>
                 )}
               </>
             )}
             {filtered.map((s) => {
               const isActive = activeIds.has(s.id);
               return (
-                <div key={s.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-gray-100">
-                  <span className="text-[13px] font-semibold text-gray-800 flex items-center gap-2 min-w-0">
+                <div key={s.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-[var(--border-soft)]">
+                  <span className="text-[13px] font-semibold text-foreground flex items-center gap-2 min-w-0">
                     <span className="truncate">{s.full_name}</span>
                     {isActive && (
                       <span className="shrink-0 text-[10px] font-bold text-[var(--success)] uppercase tracking-wider">Attivo</span>
@@ -312,10 +312,10 @@ function ActivateModal({ path, onClose }: { path: Path; onClose: () => void }) {
             </>
           )}
         </div>
-        <p className="text-[11px] text-gray-400 leading-relaxed">
+        <p className="text-[11px] text-[var(--subtle-foreground)] leading-relaxed">
           <b>Attiva</b>: le tappe del percorso diventano obiettivi dell&apos;allievo o del gruppo (quelle sbloccate compaiono anche nel Kanban). <b>Disattiva</b>: rimuove il percorso e <b>elimina</b> tutti gli obiettivi creati dalle sue tappe; gli obiettivi liberi non vengono toccati.
         </p>
-        {error && <p className="text-[12px] font-medium text-red-600">{error}</p>}
+        {error && <p className="text-[12px] font-medium text-destructive">{error}</p>}
       </div>
     </Modal>
   );

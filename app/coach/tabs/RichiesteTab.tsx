@@ -18,16 +18,16 @@ export function RichiesteTab({ loading, pending, actingOn, onApprove, onReject }
     <div className="flex flex-col h-full animate-fade-in">
       <div className="px-4 pt-5 pb-4 shrink-0">
         <h2
-          className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
+          className="text-2xl font-bold text-foreground tracking-[-0.02em]"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Approvazioni
         </h2>
-        <p className="text-[12px] text-gray-500 mt-0.5 mb-5">
+        <p className="text-[12px] text-muted-foreground mt-0.5 mb-5">
           {pending.length} in attesa
         </p>
 
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+        <p className="text-[10px] font-bold text-[var(--subtle-foreground)] uppercase tracking-wider">
           In attesa di approvazione
         </p>
       </div>

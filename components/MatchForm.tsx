@@ -103,7 +103,7 @@ export function MatchForm({ open, onClose, onSave, match }: MatchFormProps) {
 
         <Textarea label="Note" value={notes} onChange={setNotes} placeholder="Annotazioni sul match..." />
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex gap-3 justify-end pt-2">
           <Button variant="ghost" onClick={onClose}>Annulla</Button>

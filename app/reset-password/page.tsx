@@ -71,15 +71,15 @@ export default function ResetPasswordPage() {
           >
             Nuova Password
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Inserisci la tua nuova password
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-card rounded-2xl border border-[var(--border-soft)] shadow-sm p-6">
           {success ? (
             <div className="text-center">
-              <div className="bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100 mb-4">
+              <div className="bg-success-soft text-success text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--success)_24%,transparent)] mb-4">
                 Password aggiornata con successo!
               </div>
               <Link
@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-foreground">
                   Nuova password
                   <span className="text-[var(--club-red)] ml-0.5">*</span>
                 </label>
@@ -103,12 +103,12 @@ export default function ResetPasswordPage() {
                   placeholder="Minimo 6 caratteri"
                   required
                   disabled={!sessionReady}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-foreground">
                   Conferma password
                   <span className="text-[var(--club-red)] ml-0.5">*</span>
                 </label>
@@ -119,12 +119,12 @@ export default function ResetPasswordPage() {
                   placeholder="Ripeti la password"
                   required
                   disabled={!sessionReady}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
                 />
               </div>
 
               {error && (
-                <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100">
+                <div className="bg-destructive-soft text-destructive text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--destructive)_24%,transparent)]">
                   {error}
                 </div>
               )}
@@ -164,7 +164,7 @@ export default function ResetPasswordPage() {
         {/* Footer stripe */}
         <div className="flex justify-center mt-6 gap-2">
           <div className="w-12 h-1 rounded-full bg-[var(--club-red)]" />
-          <div className="w-12 h-1 rounded-full bg-white border border-gray-200" />
+          <div className="w-12 h-1 rounded-full bg-card border border-border" />
           <div className="w-12 h-1 rounded-full bg-[var(--club-blue)]" />
         </div>
       </div>

@@ -1054,13 +1054,13 @@ function NodeSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-[2px]" />
       <div
-        className="relative w-full max-w-[520px] bg-white rounded-t-3xl p-5 pb-8 animate-slide-up"
+        className="relative w-full max-w-[520px] bg-[var(--popover)] text-[var(--popover-foreground)] rounded-t-3xl p-5 pb-8 animate-slide-up"
         style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto w-10 h-1 rounded-full bg-gray-200 mb-4" />
+        <div className="mx-auto w-10 h-1 rounded-full bg-[var(--border-strong)] mb-4" />
 
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <span
@@ -1074,21 +1074,21 @@ function NodeSheet({
           </Badge>
         </div>
         <h3
-          className="text-lg font-bold text-gray-900 tracking-[-0.015em] mb-1"
+          className="text-lg font-bold text-foreground tracking-[-0.015em] mb-1"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           {node.title}
         </h3>
         {node.description && (
-          <p className="text-sm text-gray-500 leading-relaxed mb-4">{node.description}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-4">{node.description}</p>
         )}
 
         {visual === 'locked' && (
-          <div className="bg-gray-50 rounded-xl p-3 mb-4">
-            <p className="text-[12px] font-bold text-gray-600 mb-1.5 flex items-center gap-1.5">
-              <LockIcon size={13} color="#4B5563" /> Per sbloccare, completa prima:
+          <div className="bg-muted rounded-xl p-3 mb-4">
+            <p className="text-[12px] font-bold text-muted-foreground mb-1.5 flex items-center gap-1.5">
+              <LockIcon size={13} /> Per sbloccare, completa prima:
             </p>
-            <ul className="text-[13px] text-gray-700 list-disc pl-5 space-y-0.5">
+            <ul className="text-[13px] text-foreground list-disc pl-5 space-y-0.5">
               {blockedBy.map((t, i) => (
                 <li key={i}>{t}</li>
               ))}
@@ -1099,22 +1099,36 @@ function NodeSheet({
         {visual === 'in_progress' && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[12px] font-medium text-gray-500">Progresso</span>
+              <span className="text-[12px] font-medium text-muted-foreground">Progresso</span>
               <span className="text-[12px] font-bold tabular-nums" style={{ color: cat.color }}>
                 {localProgress}%
               </span>
             </div>
             {canAct ? (
+              /* Sotto il dito si muove solo la copia locale; la scrittura
+                 parte quando si lascia.
+
+                 Su `onChange` partiva un salvataggio a ogni scatto — venti
+                 richieste per un trascinamento intero — e `handlePathProgress`
+                 aggiorna l'albero solo DOPO aver atteso la risposta, quindi il
+                 cursore arrancava dietro al dito. `pointerup` arriva
+                 sull'input anche se il dito finisce lontano (durante il
+                 trascinamento il browser gli assegna la cattura del
+                 puntatore); `keyup` copre le frecce della tastiera. */
               <input
                 type="range"
                 min={0}
                 max={100}
                 step={5}
                 value={localProgress}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  setLocalProgress(v);
-                  onProgress?.(node.goalId!, v);
+                onChange={(e) => setLocalProgress(parseInt(e.target.value, 10))}
+                onPointerUp={(e) => {
+                  const v = parseInt(e.currentTarget.value, 10);
+                  if (v !== (node.progress ?? 0)) onProgress?.(node.goalId!, v);
+                }}
+                onKeyUp={(e) => {
+                  const v = parseInt(e.currentTarget.value, 10);
+                  if (v !== (node.progress ?? 0)) onProgress?.(node.goalId!, v);
                 }}
                 className="w-full accent-[var(--club-blue)]"
               />
@@ -1166,7 +1180,7 @@ function NodeSheet({
         )}
 
         {isPreview && (visual === 'available' || visual === 'in_progress') && (
-          <p className="text-[11px] text-gray-400 text-center mt-2">
+          <p className="text-[11px] text-[var(--subtle-foreground)] text-center mt-2">
             Anteprima: azioni disabilitate
           </p>
         )}

@@ -34,10 +34,10 @@ export function GroupRow({ group, members, openGoals, onClick }: Props) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">
+        <h3 className="text-[15px] font-bold text-foreground tracking-[-0.01em] truncate">
           {group.full_name}
         </h3>
-        <p className="text-[11px] text-gray-500 mt-1">
+        <p className="text-[11px] text-muted-foreground mt-1">
           {members} {members === 1 ? 'partecipante' : 'partecipanti'}
           {openGoals > 0 && (
             <>
@@ -55,9 +55,9 @@ export function GroupRow({ group, members, openGoals, onClick }: Props) {
         height="16"
         viewBox="0 0 24 24"
         fill="none"
-        stroke="#D1D5DB"
+        stroke="currentColor"
         strokeWidth="2"
-        className="shrink-0"
+        className="shrink-0 text-[var(--subtle-foreground)]"
       >
         <polyline points="9 18 15 12 9 6" />
       </svg>

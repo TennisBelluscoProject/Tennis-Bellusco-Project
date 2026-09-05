@@ -368,13 +368,14 @@ function Mascot({
   const t = world.tiers[tier];
   const aura = accent ?? t.aura;
 
-  // Il riquadro resta di `size` — e' lui a dettare posizione, ombra a terra ed
-  // etichetta — mentre l'immagine puo' essere piu' grande e sbordare. Vedi il
-  // commento su `fit` in lib/paths/worlds.ts: serve a pareggiare a occhio
-  // animali di forma molto diversa dentro lo stesso riquadro quadrato.
-  const fit = t.fit ?? 1;
-  const imgSize = Math.round(size * fit);
-  const sbordo = (imgSize - size) / 2;
+  // L'immagine riempie esattamente il riquadro. Fino a poco fa c'era un
+  // fattore di ingrandimento per singolo avatar (`fit` in lib/paths/worlds.ts):
+  // un rattoppo che serviva quando i file avevano proporzioni molto diverse
+  // fra loro e, dentro un riquadro quadrato con `object-contain`, un animale
+  // disteso sembrava molto piu' piccolo di uno alto. Le immagini sono state
+  // normalizzate a monte, quindi quel fattore correggeva un difetto che non
+  // esiste piu' — e il coccodrillo cucciolo, che aveva il valore piu' alto
+  // (1.55), usciva spropositato.
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
@@ -407,16 +408,13 @@ function Mascot({
         <Image
           src={t.image}
           alt={`${world.name} ${t.label}`}
-          width={imgSize}
-          height={imgSize}
-          sizes={`${imgSize}px`}
-          className={`absolute max-w-none object-contain ${bob ? 'adv-bob' : ''}`}
+          width={size}
+          height={size}
+          sizes={`${size}px`}
+          className={`absolute inset-0 max-w-none object-contain ${bob ? 'adv-bob' : ''}`}
           style={{
-            width: imgSize,
-            height: imgSize,
-            // Centrata sul riquadro: sborda in modo simmetrico.
-            left: -sbordo,
-            top: -sbordo,
+            width: size,
+            height: size,
             filter: glow
               ? 'drop-shadow(0 8px 16px rgba(0,0,0,0.45))'
               : 'drop-shadow(0 4px 8px rgba(0,0,0,0.32))',
@@ -549,16 +547,16 @@ function SidePanel({ state, world }: { state: KidsProgramState; world: WorldConf
   return (
     <div className="flex flex-col gap-3">
       <div className="card p-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--subtle-foreground)]">
           A che punto sei
         </p>
         <p
-          className="text-[16px] font-bold mt-1.5"
-          style={{ color: c.ink, fontFamily: 'var(--font-display)' }}
+          className="text-[16px] font-bold mt-1.5 text-foreground"
+          style={{ fontFamily: 'var(--font-display)' }}
         >
           Livello {li.level} · {TIER_LABELS[state.tier]}
         </p>
-        <p className="text-[12.5px] text-gray-500 leading-relaxed mt-1.5">
+        <p className="text-[12.5px] text-muted-foreground leading-relaxed mt-1.5">
           {state.finished ? (
             <>Hai concluso tutti i 12 passi di questo percorso.</>
           ) : (
@@ -579,10 +577,10 @@ function SidePanel({ state, world }: { state: KidsProgramState; world: WorldConf
 
       {prossimoCancello && (
         <div className="card p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--subtle-foreground)]">
             Prossimo lucchetto
           </p>
-          <p className="text-[13px] font-semibold text-gray-700 mt-1.5 leading-snug">
+          <p className="text-[13px] font-semibold text-foreground mt-1.5 leading-snug">
             Dopo il passo {prossimoCancello.number} il sentiero e&#39; chiuso fino al{' '}
             <b style={{ color: c.accent }}>livello {prossimoCancello.gateLevel}</b>.
           </p>
@@ -590,7 +588,7 @@ function SidePanel({ state, world }: { state: KidsProgramState; world: WorldConf
       )}
 
       <div className="card p-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--subtle-foreground)]">
           Evoluzioni
         </p>
         <ul className="mt-2 flex flex-col gap-1">
@@ -600,19 +598,24 @@ function SidePanel({ state, world }: { state: KidsProgramState; world: WorldConf
               <li
                 key={i}
                 className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl"
-                style={{ background: raggiunta ? c.soft : 'transparent' }}
+                style={{
+                  background: raggiunta
+                    ? `color-mix(in srgb, ${c.accent} 16%, transparent)`
+                    : 'transparent',
+                }}
               >
                 <span className="shrink-0" style={{ opacity: raggiunta ? 1 : 0.35 }}>
                   <Mascot world={world} tier={i as 0 | 1 | 2} size={36} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span
-                    className="block text-[12.5px] font-bold"
-                    style={{ color: raggiunta ? c.accentDark : '#9AA3B5' }}
+                    className={`block text-[12.5px] font-bold ${
+                      raggiunta ? 'text-foreground' : 'text-[var(--subtle-foreground)]'
+                    }`}
                   >
                     {TIER_LABELS[i]}
                   </span>
-                  <span className="block text-[11px] text-gray-400">
+                  <span className="block text-[11px] text-[var(--subtle-foreground)]">
                     {i === 0 ? 'di partenza' : `dal livello ${lvl}`}
                   </span>
                 </span>
@@ -631,12 +634,15 @@ function PanelChip({
   colors,
 }: {
   children: ReactNode;
-  colors: { soft: string; accentDark: string };
+  colors: { accent: string };
 }) {
   return (
     <span
       className="inline-flex items-center px-2 py-1 rounded-md text-[10.5px] font-bold"
-      style={{ background: colors.soft, color: colors.accentDark }}
+      style={{
+        background: `color-mix(in srgb, ${colors.accent} 16%, transparent)`,
+        color: colors.accent,
+      }}
     >
       {children}
     </span>

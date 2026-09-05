@@ -26,7 +26,7 @@ export function RisultatiTab({ loading, allMatches, resultFilter, onResultFilter
     <div className="flex flex-col h-full animate-fade-in">
       <div className="px-4 pt-5 pb-4 shrink-0">
         <h2
-          className="text-2xl font-bold text-gray-900 tracking-[-0.02em] mb-4"
+          className="text-2xl font-bold text-foreground tracking-[-0.02em] mb-4"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Risultati Agonistici

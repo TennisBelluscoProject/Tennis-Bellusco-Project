@@ -10,6 +10,7 @@ import { Tabs, SectionSwitcher, SearchBar, Spinner, Badge, EmptyState, ConfirmDi
 import type { Profile, MatchResultRow } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { AvatarDisplay } from '@/components/AvatarDisplay';
 import { MatchCard } from '@/components/MatchCard';
 import { CoachNotesForm } from '@/components/CoachNotesForm';
 import { CoachMobileDashboard } from './CoachMobileDashboard';
@@ -257,9 +258,35 @@ function CoachDesktopDashboard() {
     <div className="min-h-screen bg-[var(--background)]">
       <Header />
       <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 pb-6">
-        <div className="sticky top-16 z-30 bg-[var(--background)] -mx-4 sm:-mx-6 px-4 sm:px-6 pt-6 pb-3">
-          <ClubOverview stats={clubStats} />
+        {/* La panoramica NON e' appiccicata, e non deve esserlo.
 
+            Stava dentro la fascia qui sotto, e le fasce appiccicate si
+            sommano: intestazione (56px) + panoramica (~215) + schede +
+            selettore + titolo + due file di pastiglie + ricerca arrivavano a
+            occupare quasi 600 punti FISSI in cima allo schermo. Su un portatile
+            restava una feritoia di un centinaio di punti in cui far scorrere
+            centoventisette obiettivi: la pagina scorreva davvero, ma sullo
+            schermo non si muoveva quasi niente — che e' esattamente la
+            sensazione che lo scorrimento non funzioni piu'.
+
+            Un riepilogo mensile non ha motivo di inseguirti mentre sfogli il
+            catalogo: si legge una volta e scorre via. Restano appiccicati solo
+            i comandi che servono in mezzo alla lista — schede, filtri e
+            ricerca. */}
+        <div className="pt-6">
+          <ClubOverview stats={clubStats} />
+        </div>
+
+        {/* Si ferma esattamente sotto la barra in alto.
+
+            `top-16` erano 64px scritti a mano, ma l'intestazione e' alta
+            `--header-h` (56px) piu' l'eventuale rientro di sistema: restava
+            percio' una fessura di 8px fra le due, e in quella fessura si
+            vedeva scorrere il contenuto a piena opacita'. */}
+        <div
+          className="sticky z-30 bg-[var(--background)] -mx-4 sm:-mx-6 px-4 sm:px-6 pt-1 pb-3"
+          style={{ top: 'calc(var(--safe-top) + var(--header-h))' }}
+        >
           <Tabs
             tabs={[
               { id: 'allievi', label: `Allievi (${students.length})` },
@@ -523,9 +550,18 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
   return (
     <div onClick={onClick} className="card card-interactive p-4 animate-fade-in">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--club-blue)] to-[var(--club-blue-dark)] flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
-          {student.full_name.charAt(0).toUpperCase()}
-        </div>
+        {/* La foto, se c'e'.
+
+            Qui l'iniziale era disegnata a mano e `photo_url` non veniva
+            nemmeno guardato: da telefono la riga dell'allievo usa
+            `AvatarDisplay` e la foto si vedeva, da scrivania no — stessa
+            persona, due facce diverse a seconda dello schermo. Il dato c'era
+            gia' (la lettura fa `select('*')`), mancava solo chi lo leggesse. */}
+        <AvatarDisplay
+          photoUrl={student.photo_url}
+          fullName={student.full_name}
+          size={44}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 min-w-0">
             <h3 className="text-sm font-bold text-[var(--foreground)] truncate tracking-[-0.01em]">{student.full_name}</h3>
@@ -631,15 +667,20 @@ function ClubOverview({ stats }: { stats: ClubStats | null }) {
 
   return (
     <div className="card mb-6 overflow-hidden">
-      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--subtle-foreground)]">
-            Panoramica club
-          </p>
-          <p className="mt-1 text-[12.5px] text-[var(--muted-foreground)]">
-            Dati aggregati · {monthLabel}
-          </p>
-        </div>
+      {/* Titolo a sinistra, periodo a destra, sulla STESSA riga.
+
+          Prima erano incolonnati a sinistra dentro un `justify-between` che
+          non aveva un secondo figlio: mezza riga di intestazione restava vuota
+          e il blocco pesava due righe invece di una. Il periodo e' l'altra
+          meta' dell'informazione ("questi numeri, in questo mese"), quindi sta
+          bene all'estremo opposto della stessa riga. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-6 pt-5 pb-4">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--subtle-foreground)]">
+          Panoramica club
+        </p>
+        <p className="text-[12.5px] text-[var(--muted-foreground)]">
+          Dati aggregati · {monthLabel}
+        </p>
       </div>
 
       {/* I separatori sono sui figli, non `divide-x`: cosi' la riga puo'
@@ -681,23 +722,28 @@ function OverviewStat({
   const isPositive = delta.startsWith('↑');
   const isNeutral = delta.startsWith('±');
   return (
-    <div className={cn('px-6 py-5', className)}>
-      <div className="mb-2.5 flex items-center gap-2">
-        <span
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)]"
-          style={{
-            background: `color-mix(in srgb, ${accent} 12%, transparent)`,
-            color: accent,
-          }}
-          aria-hidden
-        >
+    // Tutto incolonnato al CENTRO.
+    //
+    // Le quattro colonne sono larghe e il contenuto e' corto: appoggiato a
+    // sinistra lasciava a destra un vuoto diverso in ogni riquadro, e le
+    // quattro cifre — che sono la cosa da guardare — finivano a distanze
+    // disuguali fra loro. Centrate stanno a passo regolare e la riga si legge
+    // come una riga sola invece che come quattro blocchi accostati.
+    <div className={cn('flex flex-col items-center px-5 py-5 text-center', className)}>
+      {/* L'icona non ha piu' la piastrella colorata dietro.
+          Su quattro riquadri affiancati erano quattro macchie di colore
+          diverso a contendersi l'attenzione con i numeri, che sono il
+          contenuto vero. Il colore resta — ma sul tratto dell'icona, dove
+          basta a distinguere la voce senza gridare. */}
+      <div className="mb-2.5 flex items-center justify-center gap-1.5">
+        <span className="shrink-0" style={{ color: accent }} aria-hidden>
           {icon}
         </span>
-        <span className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--subtle-foreground)]">
+        <span className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
           {label}
         </span>
       </div>
-      <p className="tnum mb-1.5 text-[32px] font-bold leading-none tracking-[-0.03em] text-[var(--foreground)]">
+      <p className="tnum mb-1.5 text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--foreground)]">
         {value}
       </p>
       <p
@@ -706,7 +752,7 @@ function OverviewStat({
           color: isPositive
             ? 'var(--success)'
             : isNeutral
-              ? 'var(--subtle-foreground)'
+              ? 'var(--muted-foreground)'
               : 'var(--destructive)',
         }}
       >

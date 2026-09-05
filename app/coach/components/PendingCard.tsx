@@ -27,7 +27,7 @@ export function PendingCard({ profile, busy, onApprove, onReject, variant = 'mob
           {initial}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-bold text-gray-900 tracking-[-0.01em] truncate">{profile.full_name}</h3>
+          <h3 className="text-[15px] font-bold text-foreground tracking-[-0.01em] truncate">{profile.full_name}</h3>
           <p className="text-[12px] text-[var(--club-blue)] truncate">{profile.email}</p>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             {ageCategory && <Badge color="var(--club-blue)" bg="var(--club-blue-light)">{ageCategory}</Badge>}
@@ -36,7 +36,7 @@ export function PendingCard({ profile, busy, onApprove, onReject, variant = 'mob
             ) : (
               <Badge>{profile.level}</Badge>
             )}
-            <span className="text-[10px] text-gray-400">· {timeAgo(created)}</span>
+            <span className="text-[10px] text-[var(--subtle-foreground)]">· {timeAgo(created)}</span>
           </div>
         </div>
       </div>
@@ -44,7 +44,7 @@ export function PendingCard({ profile, busy, onApprove, onReject, variant = 'mob
         <button
           disabled={busy}
           onClick={onReject}
-          className="py-2.5 rounded-xl border-2 border-red-100 text-[var(--club-red)] text-[13px] font-bold hover:bg-red-50 transition-colors disabled:opacity-50"
+          className="py-2.5 rounded-xl border-2 border-[color-mix(in_srgb,var(--destructive)_24%,transparent)] text-[var(--club-red)] text-[13px] font-bold hover:bg-destructive-soft transition-colors disabled:opacity-50"
         >
           ✕ Rifiuta
         </button>
