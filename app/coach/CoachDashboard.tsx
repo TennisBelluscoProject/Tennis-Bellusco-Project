@@ -570,7 +570,7 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
           <p className="text-[10px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">Obiettivi</p>
         </div>
         <div>
-          <p className="tnum text-sm font-bold text-[var(--success)]">{stats.completed}</p>
+          <p className="tnum text-sm font-bold text-[var(--cat-agonismo)]">{stats.completed}</p>
           <p className="text-[10px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">Completati</p>
         </div>
         <div>
@@ -578,7 +578,7 @@ function StudentCard({ student, onClick }: { student: Profile; onClick: () => vo
           <p className="text-[10px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">Match</p>
         </div>
         <div>
-          <p className="tnum text-sm font-bold text-[var(--cat-agonismo)]">{stats.wins}</p>
+          <p className="tnum text-sm font-bold text-[var(--success)]">{stats.wins}</p>
           <p className="text-[10px] font-semibold text-[var(--subtle-foreground)] uppercase tracking-wider">Vittorie</p>
         </div>
       </div>
@@ -649,9 +649,6 @@ function ClubOverview({ stats }: { stats: ClubStats | null }) {
             Dati aggregati · {monthLabel}
           </p>
         </div>
-        <span className="shrink-0 rounded-full border border-[var(--success)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--success)]">
-          Nuovo
-        </span>
       </div>
 
       {/* I separatori sono sui figli, non `divide-x`: cosi' la riga puo'

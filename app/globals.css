@@ -986,6 +986,29 @@ input[type="date"]::-webkit-datetime-edit { padding: 0; line-height: 1.25; }
 .adv-glow { animation: advGlow 7s ease-in-out infinite; }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   VIEW TRANSITIONS — cerchio del cambio tema (AnimatedThemeToggler)
+
+   Di suo il browser anima ::view-transition-old/new(root) con una
+   dissolvenza incrociata. Qui il cerchio lo disegna lo script con un
+   clip-path su ::view-transition-new(root): lasciare anche la dissolvenza
+   di default farebbe vedere i due effetti sovrapposti. La si spegne e si
+   mette il livello nuovo sopra quello vecchio, cosi' l'unico movimento
+   visibile e' il ritaglio che si allarga.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    ACCESSIBILITA'
    ═══════════════════════════════════════════════════════════════════════ */
 

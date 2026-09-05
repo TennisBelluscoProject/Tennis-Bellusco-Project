@@ -40,6 +40,6 @@ export {
 export { ToastProvider, useToast } from './ui/Toast';
 export type { ToastOptions, ToastTone } from './ui/Toast';
 
-export { ThemeToggle } from './ui/ThemeToggle';
+export { AnimatedThemeToggler } from './ui/AnimatedThemeToggler';
 
 export { Logo, LogoMark } from './Logo';

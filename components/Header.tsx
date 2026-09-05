@@ -4,7 +4,7 @@ import { LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/Logo';
 import { IconButton } from '@/components/ui/Button';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AnimatedThemeToggler } from '@/components/ui/AnimatedThemeToggler';
 
 /**
  * La barra in alto.
@@ -51,7 +51,7 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-1">
-            <ThemeToggle />
+            <AnimatedThemeToggler />
 
             <span
               className="w-8 h-8 rounded-[var(--radius-sm)] bg-primary-soft flex items-center justify-center shrink-0"
