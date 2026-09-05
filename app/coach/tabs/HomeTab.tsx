@@ -33,6 +33,12 @@ interface Props {
    I due numeri stanno in UN blocco diviso a meta', non in due riquadri
    staccati: sono la stessa lettura ("com'e' messo il gruppo adesso"), e un
    riquadro per numero li faceva sembrare due sezioni diverse.
+
+   Dentro le due meta' il contenuto e' CENTRATO. Allineato a sinistra stava
+   bene solo a 375 punti: appena lo schermo si allarga le due meta' crescono
+   ma il contenuto no, e restavano due isolotti di testo appiccicati a
+   sinistra con mezzo blocco vuoto a destra. Centrato regge a ogni larghezza,
+   ed e' anche il motivo per cui la riga in fondo e' centrata a sua volta.
    ═════════════════════════════════════════════════════════════════════════ */
 
 export function HomeTab({
@@ -108,21 +114,21 @@ export function HomeTab({
         <div className="card mt-4 overflow-hidden">
           <div className="flex">
             <SummaryStat
-              icon={<Users size={15} strokeWidth={2.4} />}
+              icon={<Users size={18} strokeWidth={2.4} />}
               value={totalStudents}
               label="Allievi"
               accent="var(--primary)"
             />
             <div className="w-px self-stretch bg-[var(--border-soft)]" aria-hidden />
             <SummaryStat
-              icon={<Target size={15} strokeWidth={2.4} />}
+              icon={<Target size={18} strokeWidth={2.4} />}
               value={activeGoals}
               label="Obiettivi attivi"
               accent="var(--cat-agonismo)"
             />
           </div>
 
-          <div className="flex items-center gap-2 border-t border-[var(--border-soft)] bg-[var(--sunken)] px-4 py-2.5">
+          <div className="flex items-center justify-center gap-2 border-t border-[var(--border-soft)] bg-[var(--sunken)] px-4 py-2.5">
             <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
               <span className="animate-pulse-soft absolute inset-0 rounded-full bg-[var(--success)]" />
               <span className="relative h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
@@ -200,21 +206,20 @@ function SummaryStat({
   accent: string;
 }) {
   return (
-    <div className="flex-1 px-4 py-3.5">
-      <span
-        className="inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)]"
-        style={{
-          backgroundColor: `color-mix(in srgb, ${accent} 12%, transparent)`,
-          color: accent,
-        }}
-        aria-hidden
-      >
-        {icon}
-      </span>
-      <p className="tnum mt-2 text-[28px] font-bold leading-none tracking-[-0.03em] text-[var(--foreground)]">
-        {value}
-      </p>
-      <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--subtle-foreground)]">
+    <div className="flex flex-1 flex-col items-center px-3 py-4">
+      {/* Icona e numero sulla stessa riga: l'icona e' un contrassegno del
+          numero, non un elemento a se'. Da sola sopra, dentro un quadratino
+          colorato, restava appesa in alto a sinistra e allungava il blocco di
+          una riga intera per non dire niente in piu'. */}
+      <div className="flex items-center gap-2">
+        <span className="shrink-0" style={{ color: accent }} aria-hidden>
+          {icon}
+        </span>
+        <p className="tnum text-[30px] font-bold leading-none tracking-[-0.03em] text-[var(--foreground)]">
+          {value}
+        </p>
+      </div>
+      <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--subtle-foreground)]">
         {label}
       </p>
     </div>

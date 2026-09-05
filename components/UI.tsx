@@ -20,7 +20,7 @@ export { Input, Textarea, Select, Checkbox, SearchBar, Switch, Slider } from './
 export { Dialog, Modal, ConfirmDialog } from './ui/Dialog';
 export type { DialogProps, ConfirmDialogProps } from './ui/Dialog';
 
-export { Tabs, SegmentedControl } from './ui/Tabs';
+export { Tabs, SectionSwitcher, SegmentedControl } from './ui/Tabs';
 export type { TabItem } from './ui/Tabs';
 
 export {

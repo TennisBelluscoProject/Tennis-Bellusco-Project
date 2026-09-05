@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { profileRepo, goalRepo, matchRepo, groupRepo } from '@/lib/repositories';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
-import { Tabs, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog, Button } from '@/components/UI';
+import { Tabs, SectionSwitcher, SearchBar, Spinner, Badge, EmptyState, ConfirmDialog, Button } from '@/components/UI';
 import type { Profile, MatchResultRow } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -304,32 +304,23 @@ function CoachDesktopDashboard() {
 
           {activeTab === 'catalogo' && (
             <div className="mt-4 flex flex-col gap-3">
-              <div className="flex gap-2">
-                {(KIDS_PATHS
+              {/* `max-w-md`: a tutta larghezza qui vorrebbe dire tre segmenti
+                  da quattrocento punti l'uno, che non e' risalto ma sciatteria.
+                  Su telefono lo stesso selettore riempie invece lo schermo. */}
+              <SectionSwitcher
+                className="max-w-md"
+                tabs={(KIDS_PATHS
                   ? (['obiettivi', 'percorsi', 'kids'] as const)
                   : (['obiettivi', 'percorsi'] as const)
-                ).map((v) => {
-                  const isActive = catalogView === v;
-                  const activeColor =
-                    v === 'kids' ? KIDS_PROGRAMS.DELFINO.colors.accent : 'var(--club-blue)';
-                  const label =
-                    v === 'obiettivi' ? 'Obiettivi' : v === 'percorsi' ? 'Percorsi' : 'Percorsi Kids';
-                  return (
-                    <button
-                      key={v}
-                      onClick={() => setCatalogView(v)}
-                      className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border transition-colors"
-                      style={{
-                        background: isActive ? activeColor : 'var(--card)',
-                        borderColor: isActive ? activeColor : 'var(--border)',
-                        color: isActive ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+                ).map((v) => ({
+                  id: v,
+                  label:
+                    v === 'obiettivi' ? 'Obiettivi' : v === 'percorsi' ? 'Percorsi' : 'Percorsi Kids',
+                  color: v === 'kids' ? KIDS_PROGRAMS.DELFINO.colors.accent : 'var(--primary)',
+                }))}
+                active={catalogView}
+                onChange={(v) => setCatalogView(v as typeof catalogView)}
+              />
               {catalogView === 'obiettivi' && (
                 <GoalTemplatesHeader ctx={catalogCtx} isMobile={false} />
               )}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Users, UserPlus } from 'lucide-react';
-import { SearchBar, Spinner, EmptyState } from '@/components/UI';
+import { SearchBar, SectionSwitcher, Spinner, EmptyState } from '@/components/UI';
 import type { Profile } from '@/lib/database.types';
 import { getActivityDot } from '@/lib/utils';
 import { StudentRow } from '../components/StudentRow';
@@ -68,12 +68,12 @@ export function AllieviTab({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2
-              className="text-2xl font-bold text-gray-900 tracking-[-0.02em]"
+              className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               {isGroups ? 'Gruppi' : 'Allievi'}
             </h2>
-            <p className="text-[12px] text-gray-500 mt-0.5">{subtitle}</p>
+            <p className="mt-0.5 text-[12px] text-[var(--muted-foreground)]">{subtitle}</p>
           </div>
           <button
             type="button"
@@ -88,34 +88,20 @@ export function AllieviTab({
           </button>
         </div>
 
-        <div className="flex gap-2 mb-3">
-          {(['allievi', 'gruppi'] as const).map((s) => {
-            const active = section === s;
-            const accent = s === 'gruppi' ? 'var(--club-red)' : 'var(--club-blue)';
-            const count = s === 'gruppi' ? groups.length : students.length;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => {
-                  setSection(s);
-                  // La ricerca e' condivisa fra le due liste: azzerarla evita
-                  // un falso "nessun risultato" al cambio di sezione.
-                  onSearchChange('');
-                }}
-                className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border transition-colors"
-                style={{
-                  background: active ? accent : '#FFFFFF',
-                  borderColor: active ? accent : '#E5E7EB',
-                  color: active ? '#FFFFFF' : '#6B7280',
-                }}
-              >
-                {s === 'allievi' ? 'Allievi' : 'Gruppi'}
-                {count > 0 && <span className="ml-1.5 opacity-70">{count}</span>}
-              </button>
-            );
-          })}
-        </div>
+        <SectionSwitcher
+          className="mb-3"
+          tabs={[
+            { id: 'allievi', label: 'Allievi', count: students.length, color: 'var(--club-blue)' },
+            { id: 'gruppi', label: 'Gruppi', count: groups.length, color: 'var(--club-red)' },
+          ]}
+          active={section}
+          onChange={(s) => {
+            setSection(s as Section);
+            // La ricerca e' condivisa fra le due liste: azzerarla evita un
+            // falso "nessun risultato" al cambio di sezione.
+            onSearchChange('');
+          }}
+        />
 
         <SearchBar
           value={search}

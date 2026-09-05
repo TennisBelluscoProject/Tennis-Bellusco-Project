@@ -26,8 +26,8 @@ interface Props {
    completati la schermata diventava un muro verde in cui non si distingueva
    piu' una notifica dall'altra, ed era anche l'unica card dell'app con lo
    sfondo colorato. Ora la superficie e' quella di ogni altra card e a
-   cambiare e' un quadrato di quaranta punti: si riconosce al volo il tipo,
-   senza che l'elenco perda ritmo.
+   cambiare e' una fascia larga quaranta punti sul fianco sinistro: si
+   riconosce al volo il tipo, senza che l'elenco perda ritmo.
 
    I colori escono tutti dai token: quelli scritti a mano di prima (#dcfce7,
    text-gray-900) non avevano una controparte scura, e a tema scuro il testo
@@ -45,7 +45,7 @@ export function NotificationCard({ notif, onDismiss }: Props) {
   return (
     <figure
       className={cn(
-        'relative overflow-hidden rounded-[var(--radius-xl)] p-3.5',
+        'rounded-[var(--radius-xl)] p-3.5',
         'border border-[var(--border-soft)] bg-[var(--card)] shadow-[var(--shadow-xs)]',
         // Niente `transform` qui dentro: la card e' anche un elemento animato
         // da motion, che scrive la transform in linea a ogni fotogramma.
@@ -56,25 +56,20 @@ export function NotificationCard({ notif, onDismiss }: Props) {
         'dark:[box-shadow:0_-24px_64px_-24px_rgba(255,255,255,0.09)_inset,var(--shadow-xs)]'
       )}
     >
-      {/* Alone del colore del tipo, appoggiato all'angolo dell'icona. */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `radial-gradient(140px 70px at 0% 0%, color-mix(in srgb, ${accent} 10%, transparent), transparent 72%)`,
-        }}
-      />
-
-      <div className="relative flex items-start gap-3">
+      {/* `items-stretch`: la fascia dell'icona si allunga da sola fino
+          all'altezza del testo, qualunque sia. Con un'altezza fissa sarebbe
+          bastata una riga di sottotitolo piu' lunga per farla sembrare
+          appoggiata storta in alto. */}
+      <div className="flex items-stretch gap-3">
         <span
           aria-hidden
-          className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-lg)]"
+          className="flex w-10 shrink-0 items-center justify-center rounded-[var(--radius-lg)]"
           style={{
             backgroundColor: `color-mix(in srgb, ${accent} 15%, transparent)`,
             color: accent,
           }}
         >
-          <Icon size={18} strokeWidth={2.4} />
+          <Icon size={19} strokeWidth={2.3} />
         </span>
 
         <div className="min-w-0 flex-1">
