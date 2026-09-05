@@ -8,6 +8,7 @@ import { isActiveToday, formatDateLong } from '@/lib/utils';
 import { FilterPill } from '../components/Pills';
 import { AnimatedList } from '@/components/ui/AnimatedList';
 import { NotificationCard, type Notif } from '../components/NotificationCard';
+import { InstallAppButton } from '@/components/InstallAppButton';
 
 interface Props {
   loading: boolean;
@@ -106,9 +107,15 @@ export function HomeTab({
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--subtle-foreground)]">
           {formatDateLong(new Date())}
         </p>
-        <h2 className="mt-1 text-[26px] font-bold leading-none tracking-[-0.03em] text-[var(--foreground)]">
-          Benvenuto
-        </h2>
+        <div className="mt-1 flex items-center justify-between gap-3">
+          <h2 className="text-[26px] font-bold leading-none tracking-[-0.03em] text-[var(--foreground)]">
+            Benvenuto
+          </h2>
+          {/* Compare solo su Android, solo da telefono e solo se l'app non e'
+              gia' installata: nel caso normale qui non c'e' niente e il
+              titolo resta dov'era. */}
+          <InstallAppButton />
+        </div>
 
         {/* Riepilogo: i due numeri che contano */}
         <div className="card mt-4 overflow-hidden">

@@ -28,6 +28,7 @@ import { GoalForm } from '@/components/GoalForm';
 import { MatchCard } from '@/components/MatchCard';
 import { MatchForm } from '@/components/MatchForm';
 import { CoachNotesForm } from '@/components/CoachNotesForm';
+import { EditFictitiousStudentForm } from '@/app/coach/components/EditFictitiousStudentForm';
 import { DeleteFictitiousStudentDialog } from '@/app/coach/components/DeleteFictitiousStudentDialog';
 import { GroupMembersPanel } from '@/app/coach/components/GroupMembersPanel';
 import { useIsMobile } from '@/lib/hooks';
@@ -263,6 +264,7 @@ export function PlayerView({
   // collettivo. Cambia la testata e sparisce la scheda Match; obiettivi,
   // percorsi e 12 passi restano identici.
   const isGroup = player.is_group;
+  const [editStudentOpen, setEditStudentOpen] = useState(false);
 
   const activeGoals = goals.filter((g) => g.status !== 'completed').length;
   const doneGoals = goals.filter((g) => g.status === 'completed').length;
@@ -530,6 +532,17 @@ export function PlayerView({
               <IconButton
                 label="Modifica profilo"
                 onClick={onEditProfile}
+                icon={<Pencil size={15} />}
+              />
+            )}
+            {/* Un allievo GESTITO non ha un account: non puo' correggersi i
+                dati da solo, quindi la matita la deve avere il maestro.
+                Non compare sui gruppi: quelli non hanno ne' data di nascita
+                ne' classifica (vedi app/coach/components/GroupRow.tsx). */}
+            {isCoach && player.is_fictitious && !isGroup && (
+              <IconButton
+                label="Modifica dati allievo"
+                onClick={() => setEditStudentOpen(true)}
                 icon={<Pencil size={15} />}
               />
             )}
@@ -997,6 +1010,18 @@ export function PlayerView({
           confirmLabel="Disattiva"
           onConfirm={handleDeactivatePath}
           onCancel={() => setDeactivatePathOpen(false)}
+        />
+      )}
+      {isCoach && player.is_fictitious && !isGroup && (
+        <EditFictitiousStudentForm
+          open={editStudentOpen}
+          student={player}
+          onClose={() => setEditStudentOpen(false)}
+          // `onDataChanged` fa ricaricare l'elenco alla dashboard, che poi
+          // risincronizza l'allievo aperto: e' il meccanismo gia' descritto
+          // in app/coach/CoachDashboard.tsx, senza il quale la scheda
+          // resterebbe sui dati vecchi fino al ricaricamento della pagina.
+          onSaved={() => onDataChanged?.()}
         />
       )}
       {isCoach && player.is_fictitious && (

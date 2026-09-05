@@ -9,6 +9,7 @@ import { AvatarUpload } from '@/components/AvatarUpload';
 import type { Profile } from '@/lib/database.types';
 import { getDisplayRanking, getAgeCategory, isClassified } from '@/lib/constants';
 import { FitRankingSelect } from '@/components/FitRankingSelect';
+import { InstallAppButton } from '@/components/InstallAppButton';
 
 interface ProfilePageProps {
   onBack: () => void;
@@ -121,6 +122,11 @@ export function ProfilePage({ onBack }: ProfilePageProps) {
             onClick={() => setEditing('password')}
           />
         </div>
+
+        {/* Sopra all'uscita perche' sono le due azioni che riguardano
+            l'app e non i dati. Compare solo su Android, da telefono, se non
+            e' gia' installata. */}
+        <InstallAppButton block className="mb-3 h-11 rounded-2xl text-[15px]" />
 
         <button
           onClick={signOut}
