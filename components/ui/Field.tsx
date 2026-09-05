@@ -1,8 +1,8 @@
 'use client';
 
-import { useId, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, ChevronDown, Search, X } from 'lucide-react';
+import { Check, ChevronDown, Eye, EyeOff, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -81,6 +81,10 @@ export function Input({
   hint,
 }: InputProps) {
   const id = useId();
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+  const resolvedType = isPassword ? (showPassword ? 'text' : 'password') : type;
+
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       {label && <Label htmlFor={id} required={required}>{label}</Label>}
@@ -92,7 +96,7 @@ export function Input({
         )}
         <input
           id={id}
-          type={type}
+          type={resolvedType}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -105,9 +109,23 @@ export function Input({
             FIELD_BASE,
             'h-10 px-3 text-sm disabled:opacity-50',
             icon && 'pl-9',
+            isPassword && 'pr-9',
             error && 'border-destructive focus:border-destructive focus:shadow-[0_0_0_3px_var(--destructive-soft)]'
           )}
         />
+        {isPassword && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => setShowPassword((prev) => !prev)}
+            disabled={disabled}
+            aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
+            aria-pressed={showPassword}
+            className="absolute right-0 top-0 h-10 w-9 flex items-center justify-center text-subtle-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        )}
       </div>
       {hint && !error && <p className="text-[11px] text-subtle-foreground">{hint}</p>}
       <FieldError error={error} />

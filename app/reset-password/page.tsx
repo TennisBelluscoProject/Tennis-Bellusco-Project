@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function ResetPasswordPage() {
   const supabase = createClient();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -62,8 +66,18 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--club-red)] flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-3xl">🎾</span>
+          <Image
+            src="/logo-login.png"
+            alt="Tennis Bellusco 2012"
+            width={146}
+            height={72}
+            priority
+            className="mx-auto mb-3 object-contain"
+          />
+          <div className="flex justify-center mt-3 mb-4 gap-1">
+            <div className="w-8 h-[3px] rounded-full bg-[var(--club-red)]" />
+            <div className="w-8 h-[3px] rounded-full bg-[var(--secondary-hover)]" />
+            <div className="w-8 h-[3px] rounded-full bg-[var(--club-blue)]" />
           </div>
           <h1
             className="text-2xl font-bold text-[var(--club-blue)]"
@@ -96,15 +110,28 @@ export default function ResetPasswordPage() {
                   Nuova password
                   <span className="text-[var(--club-red)] ml-0.5">*</span>
                 </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimo 6 caratteri"
-                  required
-                  disabled={!sessionReady}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Minimo 6 caratteri"
+                    required
+                    disabled={!sessionReady}
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    disabled={!sessionReady}
+                    aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
+                    aria-pressed={showPassword}
+                    className="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -112,15 +139,28 @@ export default function ResetPasswordPage() {
                   Conferma password
                   <span className="text-[var(--club-red)] ml-0.5">*</span>
                 </label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Ripeti la password"
-                  required
-                  disabled={!sessionReady}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Ripeti la password"
+                    required
+                    disabled={!sessionReady}
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    disabled={!sessionReady}
+                    aria-label={showConfirmPassword ? 'Nascondi password' : 'Mostra password'}
+                    aria-pressed={showConfirmPassword}
+                    className="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               {error && (
@@ -161,12 +201,10 @@ export default function ResetPasswordPage() {
           )}
         </div>
 
-        {/* Footer stripe */}
-        <div className="flex justify-center mt-6 gap-2">
-          <div className="w-12 h-1 rounded-full bg-[var(--club-red)]" />
-          <div className="w-12 h-1 rounded-full bg-card border border-border" />
-          <div className="w-12 h-1 rounded-full bg-[var(--club-blue)]" />
-        </div>
+        {/* Footer */}
+        <p className="text-center text-[11px] text-[var(--subtle-foreground)] mt-6 tracking-wide">
+          EST. BELLUSCO · LOMBARDIA
+        </p>
       </div>
     </div>
   );
