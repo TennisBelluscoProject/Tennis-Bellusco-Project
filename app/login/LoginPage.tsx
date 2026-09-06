@@ -158,7 +158,7 @@ export function LoginPage() {
       redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     });
     if (resetError) setError(resetError.message);
-    else setSuccess('Email di reset inviata. Controlla la posta (anche la cartella spam/posta indesiderata) e clicca sul link per reimpostare la password.');
+    else setSuccess('Email di reset inviata. Attenzione: spesso finisce nello spam o nella posta indesiderata, controlla anche lì. Poi clicca sul link per reimpostare la password.');
     setSubmitting(false);
   };
 

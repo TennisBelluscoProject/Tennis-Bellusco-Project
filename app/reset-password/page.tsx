@@ -3,68 +3,68 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { Button, Input, Spinner } from '@/components/UI';
+
+type Status = 'checking' | 'ready' | 'invalid' | 'done';
 
 export default function ResetPasswordPage() {
   const supabase = createClient();
+  const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
+  const [status, setStatus] = useState<Status>('checking');
 
   useEffect(() => {
     let cancelled = false;
-    // The session should already be set by the auth/callback route
-    // Verify we have a valid session
+    // La sessione la apre gia' la route auth/callback: qui si controlla solo
+    // che il link fosse valido, altrimenti il form non ha niente da aggiornare.
     supabase.auth.getUser().then(({ data }) => {
       if (cancelled) return;
-      if (data.user) {
-        setSessionReady(true);
-      } else {
-        setError('Sessione non valida. Richiedi un nuovo link di reset.');
-      }
+      setStatus(data.user ? 'ready' : 'invalid');
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [supabase.auth]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError('');
 
-    if (password.length < 6) {
-      setError('La password deve avere almeno 6 caratteri');
-      return;
-    }
+    if (password.length < 6) return setError('La password deve avere almeno 6 caratteri');
+    if (password !== confirmPassword) return setError('Le password non coincidono');
 
-    if (password !== confirmPassword) {
-      setError('Le password non corrispondono');
-      return;
-    }
-
-    setLoading(true);
-
-    const { error: updateError } = await supabase.auth.updateUser({
-      password,
-    });
-
+    setSubmitting(true);
+    const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
       setError(updateError.message);
-    } else {
-      setSuccess(true);
+      setSubmitting(false);
+      return;
     }
+    setStatus('done');
+    setSubmitting(false);
+  };
 
-    setLoading(false);
+  const getTitle = () => {
+    if (status === 'done') return 'Password aggiornata';
+    if (status === 'invalid') return 'Link non più valido';
+    return 'Nuova password';
+  };
+  const getSubtitle = () => {
+    if (status === 'done') return 'Da ora accedi con la password appena scelta';
+    if (status === 'invalid') return 'Richiedi un nuovo link di reset dal login';
+    return 'Scegli la password con cui accederai da ora in poi';
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
+    <div className="login-bg flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-[420px] relative z-10">
+        {/* Brand */}
         <div className="text-center mb-8">
           <Image
             src="/logo-login.png"
@@ -79,133 +79,158 @@ export default function ResetPasswordPage() {
             <div className="w-8 h-[3px] rounded-full bg-[var(--secondary-hover)]" />
             <div className="w-8 h-[3px] rounded-full bg-[var(--club-blue)]" />
           </div>
-          <h1
-            className="text-2xl font-bold text-[var(--club-blue)]"
+          <p
+            className="text-lg font-semibold text-foreground tracking-[-0.01em]"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            Nuova Password
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Inserisci la tua nuova password
+            {getTitle()}
           </p>
+          <p className="text-[13px] text-muted-foreground mt-1">{getSubtitle()}</p>
         </div>
 
-        <div className="bg-card rounded-2xl border border-[var(--border-soft)] shadow-sm p-6">
-          {success ? (
-            <div className="text-center">
-              <div className="bg-success-soft text-success text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--success)_24%,transparent)] mb-4">
-                Password aggiornata con successo!
-              </div>
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 bg-club-red text-white hover:bg-club-red-dark shadow-sm text-base px-6 py-3 w-full mt-2"
-              >
-                Vai al login
-              </Link>
+        <div className="card p-6">
+          {status === 'checking' && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Spinner size={24} />
+              <p className="text-[13px] text-muted-foreground">Verifica del link in corso…</p>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-foreground">
-                  Nuova password
-                  <span className="text-[var(--club-red)] ml-0.5">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimo 6 caratteri"
-                    required
-                    disabled={!sessionReady}
-                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    disabled={!sessionReady}
-                    aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
-                    aria-pressed={showPassword}
-                    className="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
+          )}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-foreground">
-                  Conferma password
-                  <span className="text-[var(--club-red)] ml-0.5">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Ripeti la password"
-                    required
-                    disabled={!sessionReady}
-                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--club-blue)] focus:border-transparent transition-all disabled:opacity-50"
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    disabled={!sessionReady}
-                    aria-label={showConfirmPassword ? 'Nascondi password' : 'Mostra password'}
-                    aria-pressed={showConfirmPassword}
-                    className="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              {error && (
-                <div className="bg-destructive-soft text-destructive text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--destructive)_24%,transparent)]">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || !sessionReady}
-                className="inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 bg-[var(--club-red)] text-white hover:bg-[var(--club-red-dark)] shadow-sm text-base px-6 py-3 w-full mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
+          {status === 'invalid' && (
+            <div className="flex flex-col gap-4">
+              <div className="text-center mb-1">
+                <div className="w-14 h-14 rounded-2xl bg-destructive-soft flex items-center justify-center mx-auto mb-3">
                   <svg
-                    className="animate-spin h-4 w-4 mr-2"
+                    width="26"
+                    height="26"
                     viewBox="0 0 24 24"
                     fill="none"
+                    stroke="var(--destructive)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 9.9-1" />
                   </svg>
-                ) : null}
+                </div>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">
+                  Il link di reset è scaduto o è già stato usato. Torna al login e richiedine uno nuovo.
+                </p>
+              </div>
+
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                onClick={() => router.push('/')}
+              >
+                Torna al login
+              </Button>
+            </div>
+          )}
+
+          {status === 'done' && (
+            <div className="flex flex-col gap-4">
+              <div className="text-center mb-1">
+                <div className="w-14 h-14 rounded-2xl bg-success-soft flex items-center justify-center mx-auto mb-3">
+                  <svg
+                    width="26"
+                    height="26"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--success)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">
+                  La tua password è stata aggiornata. Puoi tornare all’app e continuare a giocare.
+                </p>
+              </div>
+
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                onClick={() => router.push('/')}
+              >
+                Vai all’app
+              </Button>
+            </div>
+          )}
+
+          {status === 'ready' && (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <Input
+                label="Nuova password"
+                type="password"
+                value={password}
+                onChange={setPassword}
+                placeholder="Minimo 6 caratteri"
+                required
+              />
+              <Input
+                label="Conferma password"
+                type="password"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                placeholder="Ripeti la password"
+                required
+              />
+
+              {error && <ErrorBox message={error} />}
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                loading={submitting}
+                className="w-full mt-1"
+              >
                 Aggiorna password
-              </button>
+              </Button>
+
+              <div className="text-center mt-1">
+                <Link
+                  href="/"
+                  className="text-sm font-medium text-[var(--club-blue)] hover:underline underline-offset-2"
+                >
+                  Torna al login
+                </Link>
+              </div>
             </form>
           )}
         </div>
 
-        {/* Footer */}
         <p className="text-center text-[11px] text-[var(--subtle-foreground)] mt-6 tracking-wide">
           EST. BELLUSCO · LOMBARDIA
         </p>
       </div>
+    </div>
+  );
+}
+
+function ErrorBox({ message }: { message: string }) {
+  return (
+    <div className="bg-destructive-soft text-destructive text-sm rounded-xl px-4 py-3 border border-[color-mix(in_srgb,var(--destructive)_24%,transparent)] flex items-start gap-2.5">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="shrink-0 mt-0.5"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span>{message}</span>
     </div>
   );
 }
